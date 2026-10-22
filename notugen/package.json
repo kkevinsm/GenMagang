@@ -1,0 +1,10 @@
+{
+  "name": "notugen",
+  "version": "3.0.0",
+  "type": "module",
+  "description": "Modern Executive Meeting Intelligence Platform",
+  "scripts": {
+    "dev": "python3 -m http.server 8765",
+    "start": "python3 -m http.server 8765"
+  }
+}

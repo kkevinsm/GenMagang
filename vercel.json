@@ -1,0 +1,9 @@
+{
+  "regions": ["sin1"],
+  "crons": [
+    {
+      "path": "/api/telegram/reminder",
+      "schedule": "30 9 * * 1-5"
+    }
+  ]
+}
