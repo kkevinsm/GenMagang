@@ -9,27 +9,122 @@ export default function GenMagangLanding() {
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden bg-[#FBFBFA] text-surface-900 font-sans selection:bg-primary-500 selection:text-white">
       
-      {/* =========================================================================
-          BACKGROUND CONCENTRIC ORBITAL RINGS (Centered Mathematically)
+            {/* =========================================================================
+          BACKGROUND CONCENTRIC ORBITAL RINGS & PLANETARY BADGES
+          (Matching CryptoCalc reference: expansive, visible concentric orbits
+           with floating planetary nodes centered behind the hero)
           ========================================================================= */}
       <div 
-        className="pointer-events-none absolute left-1/2 -top-16 -translate-x-1/2 w-[1200px] h-[1200px] flex items-center justify-center -z-10 overflow-hidden"
+        className="pointer-events-none absolute left-1/2 top-[360px] sm:top-[390px] md:top-[410px] -translate-x-1/2 -translate-y-1/2 w-[2300px] h-[2300px] flex items-center justify-center -z-10 select-none"
         aria-hidden="true"
       >
-        {/* Subtle radial center ambient glow */}
-        <div className="absolute w-[450px] h-[450px] rounded-full bg-gradient-to-tr from-emerald-100/60 via-primary-100/40 to-transparent blur-3xl opacity-70" />
+        {/* Central Ambient Glow */}
+        <div className="absolute w-[680px] h-[680px] rounded-full bg-gradient-to-tr from-emerald-100/70 via-teal-100/40 to-transparent blur-3xl opacity-80" />
+
+        {/* Ring 1 (Inner Solid, 520px) */}
+        <div className="absolute w-[520px] h-[520px] rounded-full border border-slate-300/80" />
+
+        {/* Ring 2 (Dashed, 880px) */}
+        <div className="absolute w-[880px] h-[880px] rounded-full border border-dashed border-slate-300" />
+
+        {/* Ring 3 (Solid, 1300px) */}
+        <div className="absolute w-[1300px] h-[1300px] rounded-full border border-slate-300/90" />
+
+        {/* Ring 4 (Dashed, 1760px) */}
+        <div className="absolute w-[1760px] h-[1760px] rounded-full border border-dashed border-slate-300/80" />
+
+        {/* Ring 5 (Outer Solid, 2260px) */}
+        <div className="absolute w-[2260px] h-[2260px] rounded-full border border-slate-200/90" />
+
+        {/* ─── Planetary Orbital Badges (CryptoCalc Reference Style) ─────────────── */}
         
-        {/* Outer Orbit Ring 4 (Dashed) */}
-        <div className="absolute w-[1100px] h-[1100px] rounded-full border border-dashed border-primary-500/10" />
-        
-        {/* Orbit Ring 3 */}
-        <div className="absolute w-[880px] h-[880px] rounded-full border border-primary-500/15" />
-        
-        {/* Orbit Ring 2 (Dashed Emerald) */}
-        <div className="absolute w-[660px] h-[660px] rounded-full border border-dashed border-emerald-500/20" />
-        
-        {/* Inner Orbit Ring 1 */}
-        <div className="absolute w-[440px] h-[440px] rounded-full border border-primary-500/25" />
+        {/* 1. Gemini AI Node (Ring 2, Top-Left) */}
+        <div
+          className="hidden sm:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-slow"
+          style={{ transform: "translate(calc(-50% - 283px), calc(-50% - 337px))" }}
+          title="Gemini AI 2.5 Flash Engine"
+        >
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center text-white text-lg shadow-md">
+            ✨
+          </div>
+        </div>
+
+        {/* 2. 100+ Karakter Valid Node (Ring 2, Bottom-Right) */}
+        <div
+          className="hidden sm:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-alt"
+          style={{ transform: "translate(calc(-50% + 360px), calc(-50% + 252px))" }}
+          title="Lolos Syarat Validasi Min. 100 Karakter"
+        >
+          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-base font-bold shadow-md">
+            ✓
+          </div>
+        </div>
+
+        {/* 3. MagangHub Kemnaker Node (Ring 3, Mid-Left) */}
+        <div
+          className="hidden md:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-slow"
+          style={{ transform: "translate(calc(-50% - 640px), calc(-50% - 113px))" }}
+          title="MagangHub Kemnaker Portal"
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-teal-600 to-primary-700 flex items-center justify-center text-white text-xl shadow-md">
+            🏛️
+          </div>
+        </div>
+
+        {/* 4. SIAPkerja ID Node (Ring 3, Top-Right) */}
+        <div
+          className="hidden md:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-alt"
+          style={{ transform: "translate(calc(-50% + 460px), calc(-50% - 460px))" }}
+          title="Otorisasi Akun SIAPkerja ID"
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white text-xl shadow-md">
+            🇮🇩
+          </div>
+        </div>
+
+        {/* 5. Auto-Submit Presensi Node (Ring 3, Mid-Right) */}
+        <div
+          className="hidden md:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-slow"
+          style={{ transform: "translate(calc(-50% + 647px), calc(-50% + 56px))" }}
+          title="Auto-Submit Absensi & Laporan"
+        >
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xl shadow-md">
+            ⚡
+          </div>
+        </div>
+
+        {/* 6. Notulen Format BNI Node (Ring 4, Lower-Left) */}
+        <div
+          className="hidden lg:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-alt"
+          style={{ transform: "translate(calc(-50% - 827px), calc(-50% + 301px))" }}
+          title="Standar Notulensi Korporat BNI"
+        >
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center text-white text-2xl shadow-md">
+            📝
+          </div>
+        </div>
+
+        {/* 7. Audio & Video AI Node (Ring 4, Upper-Right) */}
+        <div
+          className="hidden lg:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-slow"
+          style={{ transform: "translate(calc(-50% + 850px), calc(-50% - 228px))" }}
+          title="Transkrip Voice Note & Rekaman Video Rapat"
+        >
+          <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white text-2xl shadow-md">
+            🎙️
+          </div>
+        </div>
+
+        {/* 8. Enkripsi AES-256 Node (Ring 4, Upper-Far-Left) */}
+        <div
+          className="hidden xl:flex absolute left-1/2 top-1/2 rounded-full bg-white/95 p-1.5 shadow-xl border-2 border-white items-center justify-center hover:scale-110 transition-transform pointer-events-auto cursor-pointer animate-float-alt"
+          style={{ transform: "translate(calc(-50% - 622px), calc(-50% - 622px))" }}
+          title="Kredensial Aman Terenkripsi AES-256"
+        >
+          <div className="w-13 h-13 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-xl shadow-md">
+            🔒
+          </div>
+        </div>
       </div>
 
       {/* =========================================================================
@@ -88,27 +183,6 @@ export default function GenMagangLanding() {
           ========================================================================= */}
       <main className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-12 md:pt-16 pb-20 text-center">
         
-        {/* Floating Badges (Visible on medium/large screens) */}
-        <div className="hidden md:flex absolute top-12 -left-16 liquid-glass-badge rounded-2xl p-3 items-center gap-3 animate-float-slow shadow-md border border-white/90">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-lg shadow-inner">
-            🤖
-          </div>
-          <div className="text-left">
-            <div className="text-xs font-bold text-surface-900">Monev Kemnaker</div>
-            <div className="text-[0.7rem] text-surface-500">Min. 100 Karakter Lolos</div>
-          </div>
-        </div>
-
-        <div className="hidden md:flex absolute top-12 -right-16 liquid-glass-badge rounded-2xl p-3 items-center gap-3 animate-float-alt shadow-md border border-white/90">
-          <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-700 flex items-center justify-center font-bold text-lg shadow-inner">
-            🎙️
-          </div>
-          <div className="text-left">
-            <div className="text-xs font-bold text-surface-900">Notulensi Rapat</div>
-            <div className="text-[0.7rem] text-surface-500">Audio / Video ke Notulen</div>
-          </div>
-        </div>
-
         {/* Top Trust & Rating Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-emerald-200/80 shadow-sm mb-6 text-xs font-semibold text-surface-700">
           <span className="flex text-amber-500 text-xs tracking-wider">★★★★★</span>
