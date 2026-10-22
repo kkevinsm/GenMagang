@@ -195,13 +195,13 @@ nextjs-portal,
 
 /* Orbital Rings specific styles */
 .orbit-ring-solid {
-  border: 1.5px solid rgba(19, 79, 92, 0.18);
+  border: 1.5px solid rgba(19, 79, 92, 0.28);
 }
 
 .orbit-ring-dashed {
-  border: 1.5px dashed rgba(19, 79, 92, 0.25);
+  border: 1.5px dashed rgba(19, 79, 92, 0.35);
 }
 
 .orbit-ring-emerald {
-  border: 1.5px dashed rgba(16, 185, 129, 0.4);
+  border: 2px dashed rgba(16, 185, 129, 0.55);
 }
