@@ -76,7 +76,7 @@ html, body {
   z-index: -1;
   background-image: 
     radial-gradient(ellipse at 50% -10%, rgba(254, 243, 199, 0.45) 0%, rgba(248, 246, 241, 0) 65%),
-    url('assets/bg.jpg');
+    url('/assets/bg.jpg');
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
