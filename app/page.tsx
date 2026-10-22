@@ -15,26 +15,26 @@ export default function GenMagangLanding() {
            with floating planetary nodes centered behind the hero)
           ========================================================================= */}
       <div 
-        className="pointer-events-none absolute left-1/2 top-[360px] sm:top-[390px] md:top-[410px] -translate-x-1/2 -translate-y-1/2 w-[2300px] h-[2300px] flex items-center justify-center -z-10 select-none"
+        className="pointer-events-none absolute left-1/2 top-[350px] sm:top-[380px] md:top-[400px] -translate-x-1/2 -translate-y-1/2 w-[2300px] h-[2300px] flex items-center justify-center z-0 select-none"
         aria-hidden="true"
       >
         {/* Central Ambient Glow */}
-        <div className="absolute w-[680px] h-[680px] rounded-full bg-gradient-to-tr from-emerald-100/70 via-teal-100/40 to-transparent blur-3xl opacity-80" />
+        <div className="absolute w-[680px] h-[680px] rounded-full bg-gradient-to-tr from-emerald-200/60 via-teal-100/40 to-transparent blur-3xl opacity-75" />
 
         {/* Ring 1 (Inner Solid, 520px) */}
-        <div className="absolute w-[520px] h-[520px] rounded-full border border-slate-300/80" />
+        <div className="absolute w-[520px] h-[520px] rounded-full orbit-ring-solid" />
 
-        {/* Ring 2 (Dashed, 880px) */}
-        <div className="absolute w-[880px] h-[880px] rounded-full border border-dashed border-slate-300" />
+        {/* Ring 2 (Emerald Dashed, 880px) */}
+        <div className="absolute w-[880px] h-[880px] rounded-full orbit-ring-emerald" />
 
-        {/* Ring 3 (Solid, 1300px) */}
-        <div className="absolute w-[1300px] h-[1300px] rounded-full border border-slate-300/90" />
+        {/* Ring 3 (Solid Teal, 1300px) */}
+        <div className="absolute w-[1300px] h-[1300px] rounded-full orbit-ring-solid" />
 
-        {/* Ring 4 (Dashed, 1760px) */}
-        <div className="absolute w-[1760px] h-[1760px] rounded-full border border-dashed border-slate-300/80" />
+        {/* Ring 4 (Dashed Outer, 1760px) */}
+        <div className="absolute w-[1760px] h-[1760px] rounded-full orbit-ring-dashed" />
 
         {/* Ring 5 (Outer Solid, 2260px) */}
-        <div className="absolute w-[2260px] h-[2260px] rounded-full border border-slate-200/90" />
+        <div className="absolute w-[2260px] h-[2260px] rounded-full orbit-ring-solid" />
 
         {/* ─── Planetary Orbital Badges (CryptoCalc Reference Style) ─────────────── */}
         
