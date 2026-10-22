@@ -37,18 +37,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  async rewrites() {
-    return [
-      {
-        source: "/notulen",
-        destination: "/notulen/index.html",
-      },
-      {
-        source: "/notulen/",
-        destination: "/notulen/index.html",
-      },
-    ];
-  },
 };
 
 export default nextConfig;

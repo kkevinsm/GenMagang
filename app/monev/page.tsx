@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Status =
@@ -28,10 +27,54 @@ interface KemnakerUser {
 }
 
 const STATUS_MAP: Record<Status, "PRESENT" | "ON_LEAVE" | "ABSENT"> = {
-  "Hadir": "PRESENT",
+  Hadir: "PRESENT",
   "Tidak Hadir Dengan Keterangan": "ON_LEAVE",
   "Tidak Hadir Tanpa Keterangan": "ABSENT",
 };
+
+// ─── Quick Activity Presets ──────────────────────────────────────────────────
+const QUICK_PRESETS = [
+  {
+    icon: "🚀",
+    label: "Frontend Dev",
+    text: `- Mengerjakan slicing UI komponen dashboard dan navigasi responsif
+- Integrasi API endpoint verifikasi data dan penanganan state error
+- Memperbaiki bug styling pada tampilan layar mobile dan tablet
+- Melakukan code review dan pull request bersama mentor pembimbing`,
+  },
+  {
+    icon: "⚙️",
+    label: "Backend & API",
+    text: `- Merancang endpoint REST API baru untuk modul otorisasi pengguna
+- Melakukan optimasi query database PostgreSQL pada tabel transaksi
+- Menulis unit testing untuk service layer guna memastikan stabilitas
+- Diskusi arsitektur dan penyesuaian payload bersama tim pengembang`,
+  },
+  {
+    icon: "🧪",
+    label: "QA & Testing",
+    text: `- Menjalankan skenario regression testing pada fitur rilis terbaru
+- Mencatat dan mendokumentasikan temuan bug pada issue tracker proyek
+- Verifikasi hasil perbaikan bug di lingkungan staging bersama developer
+- Menyusun test case checklist untuk validasi kelayakan deployment`,
+  },
+  {
+    icon: "🎨",
+    label: "UI/UX Design",
+    text: `- Melakukan eksplorasi wireframe dan high-fidelity prototype di Figma
+- Mengaudit kepatuhan design system dan konsistensi warna komponen
+- Mengikuti sesi evaluasi desain bersama lead designer dan product owner
+- Menyiapkan asset export dan dokumentasi handoff untuk tim engineer`,
+  },
+  {
+    icon: "🤝",
+    label: "Daily Standup",
+    text: `- Mengikuti daily standup meeting tim untuk menyampaikan progress tugas
+- Koordinasi teknis dengan mentor terkait kendala integrasi dependensi
+- Membantu rekan tim dalam penyelesaian error konfigurasi environment
+- Merangkum catatan tindak lanjut dan target penyelesaian sprint hari ini`,
+  },
+];
 
 // ─── Helper Functions ────────────────────────────────────────────────────────
 function isTokenExpired(token: string): boolean {
@@ -57,18 +100,26 @@ function getWibDateString(): string {
 }
 
 // ─── Helper Components ───────────────────────────────────────────────────────
-
 function CharBadge({ count, min = 100 }: { count: number; min?: number }) {
   const isValid = count >= min;
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold transition-all duration-300 animate-count-up ${isValid
-        ? "bg-green-50 text-green-700 border border-green-200"
-        : "bg-red-50 text-red-600 border border-red-200"
-        }`}
+      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all duration-300 ${
+        isValid
+          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+          : "bg-amber-50 text-amber-700 border border-amber-200"
+      }`}
     >
-      <i className={`mdi ${isValid ? "mdi-check text-xs font-bold" : "mdi-alert-circle-outline text-xs"}`} />
-      {count}/{min}
+      <i
+        className={`mdi ${
+          isValid
+            ? "mdi-check-circle text-xs font-bold text-emerald-600"
+            : "mdi-alert-circle-outline text-xs text-amber-600"
+        }`}
+      />
+      <span>
+        {count}/{min} {isValid ? "✓ Lolos" : "Kurang"}
+      </span>
     </span>
   );
 }
@@ -82,7 +133,6 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Fallback for older browsers
       const textarea = document.createElement("textarea");
       textarea.value = text;
       document.body.appendChild(textarea);
@@ -96,12 +146,19 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
   return (
     <button
+      type="button"
       onClick={handleCopy}
       disabled={!text}
       title={`Salin ${label}`}
       className="p-1.5 rounded-lg transition-all duration-200 hover:bg-surface-100 disabled:opacity-30 disabled:cursor-not-allowed group cursor-pointer"
     >
-      <i className={`mdi ${copied ? "mdi-check text-success-600 animate-bounce-in" : "mdi-content-copy text-surface-400 group-hover:text-surface-700"} text-base transition-colors`} />
+      <i
+        className={`mdi ${
+          copied
+            ? "mdi-check text-emerald-600 animate-bounce-in"
+            : "mdi-content-copy text-surface-400 group-hover:text-surface-700"
+        } text-base transition-colors`}
+      />
     </button>
   );
 }
@@ -122,13 +179,13 @@ function ReportSection({
   placeholder?: string;
 }) {
   return (
-    <div className="animate-slide-up">
+    <div className="bg-white rounded-xl p-4 border border-surface-200/80 shadow-sm transition-all hover:border-surface-300">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <span className={`p-1 rounded-md ${colorClass}`}>{icon}</span>
-          <h3 className="text-sm font-semibold text-surface-800">{title}</h3>
+          <span className={`p-1.5 rounded-lg ${colorClass}`}>{icon}</span>
+          <h3 className="text-xs sm:text-sm font-bold text-surface-800">{title}</h3>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <CharBadge count={content.length} />
           <CopyButton text={content} label={title} />
         </div>
@@ -137,17 +194,21 @@ function ReportSection({
         value={content}
         onChange={(e) => onEdit(e.target.value)}
         rows={4}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 bg-white text-sm text-surface-800 leading-relaxed resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 hover:border-surface-300 placeholder:text-surface-400"
+        className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 bg-surface-50/50 text-xs sm:text-sm text-surface-800 leading-relaxed resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 focus:bg-white hover:border-surface-300 placeholder:text-surface-400 font-sans"
         placeholder={placeholder || `${title} akan muncul di sini setelah di-generate...`}
       />
-      <p className="text-[11px] text-surface-400 mt-1">Minimal 100 karakter</p>
+      <div className="flex items-center justify-between text-[11px] text-surface-400 mt-1.5 px-0.5">
+        <span>Ketentuan Kemnaker: Minimal 100 karakter</span>
+        <span className={content.length >= 100 ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
+          {content.length >= 100 ? "Memenuhi syarat" : `Sisa ${100 - content.length} karakter`}
+        </span>
+      </div>
     </div>
   );
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
-
-export default function Home() {
+export default function GenMonevDashboard() {
   const [status, setStatus] = useState<Status>("Hadir");
   const [aktivitas, setAktivitas] = useState("");
   const [report, setReport] = useState<GeneratedReport | null>(null);
@@ -208,7 +269,7 @@ export default function Home() {
     setSubmitResult(null);
   };
 
-  // Live clock
+  // Live clock (WIB)
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -298,18 +359,10 @@ export default function Home() {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!aktivitas.trim()) {
-      setError(
-        status === "Tidak Hadir Dengan Keterangan"
-          ? "Silakan isi catatan atau alasan tidak hadir terlebih dahulu."
-          : "Silakan isi catatan aktivitas harian terlebih dahulu."
-      );
-      return;
-    }
+    if (!aktivitas.trim()) return;
 
     setLoading(true);
     setError("");
-    setReport(null);
     setSubmitResult(null);
 
     try {
@@ -317,8 +370,8 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          aktivitas: aktivitas.trim(),
           status,
+          aktivitas: aktivitas.trim(),
           customApiKey: apiKey || undefined,
         }),
       });
@@ -424,7 +477,7 @@ export default function Home() {
       } else if (kemnakerStatus === "ON_LEAVE") {
         const leaveText = (report?.alasan_tidak_hadir || aktivitas).trim();
         payloadData.leave_reason = leaveText;
-        payloadData.activity_log = leaveText; // Fallback compatibility
+        payloadData.activity_log = leaveText;
       }
 
       const res = await fetch("/api/kemnaker/submit", {
@@ -467,9 +520,19 @@ export default function Home() {
     if (!report) return;
     let fullText = "";
     if (status === "Hadir") {
-      fullText = `Uraian Aktivitas:\n${report.uraian_aktivitas || ""}\n\nPembelajaran yang Diperoleh:\n${report.pembelajaran || ""}\n\nKendala yang Dialami:\n${report.kendala || ""}`;
+      fullText = `Uraian Aktivitas:
+${report.uraian_aktivitas || ""}
+
+Pembelajaran yang Diperoleh:
+${
+        report.pembelajaran || ""
+      }
+
+Kendala yang Dialami:
+${report.kendala || ""}`;
     } else if (status === "Tidak Hadir Dengan Keterangan") {
-      fullText = `Alasan Tidak Hadir:\n${report.alasan_tidak_hadir || ""}`;
+      fullText = `Alasan Tidak Hadir:
+${report.alasan_tidak_hadir || ""}`;
     }
     if (!fullText) return;
     try {
@@ -481,12 +544,17 @@ export default function Home() {
     }
   };
 
+  const handleApplyPreset = (presetText: string) => {
+    setAktivitas(presetText);
+    setError("");
+  };
+
   const statusOptions: { key: Status; label: string; badgeColor: string; activeClass: string }[] = [
     {
       key: "Hadir",
       label: "Hadir",
-      badgeColor: "bg-green-50 text-green-700 border-green-200",
-      activeClass: "bg-green-600 border-green-600 text-white shadow-md shadow-green-200",
+      badgeColor: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      activeClass: "bg-emerald-600 border-emerald-600 text-white shadow-md shadow-emerald-200",
     },
     {
       key: "Tidak Hadir Dengan Keterangan",
@@ -505,222 +573,297 @@ export default function Home() {
   const allValid =
     status === "Hadir"
       ? Boolean(
-        report &&
-        (report.uraian_aktivitas || "").length >= 100 &&
-        (report.pembelajaran || "").length >= 100 &&
-        (report.kendala || "").length >= 100
-      )
+          report &&
+            (report.uraian_aktivitas || "").length >= 100 &&
+            (report.pembelajaran || "").length >= 100 &&
+            (report.kendala || "").length >= 100
+        )
       : status === "Tidak Hadir Dengan Keterangan"
-        ? Boolean(report && (report.alasan_tidak_hadir || "").length >= 100)
-        : true; // Tanpa keterangan doesn't require written report
+      ? Boolean(report && (report.alasan_tidak_hadir || "").length >= 100)
+      : true;
 
   const wibToday = getWibDateString();
 
   return (
-    <main className="flex-1 flex flex-col">
-      {/* ─── Header ──────────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 glass-panel border-b border-surface-200/60">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#f8fafb] via-[#FBFBFA] to-emerald-50/20 text-surface-900 font-sans">
+      {/* ─── Top Navbar ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-surface-200/70 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+          
+          {/* Logo & Navigation */}
           <div className="flex items-center gap-3">
-            {/* Logo */}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-lg shadow-primary-200">
-              <i className="mdi mdi-robot text-xl text-white" />
-            </div>
+            <Link
+              href="/"
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-emerald-600 flex items-center justify-center text-white shadow-sm hover:scale-105 transition-transform"
+              title="Kembali ke Beranda GenMagang"
+            >
+              <i className="mdi mdi-robot text-xl" />
+            </Link>
             <div>
               <div className="flex items-center gap-2">
-                <Link href="/" className="text-xs text-primary-600 hover:text-primary-800 font-semibold flex items-center gap-1 transition-colors">
-                  ← GenMagang
+                <Link
+                  href="/"
+                  className="text-xs font-semibold text-primary-700 hover:text-primary-900 flex items-center gap-1 transition-colors"
+                >
+                  <span>GenMagang</span>
                 </Link>
                 <span className="text-surface-300">/</span>
-                <h1 className="text-base font-bold text-surface-900 tracking-tight flex items-center gap-2">
+                <h1 className="text-sm sm:text-base font-extrabold text-surface-900 tracking-tight flex items-center gap-2">
                   <span>GenMonev</span>
-                  <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                    Mobogen
+                  <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60">
+                    Kemnaker AI
                   </span>
                 </h1>
               </div>
-              <p className="text-xs text-surface-500 hidden sm:block">
-                Otomatisasi Laporan Harian MagangHub Kemnaker
+              <p className="text-[11px] text-surface-500 hidden sm:block">
+                Otomatisasi Laporan Monev MagangHub Kemnaker &middot; Min. 100 Karakter Lolos Validasi
               </p>
             </div>
           </div>
 
+          {/* Right Header Statuses & Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {/* Kemnaker Auth Status in Header */}
+            {/* Quick Switch to Notulis */}
+            <Link
+              href="/notulen"
+              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-surface-600 bg-surface-100 hover:bg-surface-200 transition-colors"
+            >
+              <span>📝 Buka GenNotulis</span>
+            </Link>
+
+            {/* Kemnaker Auth Status */}
             {kemnakerToken ? (
-              <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-green-50 border border-green-200 text-xs text-green-700">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="font-medium max-w-[130px] truncate">
-                  {kemnakerUser?.name || "Kemnaker Terhubung"}
-                </span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="max-w-[120px] truncate">{kemnakerUser?.name || "Kemnaker Terhubung"}</span>
               </div>
             ) : null}
 
-            {/* API Key Button */}
+            {/* API Key Modal Button */}
             <button
+              type="button"
               onClick={() => setShowApiKeyModal(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border cursor-pointer ${apiKey
-                ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                : "bg-surface-50 border-surface-200 text-surface-600 hover:bg-surface-100"
-                }`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+                apiKey
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-white border-surface-200 text-surface-600 hover:bg-surface-50"
+              }`}
             >
-              <i className="mdi mdi-key-variant text-base" />
+              <i className="mdi mdi-key-variant text-sm" />
               <span className="hidden sm:inline">{apiKey ? "API Key Aktif" : "API Key"}</span>
             </button>
 
-            {/* Date & Time */}
-            <div className="hidden md:flex items-center gap-2 text-xs text-surface-500">
-              <i className="mdi mdi-calendar-month text-base text-surface-400" />
-              <span>{currentDate}</span>
-            </div>
-
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-100/80 text-xs font-mono text-surface-600">
-              <i className="mdi mdi-clock-outline text-base text-surface-400" />
-              {currentTime} <span className="text-surface-400">WIB</span>
+            {/* WIB Clock */}
+            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-100/90 text-xs font-mono text-surface-700 border border-surface-200/60">
+              <i className="mdi mdi-clock-outline text-surface-400" />
+              <span>{currentTime || "16:00:00"} WIB</span>
             </div>
           </div>
         </div>
       </header>
 
-      {/* ─── Content ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Top banner with date on mobile */}
-        <div className="md:hidden mb-4 text-center">
-          <p className="text-sm text-surface-500">{currentDate}</p>
+      {/* ─── Main Content Layout ─────────────────────────────────────────── */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-start">
+        
+        {/* Sub-Header Notice Bar */}
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-white/90 border border-surface-200/80 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <i className="mdi mdi-shield-check-outline text-lg" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-surface-900">
+                Format Pelaporan Resmi Kemnaker RI &middot; {currentDate}
+              </p>
+              <p className="text-[11px] text-surface-500">
+                Semua isian otomatis diformulasikan di atas 100 karakter dengan bahasa formal korporat siap lolos audit.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-start md:self-auto">
+            <span className="text-[11px] font-mono text-surface-400 bg-surface-100 px-2.5 py-1 rounded-lg">
+              Portal: monev.maganghub.kemnaker.go.id
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* ─── Left Panel: Input ──────────────────────────────────────── */}
-          <div className="lg:col-span-5 space-y-5 animate-fade-in">
-            {/* Status Kehadiran (Updated to actual Monev Kemnaker options) */}
-            <section className="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-3">
+        {/* 2-Column Responsive Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* ═════════════════════════════════════════════════════════════════
+              LEFT COLUMN: Form Input & Options (5 cols)
+              ═════════════════════════════════════════════════════════════════ */}
+          <div className="lg:col-span-5 space-y-5">
+            
+            {/* 1. Status Kehadiran Card */}
+            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold uppercase tracking-wider text-primary-600">
-                  Kehadiran (Status Aktual Monev)
+                <label className="text-xs font-bold uppercase tracking-wider text-primary-800 flex items-center gap-1.5">
+                  <i className="mdi mdi-checkbox-marked-circle-outline text-emerald-600 text-sm" />
+                  Status Kehadiran Hari Ini
                 </label>
-                <span className="text-[10px] text-surface-400 font-mono">
-                  monev.maganghub
-                </span>
+                <span className="text-[10px] text-surface-400 font-mono">Status Aktual</span>
               </div>
 
-              {/* Status options as stacked clear buttons */}
+              {/* Status Radio Options */}
               <div className="space-y-2">
                 {statusOptions.map((opt) => (
                   <button
                     key={opt.key}
+                    type="button"
                     onClick={() => handleStatusChange(opt.key)}
-                    className={`w-full py-2.5 px-3.5 rounded-xl text-xs font-semibold border-2 transition-all duration-200 cursor-pointer flex items-center justify-between text-left ${status === opt.key
-                      ? opt.activeClass
-                      : "bg-white border-surface-200 text-surface-700 hover:border-surface-300 hover:bg-surface-50"
-                      }`}
+                    className={`w-full py-2.5 px-3.5 rounded-xl text-xs font-semibold border-2 transition-all duration-200 cursor-pointer flex items-center justify-between text-left ${
+                      status === opt.key
+                        ? opt.activeClass
+                        : "bg-white border-surface-200 text-surface-700 hover:border-surface-300 hover:bg-surface-50"
+                    }`}
                   >
                     <span>{opt.label}</span>
                     {status === opt.key ? (
-                      <i className="mdi mdi-check text-base shrink-0" />
+                      <i className="mdi mdi-check text-base shrink-0 font-bold" />
                     ) : (
                       <span className="w-3.5 h-3.5 rounded-full border border-surface-300 shrink-0" />
                     )}
                   </button>
                 ))}
               </div>
+            </div>
 
-              {/* Kemnaker Official Rule Banner for Tidak Hadir Dengan Keterangan */}
-              {status === "Tidak Hadir Dengan Keterangan" && (
-                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5 animate-slide-up">
-                  <i className="mdi mdi-alert text-base text-amber-600 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">
-                    <strong>Ketentuan Monev:</strong> Izin hingga 3 hari per periode dibayar. Izin ke-4 dan seterusnya tidak dibayar, tetapi tidak dihitung untuk peringatan atau pemberhentian akibat ketidakhadiran.
-                  </p>
-                </div>
-              )}
-            </section>
-
-            {/* Input Form based on Status */}
+            {/* 2. Catatan Aktivitas / Alasan Input Card */}
             {status === "Hadir" ? (
-              <section className="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 animate-fade-in">
-                <label
-                  htmlFor="aktivitas-input"
-                  className="block text-xs font-bold uppercase tracking-wider text-primary-600 mb-1"
-                >
-                  Catatan Aktivitas Harian
-                </label>
-                <p className="text-[11px] text-surface-400 mb-2.5">
-                  Tulis poin-poin singkat kegiatan hari ini. Tekan Enter untuk baris baru.
-                </p>
+              <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label
+                      htmlFor="aktivitas-input"
+                      className="block text-xs font-bold uppercase tracking-wider text-primary-800"
+                    >
+                      Poin Catatan Harian
+                    </label>
+                    <p className="text-[11px] text-surface-500 mt-0.5">
+                      Tulis poin kegiatan singkat atau pilih contoh preset di bawah.
+                    </p>
+                  </div>
+                  {aktivitas && (
+                    <button
+                      type="button"
+                      onClick={() => setAktivitas("")}
+                      className="text-[11px] text-surface-400 hover:text-red-500 transition-colors"
+                    >
+                      Bersihkan
+                    </button>
+                  )}
+                </div>
+
+                {/* Quick Preset Chips */}
+                <div>
+                  <div className="text-[10px] font-bold text-surface-400 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <span>💡 Contoh Cepat (Klik untuk Isi):</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {QUICK_PRESETS.map((preset) => (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => handleApplyPreset(preset.text)}
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-100 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-200 border border-surface-200 text-surface-600 transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <span>{preset.icon}</span>
+                        <span>{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Textarea */}
                 <textarea
                   id="aktivitas-input"
                   value={aktivitas}
                   onChange={(e) => setAktivitas(e.target.value)}
-                  rows={7}
-                  placeholder={`- briefing proyek X\n- setup database\n- diskusi dengan mentor tentang SDLC\n- tidak ada kesulitan/lancar saja hari ini`}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-800 bg-white placeholder:text-surface-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 hover:border-surface-300 transition-all duration-200 font-mono leading-relaxed"
+                  rows={8}
+                  placeholder={`- briefing proyek sistem transaksi
+- membuat komponen UI responsive
+- diskusi dengan mentor tentang validasi data
+- tidak ada kesulitan berarti hari ini`}
+                  className="w-full px-3.5 py-3 rounded-xl border border-surface-200 text-xs sm:text-sm text-surface-800 bg-surface-50/50 placeholder:text-surface-400 resize-none focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 focus:bg-white hover:border-surface-300 transition-all leading-relaxed font-sans"
                 />
-              </section>
+
+                <div className="flex items-center justify-between text-[11px] text-surface-400 pt-0.5">
+                  <span>{aktivitas.length} karakter diinput</span>
+                  <span>Tekan tombol di bawah untuk menyusun narasi formal</span>
+                </div>
+              </div>
             ) : status === "Tidak Hadir Dengan Keterangan" ? (
-              <section className="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 animate-fade-in">
+              <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
                 <label
                   htmlFor="izin-input"
-                  className="block text-xs font-bold uppercase tracking-wider text-amber-600 mb-1"
+                  className="block text-xs font-bold uppercase tracking-wider text-amber-700"
                 >
-                  Catatan / Poin Alasan Tidak Hadir
+                  Catatan Alasan Izin / Sakit
                 </label>
-                <p className="text-[11px] text-surface-400 mb-2.5">
-                  Tuliskan alasan izin/sakit secara singkat. AI akan menyusunkan narasi formal dan santun minimal 100 karakter.
+                <p className="text-[11px] text-surface-500">
+                  Tuliskan alasan izin/sakit secara singkat. AI akan menyusun narasi santun formal minimal 100 karakter.
                 </p>
                 <textarea
                   id="izin-input"
                   value={aktivitas}
                   onChange={(e) => setAktivitas(e.target.value)}
                   rows={6}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-800 bg-white placeholder:text-surface-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 hover:border-surface-300 transition-all duration-200 font-mono leading-relaxed"
+                  placeholder="Contoh: Mengalami demam dan flu, sudah berkonsultasi ke dokter dan beristirahat sesuai instruksi..."
+                  className="w-full px-3.5 py-3 rounded-xl border border-surface-200 text-xs sm:text-sm text-surface-800 bg-white placeholder:text-surface-400 resize-none focus:outline-none focus:ring-2 focus:ring-amber-400/40 focus:border-amber-400 leading-relaxed font-sans"
                 />
-              </section>
+              </div>
             ) : (
-              <section className="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 animate-fade-in space-y-2">
+              <div className="bg-white rounded-2xl border border-rose-200/80 shadow-sm p-5 space-y-2">
                 <div className="flex items-center gap-2 text-rose-600 text-xs font-bold uppercase tracking-wider">
                   <i className="mdi mdi-information-outline text-base shrink-0" />
-                  Informasi Status Tanpa Keterangan
+                  Status Tanpa Keterangan
                 </div>
                 <p className="text-xs text-surface-600 leading-relaxed">
-                  Status <strong>Tidak Hadir Tanpa Keterangan</strong> tidak memerlukan pengisian uraian aktivitas ataupun alasan laporan. Anda dapat langsung mencentang pernyataan peninjauan dan mengirim status ke server Monev.
+                  Status <strong>Tidak Hadir Tanpa Keterangan</strong> tidak mensyaratkan penulisan uraian laporan harian pada sistem Kemnaker. Anda dapat langsung mencentang konfirmasi peninjauan dan mengirim status ke server Monev.
                 </p>
-              </section>
+              </div>
             )}
 
-            {/* Generate Button (only for Hadir & Tidak Hadir Dengan Keterangan) */}
-            {status !== "Tidak Hadir Tanpa Keterangan" ? (
+            {/* 3. Generate Action Button */}
+            {status !== "Tidak Hadir Tanpa Keterangan" && (
               <button
                 id="generate-button"
+                type="button"
                 onClick={handleGenerate}
                 disabled={loading || !aktivitas.trim()}
-                className={`w-full px-4 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 ${loading
-                  ? "bg-surface-200 text-surface-400 cursor-wait"
-                  : !aktivitas.trim()
+                className={`w-full px-4 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 ${
+                  loading
+                    ? "bg-surface-200 text-surface-400 cursor-wait"
+                    : !aktivitas.trim()
                     ? "bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200"
                     : status === "Tidak Hadir Dengan Keterangan"
-                      ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300 hover:-translate-y-0.5 active:translate-y-0 animate-pulse-glow"
-                      : "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-200 hover:shadow-xl hover:shadow-primary-300 hover:-translate-y-0.5 active:translate-y-0 animate-pulse-glow"
-                  }`}
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300 hover:-translate-y-0.5 active:translate-y-0"
+                    : "bg-gradient-to-r from-emerald-600 via-teal-600 to-primary-700 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0"
+                }`}
               >
                 {loading ? (
                   <>
-                    <i className="mdi mdi-loading mdi-spin text-base shrink-0" />
-                    AI Sedang Menulis...
+                    <i className="mdi mdi-loading mdi-spin text-lg shrink-0" />
+                    <span>AI Sedang Menyusun Laporan Formal...</span>
                   </>
                 ) : (
                   <>
-                    <i className="mdi mdi-auto-fix text-base shrink-0" />
-                    {status === "Tidak Hadir Dengan Keterangan"
-                      ? "Generate Alasan Tidak Hadir"
-                      : "Generate Laporan Monev"}
+                    <i className="mdi mdi-auto-fix text-lg shrink-0" />
+                    <span>
+                      {status === "Tidak Hadir Dengan Keterangan"
+                        ? "Generate Narasi Izin Resmi"
+                        : "Generate Laporan Monev (Min. 100 Karakter)"}
+                    </span>
                   </>
                 )}
               </button>
-            ) : null}
+            )}
 
-            {/* Error message */}
+            {/* Error Message Alert */}
             {error && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5 animate-slide-up">
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-start gap-2.5">
                 <i className="mdi mdi-alert-circle text-base text-red-500 shrink-0 mt-0.5" />
                 <div>
                   <p className="font-semibold">Terjadi Kesalahan</p>
@@ -728,43 +871,54 @@ export default function Home() {
                 </div>
               </div>
             )}
+
           </div>
 
-          {/* ─── Right Panel: Preview & Kirim Otomatis ───────────────────── */}
-          <div className="lg:col-span-7 flex flex-col space-y-5 animate-fade-in">
+          {/* ═════════════════════════════════════════════════════════════════
+              RIGHT COLUMN: Preview & Auto-Sync Kemnaker (7 cols)
+              ═════════════════════════════════════════════════════════════════ */}
+          <div className="lg:col-span-7 space-y-5">
+            
             {/* 1. Preview Card */}
-            <div className="bg-white rounded-2xl border border-surface-200 shadow-sm overflow-hidden flex flex-col">
-              {/* Preview Header */}
-              <div className="px-5 py-4 border-b border-surface-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center">
-                    <i className="mdi mdi-eye-outline text-base" />
+            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm overflow-hidden flex flex-col min-h-[460px]">
+              
+              {/* Preview Card Header */}
+              <div className="px-5 py-4 border-b border-surface-100 flex items-center justify-between bg-surface-50/50">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
+                    <i className="mdi mdi-file-document-check-outline text-lg" />
                   </div>
-                  <h2 className="text-sm font-bold text-surface-800">
-                    Preview Laporan Monev
-                  </h2>
+                  <div>
+                    <h2 className="text-sm font-bold text-surface-900">
+                      Preview Laporan Monev
+                    </h2>
+                    <p className="text-[11px] text-surface-500">
+                      Standar Kemnaker RI &middot; 3 Bagian Wajib
+                    </p>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   {allValid && report && (
-                    <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 text-[10px] font-bold border border-green-200 animate-bounce-in">
+                    <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
                       ✓ SIAP KIRIM
                     </span>
                   )}
                   {report && (
                     <button
+                      type="button"
                       onClick={handleCopyAll}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 transition-all duration-200 cursor-pointer"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-surface-700 border border-surface-200 hover:bg-surface-50 transition-all cursor-pointer shadow-xs"
                     >
                       {copyAllDone ? (
                         <>
-                          <i className="mdi mdi-check text-sm" />
-                          Tersalin!
+                          <i className="mdi mdi-check text-emerald-600 text-sm" />
+                          <span className="text-emerald-700">Tersalin!</span>
                         </>
                       ) : (
                         <>
                           <i className="mdi mdi-content-copy text-sm" />
-                          Salin
+                          <span>Salin Semua</span>
                         </>
                       )}
                     </button>
@@ -772,50 +926,41 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Preview Body */}
-              <div className="flex-1 p-5 space-y-5">
+              {/* Preview Card Body */}
+              <div className="flex-1 p-5 flex flex-col justify-between">
+                
                 {status === "Tidak Hadir Tanpa Keterangan" ? (
-                  // Tanpa keterangan view
                   <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
                     <div className="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
                       <i className="mdi mdi-alert-circle-outline text-3xl" />
                     </div>
                     <div>
-                      <p className="text-surface-700 text-sm font-semibold">
+                      <p className="text-surface-800 text-sm font-bold">
                         Status: Tidak Hadir Tanpa Keterangan
                       </p>
-                      <p className="text-surface-400 text-xs mt-1 max-w-sm">
+                      <p className="text-surface-500 text-xs mt-1 max-w-sm mx-auto">
                         Sesuai sistem Monev Kemnaker, status ini tidak memerlukan isian laporan harian. Silakan langsung verifikasi dan kirim pada panel di bawah.
                       </p>
                     </div>
                   </div>
-                ) : !report && !loading ? (
-                  // Empty state
-                  <div className="flex flex-col items-center justify-center h-full py-16 text-center">
-                    <div className="w-20 h-20 rounded-2xl bg-surface-100 flex items-center justify-center mb-4">
-                      <i className="mdi mdi-file-text-outline text-4xl text-surface-300" />
-                    </div>
-                    <p className="text-surface-500 text-sm font-medium">Laporan akan muncul di sini</p>
-                    <p className="text-surface-400 text-xs mt-1">
-                      {status === "Tidak Hadir Dengan Keterangan"
-                        ? "Isi catatan alasan tidak hadir lalu klik tombol Generate"
-                        : "Isi catatan aktivitas harian lalu klik tombol Generate"}
-                    </p>
-                  </div>
                 ) : loading ? (
-                  // Loading skeleton
-                  <div className="space-y-5">
+                  /* Loading Shimmer State */
+                  <div className="space-y-5 py-4">
+                    <div className="flex items-center gap-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-100 text-xs text-emerald-800">
+                      <i className="mdi mdi-loading mdi-spin text-base text-emerald-600" />
+                      <span>Sedang memproses catatan Anda dengan AI Gemini...</span>
+                    </div>
                     {[1, 2, 3].map((i) => (
-                      <div key={i} className="space-y-2" style={{ animationDelay: `${i * 0.1}s` }}>
-                        <div className="h-4 w-32 shimmer rounded-md" />
-                        <div className="h-24 shimmer rounded-xl" />
+                      <div key={i} className="space-y-2">
+                        <div className="h-4 w-40 bg-surface-100 rounded-md animate-pulse" />
+                        <div className="h-20 bg-surface-100 rounded-xl animate-pulse" />
                       </div>
                     ))}
                   </div>
                 ) : report ? (
+                  /* Report Generated Successfully */
                   status === "Tidak Hadir Dengan Keterangan" ? (
-                    // Generated reason for Tidak Hadir Dengan Keterangan
-                    <>
+                    <div className="space-y-4">
                       <ReportSection
                         title="Alasan Tidak Hadir"
                         colorClass="bg-amber-50 text-amber-600"
@@ -824,74 +969,154 @@ export default function Home() {
                         onEdit={(val) => setReport({ ...report, alasan_tidak_hadir: val })}
                         placeholder="Alasan tidak hadir minimal 100 karakter..."
                       />
-
                       {report.model && (
                         <div className="flex items-center justify-end gap-1.5 pt-2">
-                          <span className="text-[10px] text-surface-400">Dibuat dengan</span>
-                          <span className="px-2 py-0.5 rounded-full bg-surface-100 text-[10px] text-surface-500 font-mono">
+                          <span className="text-[10px] text-surface-400">Model AI:</span>
+                          <span className="px-2 py-0.5 rounded-full bg-surface-100 text-[10px] text-surface-600 font-mono">
                             {report.model}
                           </span>
                         </div>
                       )}
-                    </>
+                    </div>
                   ) : (
-                    // Generated report for Hadir (3 parts)
-                    <>
+                    <div className="space-y-4">
                       <ReportSection
-                        title="Uraian Aktivitas"
+                        title="1. Uraian Aktivitas"
                         colorClass="bg-blue-50 text-blue-600"
                         icon={<i className="mdi mdi-notebook-edit-outline text-base" />}
                         content={report.uraian_aktivitas || ""}
                         onEdit={(val) => setReport({ ...report, uraian_aktivitas: val })}
                       />
                       <ReportSection
-                        title="Pembelajaran yang Diperoleh"
+                        title="2. Pembelajaran yang Diperoleh"
                         colorClass="bg-emerald-50 text-emerald-600"
                         icon={<i className="mdi mdi-book-open-variant-outline text-base" />}
                         content={report.pembelajaran || ""}
                         onEdit={(val) => setReport({ ...report, pembelajaran: val })}
                       />
                       <ReportSection
-                        title="Kendala yang Dialami"
+                        title="3. Kendala yang Dialami & Solusi"
                         colorClass="bg-amber-50 text-amber-600"
                         icon={<i className="mdi mdi-alert-outline text-base" />}
                         content={report.kendala || ""}
                         onEdit={(val) => setReport({ ...report, kendala: val })}
                       />
 
-                      {/* Model badge */}
                       {report.model && (
-                        <div className="flex items-center justify-end gap-1.5 pt-2">
-                          <span className="text-[10px] text-surface-400">
-                            Dibuat dengan
-                          </span>
-                          <span className="px-2 py-0.5 rounded-full bg-surface-100 text-[10px] text-surface-500 font-mono">
+                        <div className="flex items-center justify-end gap-1.5 pt-1">
+                          <span className="text-[10px] text-surface-400">Diformulasikan oleh:</span>
+                          <span className="px-2 py-0.5 rounded-full bg-surface-100 text-[10px] text-surface-600 font-mono">
                             {report.model}
                           </span>
                         </div>
                       )}
-                    </>
+                    </div>
                   )
-                ) : null}
+                ) : (
+                  /* Rich Interactive Guide & Empty State Showcase */
+                  <div className="flex flex-col justify-center h-full py-6 space-y-5">
+                    <div className="text-center space-y-2">
+                      <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-2xl shadow-inner">
+                        📄
+                      </div>
+                      <h3 className="text-base font-bold text-surface-800">
+                        Format Standar Laporan Monev Kemnaker
+                      </h3>
+                      <p className="text-xs text-surface-500 max-w-md mx-auto">
+                        Sistem MagangHub Kemnaker mewajibkan pengisian 3 kategori laporan harian dengan ketentuan minimal 100 karakter per kategori.
+                      </p>
+                    </div>
+
+                    {/* 3 Criteria Explanation Cards */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                      <div className="p-3.5 rounded-xl bg-surface-50 border border-surface-200/80">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-5 h-5 rounded-md bg-blue-100 text-blue-700 font-bold text-[10px] flex items-center justify-center">
+                            1
+                          </span>
+                          <span className="text-xs font-bold text-surface-800">Aktivitas</span>
+                        </div>
+                        <p className="text-[11px] text-surface-500 leading-snug">
+                          Uraian tugas fungsional, proyek, dan implementasi yang dikerjakan.
+                        </p>
+                        <span className="text-[10px] font-semibold text-emerald-700 mt-2 block">
+                          ≥ 100 Karakter
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-surface-50 border border-surface-200/80">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 font-bold text-[10px] flex items-center justify-center">
+                            2
+                          </span>
+                          <span className="text-xs font-bold text-surface-800">Pembelajaran</span>
+                        </div>
+                        <p className="text-[11px] text-surface-500 leading-snug">
+                          Ilmu teknis, tools, atau soft skill baru yang dipelajari hari ini.
+                        </p>
+                        <span className="text-[10px] font-semibold text-emerald-700 mt-2 block">
+                          ≥ 100 Karakter
+                        </span>
+                      </div>
+
+                      <div className="p-3.5 rounded-xl bg-surface-50 border border-surface-200/80">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="w-5 h-5 rounded-md bg-amber-100 text-amber-700 font-bold text-[10px] flex items-center justify-center">
+                            3
+                          </span>
+                          <span className="text-xs font-bold text-surface-800">Kendala</span>
+                        </div>
+                        <p className="text-[11px] text-surface-500 leading-snug">
+                          Tantangan yang dihadapi dan cara penyelesaian bersama tim/mentor.
+                        </p>
+                        <span className="text-[10px] font-semibold text-emerald-700 mt-2 block">
+                          ≥ 100 Karakter
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Pre-fill CTA for quick preview */}
+                    <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/60 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+                      <div className="text-xs text-emerald-900">
+                        <strong>Ingin coba langsung?</strong> Klik contoh preset di samping kiri untuk menguji coba generator AI.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleApplyPreset(QUICK_PRESETS[0].text)}
+                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
+                      >
+                        Isi Contoh Frontend Dev
+                      </button>
+                    </div>
+
+                  </div>
+                )}
+
               </div>
             </div>
 
-            {/* 2. Kirim Otomatis ke Monev Card (Fase 2) */}
-            <div className="bg-white rounded-2xl border border-surface-200 shadow-sm p-5 space-y-4">
+            {/* 2. Kirim Otomatis ke Monev Card (Kemnaker Portal Sync) */}
+            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-4">
+              
               {/* Header section */}
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-8 h-8 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0 border border-accent-100">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                      />
                     </svg>
                   </div>
                   <div className="min-w-0">
                     <h2 className="text-sm font-bold text-surface-800">
-                      Kirim Otomatis ke Monev
+                      Kirim Otomatis ke Monev Kemnaker
                     </h2>
-                    <p className="text-[11px] text-surface-400">
-                      Sinkronisasi langsung ke portal monev.maganghub.kemnaker.go.id
+                    <p className="text-[11px] text-surface-500">
+                      Sinkronisasi presensi &amp; laporan ke portal monev.maganghub.kemnaker.go.id
                     </p>
                   </div>
                 </div>
@@ -900,11 +1125,12 @@ export default function Home() {
                 <div className="shrink-0">
                   {kemnakerToken ? (
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9.5px] sm:text-[11px] font-bold bg-green-50 text-green-700 border border-green-200 whitespace-nowrap">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                         TERHUBUNG
                       </span>
                       <button
+                        type="button"
                         onClick={handleKemnakerLogout}
                         title="Keluar dari akun Kemnaker"
                         className="text-xs text-surface-400 hover:text-red-500 hover:underline transition-colors cursor-pointer"
@@ -913,19 +1139,23 @@ export default function Home() {
                       </button>
                     </div>
                   ) : (
-                    <span className="inline-flex flex-col sm:flex-row items-center justify-center px-2.5 py-1 rounded-2xl sm:rounded-full text-[9px] sm:text-[11px] font-medium bg-surface-100 text-surface-500 border border-surface-200 text-center leading-tight">
-                      <span>BELUM</span>
-                      <span className="sm:ml-1">LOGIN</span>
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowKemnakerModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-surface-100 text-surface-700 hover:bg-surface-200 border border-surface-200 transition-colors cursor-pointer"
+                    >
+                      <i className="mdi mdi-login text-sm" />
+                      <span>Hubungkan Akun</span>
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Status & Information Box */}
-              <div className="p-3.5 rounded-xl bg-surface-50 border border-surface-200/80 space-y-2 text-xs">
+              <div className="p-4 rounded-xl bg-surface-50 border border-surface-200/80 space-y-2.5 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="text-surface-500 flex items-center gap-1.5">
-                    <i className="mdi mdi-calendar-today text-sm text-surface-400" />
+                    <i className="mdi mdi-calendar-today text-surface-400" />
                     Tanggal Absensi:
                   </span>
                   <span className="font-semibold text-surface-800 font-mono">
@@ -935,24 +1165,25 @@ export default function Home() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-surface-500 flex items-center gap-1.5">
-                    <i className="mdi mdi-account-check-outline text-sm text-surface-400" />
-                    Kehadiran:
+                    <i className="mdi mdi-account-check-outline text-surface-400" />
+                    Status Presensi:
                   </span>
                   <span className="font-semibold text-surface-800">
-                    {status} {kemnakerUser?.name ? `· ${kemnakerUser.name}` : ""}
+                    {status} {kemnakerUser?.name ? `(${kemnakerUser.name})` : ""}
                   </span>
                 </div>
 
-                <div className="flex items-start justify-between text-[11px] text-surface-400 pt-1 border-t border-surface-200/50">
+                <div className="flex items-start justify-between text-[11px] text-surface-400 pt-2 border-t border-surface-200/60">
                   <span className="flex items-center gap-1">
-                    <i className="mdi mdi-clock-outline text-sm text-surface-400" />
+                    <i className="mdi mdi-clock-outline text-surface-400" />
                     Waktu Server: {currentTime} WIB (GMT+7)
                   </span>
+                  <span>{currentDate}</span>
                 </div>
               </div>
 
-              {/* Confirmation Checkbox (matching actual Monev Kemnaker form) */}
-              <div className="pt-1">
+              {/* Confirmation Checkbox */}
+              <div>
                 <label className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-surface-50 cursor-pointer select-none transition-colors border border-transparent hover:border-surface-200">
                   <input
                     type="checkbox"
@@ -960,15 +1191,15 @@ export default function Home() {
                     onChange={(e) => setIsConfirmed(e.target.checked)}
                     className="mt-0.5 w-4 h-4 rounded border-surface-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
                   />
-                  <span className="text-xs text-surface-700 leading-snug">
-                    Saya menyatakan telah meninjau dan memastikan isian laporan ini sudah benar
+                  <span className="text-xs text-surface-700 leading-relaxed">
+                    Saya menyatakan telah meninjau dan memastikan isian laporan ini sudah benar sesuai kegiatan magang hari ini
                   </span>
                 </label>
               </div>
 
               {/* Validation warning if fields under 100 chars */}
               {report && !allValid && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2 animate-fade-in">
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800 flex items-start gap-2">
                   <i className="mdi mdi-alert text-base text-amber-500 shrink-0 mt-0.5" />
                   <p>
                     <strong>Perhatian:</strong> Sistem Monev mensyaratkan setiap isian minimal 100 karakter. Lengkapi catatan pada kotak di atas sebelum mengirim.
@@ -979,13 +1210,14 @@ export default function Home() {
               {/* Submit result feedback */}
               {submitResult && (
                 <div
-                  className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 animate-slide-up ${submitResult.ok
-                    ? "bg-green-50 border-green-200 text-green-800"
-                    : "bg-red-50 border-red-200 text-red-800"
-                    }`}
+                  className={`p-3.5 rounded-xl border text-xs flex items-start gap-2.5 ${
+                    submitResult.ok
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                      : "bg-red-50 border-red-200 text-red-800"
+                  }`}
                 >
                   {submitResult.ok ? (
-                    <i className="mdi mdi-check-circle text-base text-green-600 shrink-0 mt-0.5" />
+                    <i className="mdi mdi-check-circle text-base text-emerald-600 shrink-0 mt-0.5" />
                   ) : (
                     <i className="mdi mdi-close-circle text-base text-red-500 shrink-0 mt-0.5" />
                   )}
@@ -994,97 +1226,108 @@ export default function Home() {
               )}
 
               {/* Action Button */}
-              <div className="space-y-1.5">
+              <div>
                 <button
+                  type="button"
                   onClick={handleSubmitToMonev}
                   disabled={
                     submitLoading ||
-                    (Boolean(kemnakerToken) && (!isConfirmed || (status !== "Tidak Hadir Tanpa Keterangan" && !report)))
+                    (Boolean(kemnakerToken) &&
+                      (!isConfirmed || (status !== "Tidak Hadir Tanpa Keterangan" && !report)))
                   }
-                  className={`w-full px-4 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center cursor-pointer ${!kemnakerToken
-                    ? "bg-surface-800 hover:bg-surface-900 text-white shadow-md"
-                    : submitLoading
+                  className={`w-full px-4 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center cursor-pointer ${
+                    !kemnakerToken
+                      ? "bg-surface-900 hover:bg-black text-white shadow-md"
+                      : submitLoading
                       ? "bg-surface-200 text-surface-400 cursor-wait"
                       : !isConfirmed || (status !== "Tidak Hadir Tanpa Keterangan" && !report)
-                        ? "bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200"
-                        : "bg-gradient-to-r from-accent-600 to-primary-600 hover:from-accent-700 hover:to-primary-700 text-white shadow-lg shadow-accent-200"
-                    }`}
+                      ? "bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200"
+                      : "bg-gradient-to-r from-accent-600 to-primary-700 hover:from-accent-700 hover:to-primary-800 text-white shadow-lg shadow-accent-200"
+                  }`}
                 >
                   {submitLoading ? (
-                    <span className="text-center leading-snug">
-                      <span className="inline-flex items-center gap-2 align-middle">
-                        <i className="mdi mdi-loading mdi-spin text-base shrink-0" />
-                        <span>Mengirim</span>
-                      </span>{" "}
-                      ke Monev Kemnaker...
+                    <span className="flex items-center gap-2">
+                      <i className="mdi mdi-loading mdi-spin text-base" />
+                      <span>Mengirimkan Laporan ke Monev Kemnaker...</span>
                     </span>
                   ) : !kemnakerToken ? (
-                    <span className="text-center leading-snug">
-                      <span className="inline-flex items-center gap-2 align-middle">
-                        <i className="mdi mdi-login text-base shrink-0" />
-                        <span>Hubungkan</span>
-                      </span>{" "}
-                      Akun Kemnaker untuk Mengirim
+                    <span className="flex items-center gap-2">
+                      <i className="mdi mdi-login text-base" />
+                      <span>Hubungkan Akun Kemnaker untuk Mengirim</span>
                     </span>
                   ) : (
-                    <span className="text-center leading-snug">
-                      <span className="inline-flex items-center gap-2 align-middle">
-                        <i className="mdi mdi-send text-base shrink-0" />
-                        <span>Simpan</span>
-                      </span>{" "}
-                      dan Kirim ke Monev
+                    <span className="flex items-center gap-2">
+                      <i className="mdi mdi-send text-base" />
+                      <span>Kirim Laporan ke Monev Kemnaker Sekarang</span>
                     </span>
                   )}
                 </button>
-
-                {kemnakerToken && !isConfirmed && (
-                  <p className="text-center text-[11px] text-amber-600">
-                    Centang pernyataan di atas untuk mengaktifkan tombol kirim.
-                  </p>
-                )}
-                {kemnakerToken && isConfirmed && status !== "Tidak Hadir Tanpa Keterangan" && !report && (
-                  <p className="text-center text-[11px] text-surface-400">
-                    Generate laporan terlebih dahulu sebelum mengirim ke Monev.
-                  </p>
-                )}
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ─── Footer ──────────────────────────────────────────────────────── */}
-      <footer className="border-t border-surface-200/60 py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-xs text-surface-400">
-            Mobogen &middot; Alat bantu pelaporan harian MagangHub Kemnaker
-          </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+      {/* ─── Footer ─────────────────────────────────────────────────────── */}
+      <footer className="border-t border-surface-200/60 bg-white/70 py-5 text-xs text-surface-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div>
+            <span className="font-bold text-surface-700">GenMonev</span> (d/h Mobogen) &middot; Bagian dari ekosistem <strong>GenMagang</strong>
+          </div>
+          <div className="flex items-center gap-4 text-primary-700 font-medium">
+            <Link href="/" className="hover:underline">Beranda</Link>
+            <Link href="/notulen" className="hover:underline">GenNotulis (Rapat)</Link>
+            <a
+              href="https://monev.maganghub.kemnaker.go.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              Portal Kemnaker ↗
+            </a>
+          </div>
         </div>
       </footer>
 
-      {/* ─── API Key Modal ────────────────────────────────────────────── */}
+      {/* ─── API Key Modal ──────────────────────────────────────────────── */}
       {showApiKeyModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/25 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowApiKeyModal(false);
           }}
         >
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-surface-200 p-6 animate-scale-in">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-surface-800">
-                Pengaturan API Key
-              </h3>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
+                  <i className="mdi mdi-key-variant text-xl" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-surface-800">
+                    Custom Gemini API Key
+                  </h3>
+                  <p className="text-xs text-surface-400">
+                    Opsional &middot; Disimpan secara lokal di browser
+                  </p>
+                </div>
+              </div>
+
               <button
+                type="button"
                 onClick={() => setShowApiKeyModal(false)}
-                className="p-1 rounded-lg hover:bg-surface-100 transition-colors cursor-pointer"
+                className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 cursor-pointer"
               >
                 <i className="mdi mdi-close text-xl text-surface-400" />
               </button>
             </div>
 
-            <p className="text-sm text-surface-500 mb-4">
-              Masukkan API Key Google Gemini Anda. Key tersimpan di browser dan tidak dikirim ke server manapun selain Google.
+            <p className="text-xs text-surface-500 mb-4 leading-relaxed">
+              Secara default GenMonev menggunakan API Key server internal. Jika kuota server sedang padat, Anda dapat memasukkan Gemini API Key pribadi dari Google AI Studio.
             </p>
 
             <div className="space-y-3">
@@ -1108,14 +1351,16 @@ export default function Home() {
 
             <div className="flex gap-2 mt-5">
               <button
+                type="button"
                 onClick={() => setShowApiKeyModal(false)}
                 className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
+                type="button"
                 onClick={handleSaveApiKey}
-                className="flex-1 py-2.5 rounded-xl bg-primary-500 text-white text-sm font-bold hover:bg-primary-600 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors cursor-pointer"
               >
                 Simpan
               </button>
@@ -1124,10 +1369,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* ─── Kemnaker Login Modal (Fase 2) ────────────────────────────── */}
+      {/* ─── Kemnaker Login Modal ───────────────────────────────────────── */}
       {showKemnakerModal && (
         <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/35 backdrop-blur-sm animate-fade-in"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget && !kemnakerLoginLoading) {
               setShowKemnakerModal(false);
@@ -1152,6 +1397,7 @@ export default function Home() {
               </div>
 
               <button
+                type="button"
                 onClick={() => setShowKemnakerModal(false)}
                 disabled={kemnakerLoginLoading}
                 className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 cursor-pointer disabled:opacity-30"
@@ -1161,11 +1407,10 @@ export default function Home() {
             </div>
 
             <p className="text-xs text-surface-500 mb-4 leading-relaxed">
-              Login menggunakan akun SIAPkerja untuk memungkinkan Mobogen mengirim presensi dan laporan Monev langsung ke portal Kemnaker.
+              Login menggunakan akun SIAPkerja untuk memungkinkan GenMonev mengirim presensi dan laporan langsung ke portal Monev Kemnaker.
             </p>
 
             <form onSubmit={handleKemnakerLogin} className="space-y-3.5">
-              {/* Username Input */}
               <div>
                 <label className="block text-xs font-semibold text-surface-700 mb-1">
                   Email / Nomor HP / NIK
@@ -1180,7 +1425,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Password Input */}
               <div>
                 <label className="block text-xs font-semibold text-surface-700 mb-1">
                   Kata Sandi (Password)
@@ -1204,7 +1448,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Security statement box */}
               <div className="p-3 rounded-xl bg-surface-50 border border-surface-200/70 text-[11px] text-surface-500 flex items-start gap-2">
                 <i className="mdi mdi-shield-check-outline text-base text-accent-500 shrink-0 mt-0.5" />
                 <span>
@@ -1212,7 +1455,6 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* Error message */}
               {kemnakerLoginError && (
                 <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2">
                   <i className="mdi mdi-alert-circle text-base text-red-500 shrink-0 mt-0.5" />
@@ -1220,7 +1462,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Actions */}
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
@@ -1249,6 +1490,6 @@ export default function Home() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }
