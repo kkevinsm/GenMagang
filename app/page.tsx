@@ -94,14 +94,6 @@ export default function GenMagangLanding() {
           ========================================================================= */}
       <main className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-12 md:pt-16 pb-20 text-center">
         
-        {/* Top Trust & Rating Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/90 border border-emerald-200/80 shadow-sm mb-6 text-xs font-semibold text-surface-700">
-          <span className="flex text-amber-500 text-xs tracking-wider">★★★★★</span>
-          <span className="font-bold text-primary-900">4.9/5 Rating</span>
-          <span className="text-surface-300">•</span>
-          <span>Dipercaya 1,500+ Mahasiswa & Peserta Magang di Indonesia</span>
-        </div>
-
         {/* Main Headline */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-surface-900 leading-[1.12]">
           Platform AI All-in-One untuk{" "}
