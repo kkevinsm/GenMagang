@@ -1969,128 +1969,9 @@
 /* ==========================================================================
    HIGH FIDELITY PRINT STYLESHEET (PIXEL-PERFECT BNI PDF OUTPUT)
    ========================================================================== */
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 15mm 20mm;
-  }
 
-  body {
-    background: #FFFFFF !important;
-    color: #000000 !important;
-    font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 11pt !important;
-    line-height: 1.45 !important;
-  }
 
-  .ambient-bg,
-  .top-nav-container,
-  .hero-section,
-  .macos-window .window-header,
-  .detail-toolbar,
-  .app-footer,
-  .toast-hub,
-  .modal-dialog,
-  #viewArchive,
-  #viewActions,
-  #viewGenerator,
-  #viewSettings,
-  .section-hint {
-    display: none !important;
-  }
 
-  .app-container {
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .macos-window {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    border-radius: 0 !important;
-    backdrop-filter: none !important;
-  }
-
-  .window-body {
-    padding: 0 !important;
-    min-height: auto !important;
-  }
-
-  #viewDetail {
-    display: block !important;
-  }
-
-  .official-paper-wrapper {
-    background: transparent !important;
-    padding: 0 !important;
-    box-shadow: none !important;
-  }
-
-  .official-document {
-    box-shadow: none !important;
-    border: none !important;
-    padding: 0 !important;
-    max-width: 100% !important;
-    color: #000000 !important;
-  }
-
-  .corporate-metadata-table {
-    border: 1.5pt solid #000000 !important;
-  }
-
-  .corporate-metadata-table th,
-  .corporate-metadata-table td {
-    border: 1pt solid #000000 !important;
-    padding: 5pt 8pt !important;
-  }
-
-  .col-meta-label {
-    background: transparent !important;
-    font-weight: bold !important;
-  }
-
-  .doc-section {
-    page-break-inside: auto;
-    margin-bottom: 16pt !important;
-  }
-
-  .decision-topic-block,
-  .memo-topic-block,
-  .action-team-group {
-    page-break-inside: avoid;
-  }
-
-  .action-checkbox {
-    display: inline-block !important;
-    width: 12pt !important;
-    height: 12pt !important;
-    appearance: none;
-    -webkit-appearance: none;
-    border: 1pt solid #000000 !important;
-    margin-right: 6pt;
-    vertical-align: middle;
-  }
-
-  .action-check-row.done .action-checkbox::after {
-    content: '✓';
-    display: block;
-    text-align: center;
-    font-size: 9pt;
-    line-height: 12pt;
-    font-weight: bold;
-  }
-
-  .action-check-row.done .action-text-content {
-    text-decoration: none !important;
-    color: #000000 !important;
-  }
-
-  .doc-running-header {
-    margin-bottom: 20pt !important;
-  }
-}
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
@@ -2416,3 +2297,122 @@
 
 /* Print stylesheet at root */
 
+/* Print Stylesheet at Root */
+@media print {
+
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 11pt !important;
+    line-height: 1.45 !important;
+  }
+
+  .ambient-bg,
+  .top-nav-container,
+  .hero-section,
+  .macos-window .window-header,
+  .detail-toolbar,
+  .app-footer,
+  .toast-hub,
+  .modal-dialog,
+  #viewArchive,
+  #viewActions,
+  #viewGenerator,
+  #viewSettings,
+  .section-hint {
+    display: none !important;
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .macos-window {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    backdrop-filter: none !important;
+  }
+
+  .window-body {
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  #viewDetail {
+    display: block !important;
+  }
+
+  .official-paper-wrapper {
+    background: transparent !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .official-document {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    color: #000000 !important;
+  }
+
+  .corporate-metadata-table {
+    border: 1.5pt solid #000000 !important;
+  }
+
+  .corporate-metadata-table th,
+  .corporate-metadata-table td {
+    border: 1pt solid #000000 !important;
+    padding: 5pt 8pt !important;
+  }
+
+  .col-meta-label {
+    background: transparent !important;
+    font-weight: bold !important;
+  }
+
+  .doc-section {
+    page-break-inside: auto;
+    margin-bottom: 16pt !important;
+  }
+
+  .decision-topic-block,
+  .memo-topic-block,
+  .action-team-group {
+    page-break-inside: avoid;
+  }
+
+  .action-checkbox {
+    display: inline-block !important;
+    width: 12pt !important;
+    height: 12pt !important;
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1pt solid #000000 !important;
+    margin-right: 6pt;
+    vertical-align: middle;
+  }
+
+  .action-check-row.done .action-checkbox::after {
+    content: '✓';
+    display: block;
+    text-align: center;
+    font-size: 9pt;
+    line-height: 12pt;
+    font-weight: bold;
+  }
+
+  .action-check-row.done .action-text-content {
+    text-decoration: none !important;
+    color: #000000 !important;
+  }
+
+  .doc-running-header {
+    margin-bottom: 20pt !important;
+  }
+}
