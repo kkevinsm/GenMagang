@@ -112,7 +112,7 @@ export default function GenMagangLanding() {
             ========================================================================= */}
         <div className="mt-8 flex flex-col sm:flex-row items-stretch justify-center gap-4 max-w-xl mx-auto">
           
-          {/* Button 1: Mobogen (Monev) */}
+          {/* Button 1: GenMonev (Monev) */}
           <Link
             href="/monev"
             className="flex-1 group bg-white/90 hover:bg-white p-4 rounded-2xl flex items-center gap-3.5 border-2 border-emerald-500/30 hover:border-emerald-500 transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5"
@@ -133,7 +133,7 @@ export default function GenMagangLanding() {
             </div>
           </Link>
 
-          {/* Button 2: Notugen (Notulensi) */}
+          {/* Button 2: GenNotulis (Notulensi) */}
           <Link
             href="/notulen"
             className="flex-1 group bg-white/90 hover:bg-white p-4 rounded-2xl flex items-center gap-3.5 border-2 border-primary-500/30 hover:border-primary-600 transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-0.5"

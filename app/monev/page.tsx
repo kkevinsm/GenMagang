@@ -1276,7 +1276,7 @@ ${report.alasan_tidak_hadir || ""}`;
       <footer className="border-t border-surface-200/60 bg-white/70 py-5 text-xs text-surface-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
           <div>
-            <span className="font-bold text-surface-700">GenMonev</span> (d/h Mobogen) &middot; Bagian dari ekosistem <strong>GenMagang</strong>
+            <span className="font-bold text-surface-700">GenMonev</span> &middot; Bagian dari ekosistem <strong>GenMagang</strong>
           </div>
           <div className="flex items-center gap-4 text-primary-700 font-medium">
             <Link href="/" className="hover:underline">Beranda</Link>

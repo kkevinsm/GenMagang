@@ -62,11 +62,15 @@ interface MediaAttachment {
   fileSize: number;
 }
 
-// LocalStorage Keys
-const STORAGE_KEY_MEETINGS = "notugen_meetings_data";
-const STORAGE_KEY_FOLDERS = "notugen_folders_data";
-const STORAGE_KEY_API_KEY = "notugen_gemini_api_key";
-const STORAGE_KEY_MODEL = "notugen_gemini_model";
+// LocalStorage Keys (with backward compatibility)
+const STORAGE_KEY_MEETINGS = "gennotulis_meetings_data";
+const LEGACY_STORAGE_KEY_MEETINGS = "notugen_meetings_data";
+const STORAGE_KEY_FOLDERS = "gennotulis_folders_data";
+const LEGACY_STORAGE_KEY_FOLDERS = "notugen_folders_data";
+const STORAGE_KEY_API_KEY = "gennotulis_gemini_api_key";
+const LEGACY_STORAGE_KEY_API_KEY = "notugen_gemini_api_key";
+const STORAGE_KEY_MODEL = "gennotulis_gemini_model";
+const LEGACY_STORAGE_KEY_MODEL = "notugen_gemini_model";
 
 export default function NotulenPage() {
   // Navigation / Tabs
@@ -148,7 +152,7 @@ export default function NotulenPage() {
   useEffect(() => {
     // 1. Folders
     try {
-      const storedFolders = localStorage.getItem(STORAGE_KEY_FOLDERS);
+      const storedFolders = localStorage.getItem(STORAGE_KEY_FOLDERS) || localStorage.getItem(LEGACY_STORAGE_KEY_FOLDERS);
       if (storedFolders) {
         const parsed = JSON.parse(storedFolders);
         if (Array.isArray(parsed)) {
@@ -164,7 +168,7 @@ export default function NotulenPage() {
 
     // 2. Meetings
     try {
-      const storedMeetings = localStorage.getItem(STORAGE_KEY_MEETINGS);
+      const storedMeetings = localStorage.getItem(STORAGE_KEY_MEETINGS) || localStorage.getItem(LEGACY_STORAGE_KEY_MEETINGS);
       if (storedMeetings) {
         const parsed = JSON.parse(storedMeetings);
         if (Array.isArray(parsed)) {
@@ -181,11 +185,11 @@ export default function NotulenPage() {
     }
 
     // 3. API Key & Model
-    const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || "";
+    const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) || "";
     setApiKey(storedKey);
     setTempApiKey(storedKey);
 
-    const storedModel = localStorage.getItem(STORAGE_KEY_MODEL) || "gemini-2.5-flash";
+    const storedModel = localStorage.getItem(STORAGE_KEY_MODEL) || localStorage.getItem(LEGACY_STORAGE_KEY_MODEL) || "gemini-2.5-flash";
     setSelectedModel(storedModel);
   }, []);
 
@@ -1068,7 +1072,7 @@ PENTING:
               <em>Temukan keputusannya</em> dalam hitungan detik.
             </h1>
             <p className="hero-subtitle">
-              Notugen mengarsipkan risalah rapat, melacak tindak lanjut per tim, dan mengubah catatan mentah menjadi dokumen resmi standar korporat dengan bantuan Gemini AI.
+              GenNotulis mengarsipkan risalah rapat, melacak tindak lanjut per tim, dan mengubah catatan mentah menjadi dokumen resmi standar korporat dengan bantuan Gemini AI.
             </p>
 
             <div className="hero-quick-stats">
@@ -1100,7 +1104,7 @@ PENTING:
                 <line x1="8" y1="21" x2="16" y2="21" />
                 <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
-              <span>notugen — Workspace Rapat</span>
+              <span>GenNotulis — Workspace Rapat</span>
             </div>
             <div className="window-actions">
               <button className="btn-ghost-sm" onClick={handleExportAllJson} title="Backup Semua Data ke File JSON">
@@ -2150,7 +2154,7 @@ PENTING:
                           onClick={() => {
                             setConfirmDialog({
                               open: true,
-                              title: "Reset Semua Data Notugen?",
+                              title: "Reset Semua Data GenNotulis?",
                               message: "Seluruh data rapat dan folder akan dihapus dari LocalStorage browser. Tindakan ini tidak dapat dibatalkan.",
                               onConfirm: () => {
                                 saveMeetings([]);

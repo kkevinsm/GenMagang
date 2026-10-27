@@ -1406,7 +1406,7 @@ html, body {
    ========================================================================== */
 .generator-layout {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr);
   gap: 28px;
 }
 
@@ -2151,6 +2151,7 @@ html, body {
   overflow-x: auto;
 }
 
+.mode-tab-btn,
 .input-mode-tab {
   display: inline-flex;
   align-items: center;
@@ -2168,11 +2169,13 @@ html, body {
   white-space: nowrap;
 }
 
+.mode-tab-btn:hover,
 .input-mode-tab:hover {
   color: var(--text-main);
   background: rgba(255, 255, 255, 0.6);
 }
 
+.mode-tab-btn.active,
 .input-mode-tab.active {
   background: #FFFFFF;
   color: var(--text-main);

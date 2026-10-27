@@ -1,5 +1,5 @@
 /**
- * Role-based Smart Suggestions Database untuk Mobogen Telegram Bot
+ * Role-based Smart Suggestions Database untuk GenMonev Telegram Bot
  * Memberikan inspirasi poin aktivitas harian sesuai posisi magang peserta
  */
 

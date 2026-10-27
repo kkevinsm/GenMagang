@@ -3,8 +3,8 @@
 **GenMagang** adalah platform produktivitas terintegrasi berbasis AI yang dirancang khusus untuk membebaskan mahasiswa dan peserta magang di Indonesia dari rutinitas administratif yang repetitif.
 
 GenMagang menggabungkan 2 pilar solusi utama:
-1. **🤖 GenMonev (Eks Mobogen):** Otomatisasi penyusunan laporan harian Monitoring dan Evaluasi (Monev) berstandar formal Kemnaker (> 100 karakter) dengan integrasi akun SIAPkerja ID dan Bot Telegram asisten absensi.
-2. **📝 GenNotulis (Eks Notugen):** Platform intelejen notulensi rapat korporat yang mengubah transkrip, rekaman suara mikrofon, maupun file video meeting menjadi risalah keputusan resmi berstandar BNI/korporat dan daftar tindak lanjut (*action items*).
+1. **🤖 GenMonev:** Otomatisasi penyusunan laporan harian Monitoring dan Evaluasi (Monev) berstandar formal Kemnaker (> 100 karakter) dengan integrasi akun SIAPkerja ID dan Bot Telegram asisten absensi.
+2. **📝 GenNotulis:** Platform intelejen notulensi rapat korporat yang mengubah transkrip, rekaman suara mikrofon, maupun file video meeting menjadi risalah keputusan resmi berstandar BNI/korporat dan daftar tindak lanjut (*action items*).
 
 ---
 

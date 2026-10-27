@@ -37,6 +37,6 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return Response.json({
     status: "online",
-    service: "Mobogen Telegram Bot Webhook",
+    service: "GenMonev Telegram Bot Webhook",
   });
 }

@@ -13,8 +13,8 @@ export const metadata: Metadata = {
     "Anak Magang",
     "Magang Merdeka",
     "AI Asisten Magang",
-    "Mobogen",
-    "Notugen",
+    "GenMonev",
+    "GenNotulis",
   ],
   icons: {
     icon: [

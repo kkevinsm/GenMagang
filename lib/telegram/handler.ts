@@ -1,5 +1,5 @@
 /**
- * Main Telegram Bot Conversation Handler untuk Mobogen
+ * Main Telegram Bot Conversation Handler untuk GenMonev
  * Fitur:
  * 1. 3 Macam Opsi Presensi Monev (Hadir, Izin, Alpha)
  * 2. Telegram Mini App (In-App Editor Interaktif)
@@ -77,7 +77,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       saveUser(user);
       return telegram.sendMessage(
         chatId,
-        "🟡 *Presensi: Tidak Hadir Dengan Keterangan (Izin/Sakit)*\n\nSilakan kirimkan alasan atau keterangan ketidakhadiran Anda (misal: _'Sakit demam dan berobat ke klinik dokter'_).\n\nAI Mobogen akan menyusun narasi permohonan izin resmi minimal 100 karakter."
+        "🟡 *Presensi: Tidak Hadir Dengan Keterangan (Izin/Sakit)*\n\nSilakan kirimkan alasan atau keterangan ketidakhadiran Anda (misal: _'Sakit demam dan berobat ke klinik dokter'_).\n\nAI GenMonev akan menyusun narasi permohonan izin resmi minimal 100 karakter."
       );
     }
 
@@ -420,7 +420,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     return telegram.sendMessage(
       chatId,
-      `📊 *Status Bot Mobogen*\n\n👤 Nama: *${user.name || "Peserta"}*\n💼 Posisi: ${currentRole.icon} *${currentRole.name}*\n🔗 Akun Kemnaker: ${hasAccount ? `✅ Terhubung (${emailDecrypted})` : "❌ Belum login"
+      `📊 *Status Bot GenMonev*\n\n👤 Nama: *${user.name || "Peserta"}*\n💼 Posisi: ${currentRole.icon} *${currentRole.name}*\n🔗 Akun Kemnaker: ${hasAccount ? `✅ Terhubung (${emailDecrypted})` : "❌ Belum login"
       }\n🔑 Gemini AI Key: *${apiKeyStatus}*\n⏰ Pengingat Sore (16:30 WIB): *${reminderStatus}*\n📅 Tanggal Hari Ini: *${getTodayDateString()}*${draftStatus}`,
       {
         reply_markup: {
@@ -508,7 +508,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   if (!user.username || !user.password) {
     return telegram.sendMessage(
       chatId,
-      "👋 Halo! Anda belum menghubungkan akun Kemnaker ke Mobogen.\n\nSilakan login terlebih dahulu agar laporan absensi dapat dikirimkan secara otomatis.",
+      "👋 Halo! Anda belum menghubungkan akun Kemnaker ke GenMonev.\n\nSilakan login terlebih dahulu agar laporan absensi dapat dikirimkan secara otomatis.",
       {
         reply_markup: {
           inline_keyboard: [
@@ -921,7 +921,7 @@ function sendHelpMenu(user: UserAccount) {
       ? "\n\n🎉 *Akun Kemnaker Terhubung!* ✅\n👉 *Langkah 2 (Terakhir):* Masukkan Gemini API Key gratis Anda untuk mengaktifkan AI Generator."
       : "\n\n👇 *Klik tombol di bawah untuk akses cepat:*";
 
-  const message = `🤖 *SELAMAT DATANG DI MOBOGEN BOT!* 👋
+  const message = `🤖 *SELAMAT DATANG DI GENMONEV BOT!* 👋
 Asisten Laporan Harian Monev MagangHub Kemnaker berbasis AI.
 
 📋 *DAFTAR PERINTAH (COMMANDS):*
