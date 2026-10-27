@@ -933,192 +933,283 @@ PENTING:
   }, [meetings, quickSearchQuery]);
 
   return (
-    <div className="theme-notulis">
-      {/* Ambient Wallpaper Background */}
-      <div className="ambient-bg" aria-hidden="true" />
+    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#FBFBFA] text-surface-900 font-sans selection:bg-primary-500 selection:text-white theme-notulis">
+      {/* =========================================================================
+          BACKGROUND CONCENTRIC ORBITAL RINGS & PLANETARY BADGES
+          (Matching Home page reference: expansive concentric orbits with ambient glow)
+          ========================================================================= */}
+      <div 
+        className="pointer-events-none absolute left-1/2 top-[350px] sm:top-[380px] md:top-[400px] -translate-x-1/2 -translate-y-1/2 w-[2300px] h-[2300px] flex items-center justify-center z-0 select-none"
+        aria-hidden="true"
+      >
+        {/* Central Ambient Glow */}
+        <div className="absolute w-[680px] h-[680px] rounded-full bg-gradient-to-tr from-emerald-200/60 via-teal-100/40 to-transparent blur-3xl opacity-75" />
 
-      <div className="app-container">
-        {/* Floating Top Navigation Pill */}
-        <header className="top-nav-container">
-          <nav className="top-nav-pill" aria-label="Navigasi Utama">
-            <Link href="/" className="brand-link" title="Kembali ke Beranda GenMagang">
-              <div className="brand-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
-                <span className="brand-text" style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.02em" }}>
-                  Gen<span style={{ color: "#059669" }}>Notulis</span>
-                </span>
-                <span style={{ fontSize: "0.58rem", color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  GenMagang Suite
-                </span>
-              </div>
+        {/* Ring 1 (Inner Solid, 520px) */}
+        <div className="absolute w-[520px] h-[520px] rounded-full orbit-ring-solid" />
+
+        {/* Ring 2 (Emerald Dashed, 880px) */}
+        <div className="absolute w-[880px] h-[880px] rounded-full orbit-ring-emerald" />
+
+        {/* Ring 3 (Solid Teal, 1300px) */}
+        <div className="absolute w-[1300px] h-[1300px] rounded-full orbit-ring-solid" />
+
+        {/* Ring 4 (Dashed Outer, 1760px) */}
+        <div className="absolute w-[1760px] h-[1760px] rounded-full orbit-ring-dashed" />
+
+        {/* Ring 5 (Outer Solid, 2260px) */}
+        <div className="absolute w-[2260px] h-[2260px] rounded-full orbit-ring-solid" />
+      </div>
+
+      {/* =========================================================================
+          FLOATING TOP LIQUID GLASS NAVBAR PILL (Matching Home page)
+          ========================================================================= */}
+      <header className="sticky top-5 z-50 px-4 w-full max-w-6xl mx-auto">
+        <nav className="liquid-glass-pill rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-lg border border-white/80 gap-3">
+          
+          {/* Brand Logo & Suite Identity */}
+          <Link href="/" className="flex items-center gap-2.5 group shrink-0" title="Kembali ke Beranda GenMagang">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-600 via-primary-700 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-primary-500/20 group-hover:scale-105 transition-transform">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <span className="font-extrabold text-[1.12rem] tracking-tight leading-none text-primary-900">
+                Gen<span className="text-emerald-600">Notulis</span>
+              </span>
+              <span className="text-[0.6rem] text-surface-500 font-semibold tracking-wide">ALL-IN-ONE SUITE</span>
+            </div>
+          </Link>
+
+          {/* Center Tabs Switcher (Styled cleanly like Home's simulation tabs) */}
+          <div className="hidden md:flex items-center gap-1 p-1 bg-surface-100/90 rounded-full border border-surface-200/60 shadow-xs">
+            <button
+              type="button"
+              onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                activeTab === "archive"
+                  ? "bg-white text-primary-900 shadow-sm"
+                  : "text-surface-600 hover:text-surface-900"
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span>Arsip Rapat</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                activeTab === "actions"
+                  ? "bg-white text-primary-900 shadow-sm"
+                  : "text-surface-600 hover:text-surface-900"
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 11l3 3L22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+              </svg>
+              <span>Action Items</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${stats.pendingCount > 0 ? "bg-amber-100 text-amber-800" : "bg-surface-200 text-surface-600"}`}>
+                {stats.pendingCount}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                activeTab === "generator"
+                  ? "bg-white text-primary-900 shadow-sm"
+                  : "text-surface-600 hover:text-surface-900"
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+              </svg>
+              <span>AI Generator</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
+                activeTab === "settings"
+                  ? "bg-white text-primary-900 shadow-sm"
+                  : "text-surface-600 hover:text-surface-900"
+              }`}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span>Setelan</span>
+            </button>
+          </div>
+
+          {/* Right Action Option Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsQuickSearchOpen(true)}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-surface-600 bg-surface-100 hover:bg-surface-200 border border-surface-200/60 transition-colors"
+              title="Cari Cepat Notulen (⌘K)"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <span>Cari...</span>
+              <kbd className="text-[10px] bg-white px-1.5 py-0.5 rounded border border-surface-200 text-surface-500 font-mono">⌘K</kbd>
+            </button>
+
+            <Link
+              href="/monev"
+              className="text-xs font-bold px-3.5 py-1.5 rounded-full text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-colors flex items-center gap-1.5 shrink-0"
+              title="Pindah ke Modul GenMonev Kemnaker"
+            >
+              <span>🤖</span>
+              <span className="hidden sm:inline">GenMonev</span>
             </Link>
 
-            <div className="nav-links">
-              <button
-                className={`nav-item ${activeTab === "archive" ? "active" : ""}`}
-                onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                <span>Arsip Rapat</span>
-              </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab("generator");
+                setCurrentMeetingId(null);
+              }}
+              className="text-xs font-bold px-4 py-1.5 rounded-full text-white bg-primary-600 hover:bg-primary-700 shadow-sm hover:shadow transition-all flex items-center gap-1.5 shrink-0"
+            >
+              <span>✨</span>
+              <span>Notulen Baru</span>
+            </button>
+          </div>
+        </nav>
+      </header>
 
-              <button
-                className={`nav-item ${activeTab === "actions" ? "active" : ""}`}
-                onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M9 11l3 3L22 4" />
-                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-                </svg>
-                <span>Action Items</span>
-                <span className="badge-count">{stats.pendingCount}</span>
-              </button>
+      {/* Mobile Tab Bar */}
+      <div className="md:hidden flex items-center justify-center px-4 mt-3 relative z-40">
+        <div className="w-full max-w-md p-1 bg-white/90 backdrop-blur rounded-2xl border border-surface-200/80 shadow-sm flex items-center justify-between text-xs font-bold">
+          <button
+            type="button"
+            onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
+            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "archive" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
+          >
+            Arsip
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
+            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "actions" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
+          >
+            Tindak Lanjut ({stats.pendingCount})
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
+            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "generator" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
+          >
+            Generator
+          </button>
+          <button
+            type="button"
+            onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
+            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "settings" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
+          >
+            Setelan
+          </button>
+        </div>
+      </div>
 
-              <button
-                className={`nav-item ${activeTab === "generator" ? "active" : ""}`}
-                onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                </svg>
-                <span>AI Generator</span>
-              </button>
-
-              <button
-                className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
-                onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
-                <span>Setelan</span>
-              </button>
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pb-16">
+        {/* =========================================================================
+            HERO SECTION (Centered Content Framing - Matching Home)
+            ========================================================================= */}
+        {activeTab === "archive" && currentMeetingId === null && (
+          <section className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-10 md:pt-14 pb-8 text-center">
+            {/* Sub-Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50/80 text-emerald-800 border border-emerald-200/60 text-xs font-semibold mb-4">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Corporate Meeting Intelligence &middot; Standar Resmi BUMN / Instansi
             </div>
 
-            <div className="nav-actions">
-              <Link
-                href="/monev"
-                className="btn-ghost-sm"
-                style={{
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  fontWeight: 600,
-                  fontSize: "0.75rem",
-                  color: "#134f5c",
-                  background: "#eef5f6",
-                  padding: "5px 12px",
-                  borderRadius: "9999px",
-                  transition: "all 150ms"
-                }}
-                title="Buka Asisten Laporan Monev Kemnaker"
-              >
-                <span>🤖 GenMonev</span>
-              </Link>
-
-              <button
-                className="quick-search-trigger"
-                onClick={() => setIsQuickSearchOpen(true)}
-                title="Cari Cepat (⌘K)"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-                <span className="search-label">Cari notulen...</span>
-                <kbd className="kbd-pill">⌘K</kbd>
-              </button>
-
-              <button
-                className="btn-primary btn-pill"
-                onClick={() => {
-                  setActiveTab("generator");
-                  setCurrentMeetingId(null);
-                }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="12" y1="5" x2="12" y2="19" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                </svg>
-                <span>Notulen Baru</span>
-              </button>
-            </div>
-          </nav>
-        </header>
-
-        {/* Hero Headline (Only on Archive Tab) */}
-        {activeTab === "archive" && (
-          <section className="hero-section">
-            <div className="hero-badge">
-              <span className="badge-dot" />
-              <span>Corporate Meeting Intelligence</span>
-            </div>
-            <h1 className="hero-title">
-              Simpan notulensi.<br />
-              <em>Temukan keputusannya</em> dalam hitungan detik.
+            {/* Main Headline */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-surface-900 leading-[1.15]">
+              Simpan Notulensi, Ekstrak Keputusan dalam{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-primary-600 inline-block">
+                Hitungan Detik
+              </span>
             </h1>
-            <p className="hero-subtitle">
-              GenNotulis mengarsipkan risalah rapat, melacak tindak lanjut per tim, dan mengubah catatan mentah menjadi dokumen resmi standar korporat dengan bantuan Gemini AI.
+
+            {/* Subtitle */}
+            <p className="mt-4 text-sm sm:text-base text-surface-600 max-w-2xl mx-auto leading-relaxed">
+              Arsipkan risalah rapat dengan rapi, otomatisasi perumusan format resmi korporat dari rekaman suara atau catatan mentah, dan pantau action items per tim dengan bantuan Gemini AI.
             </p>
 
-            <div className="hero-quick-stats">
-              <div className="stat-pill">
-                <strong>{stats.totalMeetings}</strong> Rapat Tersimpan
+            {/* Quick Stats Pills */}
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <div className="px-4 py-2 rounded-xl bg-white/90 border border-surface-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-surface-700">
+                <span className="text-base">📁</span>
+                <span><strong>{stats.totalMeetings}</strong> Rapat Tersimpan</span>
               </div>
-              <div className="stat-pill">
-                <strong>{stats.pendingCount}</strong> Tindak Lanjut Menunggu
+              <div className="px-4 py-2 rounded-xl bg-white/90 border border-surface-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-amber-800">
+                <span className="text-base">⏳</span>
+                <span><strong>{stats.pendingCount}</strong> Tindak Lanjut Menunggu</span>
               </div>
-              <div className="stat-pill">
-                <strong>{stats.completedCount}</strong> Tugas Selesai
+              <div className="px-4 py-2 rounded-xl bg-white/90 border border-surface-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-emerald-800">
+                <span className="text-base">✓</span>
+                <span><strong>{stats.completedCount}</strong> Tugas Selesai</span>
               </div>
             </div>
           </section>
         )}
 
-        {/* Main macOS App Window */}
-        <main className="macos-window">
-          {/* Window Title Bar */}
-          <div className="window-header">
-            <div className="traffic-lights" aria-hidden="true">
-              <span className="light red" />
-              <span className="light yellow" />
-              <span className="light green" />
-            </div>
-            <div className="window-title-tab">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                <line x1="8" y1="21" x2="16" y2="21" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-              </svg>
-              <span>GenNotulis — Workspace Rapat</span>
-            </div>
-            <div className="window-actions">
-              <button className="btn-ghost-sm" onClick={handleExportAllJson} title="Backup Semua Data ke File JSON">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                <span>Cadangkan JSON</span>
-              </button>
-            </div>
-          </div>
+        {/* =========================================================================
+            MAIN WORKSPACE CARD (Inspired by Home Showcase Card)
+            ========================================================================= */}
+        <main className="mt-6 w-full">
+          <div className="bg-white/95 rounded-3xl shadow-xl border border-surface-200/80 overflow-hidden">
+            {/* Top Workspace Card Bar */}
+            <div className="px-5 sm:px-7 py-4 border-b border-surface-200/80 flex items-center justify-between gap-3 bg-gradient-to-r from-surface-50 via-white to-surface-50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary-700 border border-primary-200/60 flex items-center justify-center font-bold text-sm shadow-xs">
+                  {activeTab === "archive" ? "📁" : activeTab === "actions" ? "✅" : activeTab === "generator" ? "✨" : "⚙️"}
+                </div>
+                <div>
+                  <div className="text-xs sm:text-sm font-extrabold text-surface-900 leading-tight">
+                    {activeTab === "archive" ? "Workspace Arsip Rapat" : activeTab === "actions" ? "Pelacak Tindak Lanjut (Action Items)" : activeTab === "generator" ? "Generator Notulensi Rapat AI" : "Setelan Kredensial Gemini"}
+                  </div>
+                  <div className="text-[11px] text-surface-500 font-medium">
+                    GenNotulis &middot; GenMagang Suite
+                  </div>
+                </div>
+              </div>
 
-          <div className="window-body">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportAllJson}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-surface-700 bg-white hover:bg-surface-50 border border-surface-200 shadow-xs transition-colors"
+                  title="Unduh Cadangan Semua Data ke File JSON"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  <span className="hidden sm:inline">Cadangkan JSON</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="window-body">
             {/* VIEW 1: ARSIP NOTULEN */}
             {activeTab === "archive" && (
               <section className="view-panel active">
@@ -2174,8 +2265,21 @@ PENTING:
                 </div>
               </section>
             )}
+            </div>
           </div>
         </main>
+
+        {/* Footer (Matching Home & Monev) */}
+        <footer className="border-t border-surface-200/60 bg-white/60 py-6 text-center text-xs text-surface-500 mt-16 relative z-10">
+          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span><strong>GenNotulis</strong> &middot; Bagian dari ekosistem <strong>GenMagang</strong></span>
+            <div className="flex items-center gap-4 text-primary-700 font-semibold">
+              <Link href="/" className="hover:underline">Beranda</Link>
+              <Link href="/monev" className="hover:underline">GenMonev (Kemnaker)</Link>
+              <a href="https://github.com/kkevinsm/GenMagang" target="_blank" rel="noopener noreferrer" className="hover:underline">GitHub</a>
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* --- MODAL 1: TAMBAH / EDIT FOLDER --- */}
