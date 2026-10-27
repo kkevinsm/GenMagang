@@ -33,7 +33,7 @@ export function renderFolderShelf() {
 
   let html = `
     <button class="folder-chip ${activeFolderFilter === 'all' ? 'active' : ''}" data-folder="all">
-      <div class="folder-tab-gradient grad-sand"></div>
+      <div class="folder-tab-gradient grad-brand"></div>
       <div class="folder-chip-body">
         <span class="folder-name">Semua Dokumen</span>
         <span class="folder-count">${counts.all} rapat</span>

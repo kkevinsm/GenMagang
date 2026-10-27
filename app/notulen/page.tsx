@@ -1166,7 +1166,7 @@ PENTING:
                     className={`folder-chip ${activeFolderFilter === "all" ? "active" : ""}`}
                     onClick={() => setActiveFolderFilter("all")}
                   >
-                    <div className="folder-tab-gradient grad-sand" />
+                    <div className="folder-tab-gradient grad-brand" />
                     <div className="folder-chip-body">
                       <span className="folder-name">Semua Dokumen</span>
                       <span className="folder-count">{folderCounts.all || 0} rapat</span>
