@@ -929,7 +929,7 @@ PENTING:
   }, [meetings, quickSearchQuery]);
 
   return (
-    <div className="theme-light">
+    <div className="theme-notulis">
       {/* Ambient Wallpaper Background */}
       <div className="ambient-bg" aria-hidden="true" />
 
