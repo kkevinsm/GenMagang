@@ -131,27 +131,56 @@ export default function GenMagangLanding() {
 
             {/* Top Bar: Module Switcher Tabs & Direct Link */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 pb-5">
-              <div className="flex items-center gap-2 bg-slate-200/40 backdrop-blur-md p-1.5 rounded-2xl w-fit border border-white/60">
+              {/* Segmented Control with Smooth Sliding Pill Animation */}
+              <div className="relative grid grid-cols-2 p-1.5 rounded-2xl bg-slate-200/40 backdrop-blur-md border border-white/60 w-full sm:w-auto min-w-[320px] select-none shadow-inner">
+                {/* Sliding indicator pill */}
+                <div
+                  className="absolute top-1.5 bottom-1.5 rounded-xl bg-white/95 shadow-sm border border-white/90 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"
+                  style={{
+                    left: '6px',
+                    width: 'calc(50% - 6px)',
+                    transform: activeTab === 'monev' ? 'translateX(0%)' : 'translateX(100%)',
+                  }}
+                  aria-hidden="true"
+                />
+
                 <button
                   type="button"
-                  onClick={() => setActiveTab("monev")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === "monev"
-                      ? "bg-white/90 text-slate-900 shadow-xs border border-white/80"
-                      : "text-slate-600 hover:text-slate-900"
-                    }`}
+                  onClick={() => setActiveTab('monev')}
+                  className={`relative z-10 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer active:scale-95 ${
+                    activeTab === 'monev'
+                      ? 'text-slate-900'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  aria-pressed={activeTab === 'monev'}
                 >
-                  <i className={`mdi mdi-robot-outline text-sm ${activeTab === "monev" ? "text-emerald-600" : "text-slate-400"}`} />
+                  <i
+                    className={`mdi mdi-robot-outline text-sm transition-all duration-300 ${
+                      activeTab === 'monev'
+                        ? 'text-emerald-600 scale-110'
+                        : 'text-slate-400 group-hover:text-slate-600 scale-100'
+                    }`}
+                  />
                   <span>Simulasi GenMonev</span>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setActiveTab("notulen")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === "notulen"
-                      ? "bg-white/90 text-slate-900 shadow-xs border border-white/80"
-                      : "text-slate-600 hover:text-slate-900"
-                    }`}
+                  onClick={() => setActiveTab('notulen')}
+                  className={`relative z-10 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer active:scale-95 ${
+                    activeTab === 'notulen'
+                      ? 'text-slate-900'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                  aria-pressed={activeTab === 'notulen'}
                 >
-                  <i className={`mdi mdi-file-document-edit-outline text-sm ${activeTab === "notulen" ? "text-blue-600" : "text-slate-400"}`} />
+                  <i
+                    className={`mdi mdi-file-document-edit-outline text-sm transition-all duration-300 ${
+                      activeTab === 'notulen'
+                        ? 'text-blue-600 scale-110'
+                        : 'text-slate-400 group-hover:text-slate-600 scale-100'
+                    }`}
+                  />
                   <span>Simulasi GenNotulis</span>
                 </button>
               </div>
