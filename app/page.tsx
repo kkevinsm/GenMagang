@@ -10,12 +10,17 @@ export default function GenMagangLanding() {
     <div className="relative min-h-screen w-full overflow-x-hidden text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
       
       {/* =========================================================================
-          WAYPILOT MINIMALIST CANVAS & AMBIENT ATMOSPHERE
-          Crisp dot grid with subtle, ethereal lavender & warm lemon pastel glows
+          WAYPILOT CANVAS & THICK AMBIENT ATMOSPHERE
+          Rich Lavender on Left + Warm Lemon Yellow on Right + Crisp Dot Grid Pattern
           ========================================================================= */}
-      <div className="waypilot-canvas" aria-hidden="true" />
+      {/* Ambient Glows Layer (Behind dots) */}
       <div className="ambient-glow-lavender" aria-hidden="true" />
       <div className="ambient-glow-yellow" aria-hidden="true" />
+      <div className="ambient-glow-center" aria-hidden="true" />
+
+      {/* Prominent Dot Grid Canvas & Orbital Track Arch (On top of glows) */}
+      <div className="waypilot-canvas" aria-hidden="true" />
+      <div className="orbital-track-arch" aria-hidden="true" />
 
       {/* =========================================================================
           NAVIGATION BAR (Bentuk Lama - Pills Capsule)
