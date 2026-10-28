@@ -308,7 +308,7 @@ export default function GenMonevDashboard() {
       return { name: "ChatGPT", full: "OpenAI ChatGPT", model: "GPT-4o / GPT-4o Mini (Auto)", icon: "mdi-robot", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
     }
     if (clean.startsWith("AIza") || clean.length > 5) {
-      return { name: "Gemini", full: "Google Gemini", model: "Gemini 2.5 Flash / 1.5 Flash (Auto)", icon: "mdi-google", color: "text-blue-700 bg-blue-50 border-blue-200" };
+      return { name: "Gemini", full: "Google Gemini", model: "Gemini 1.5 Flash / 2.0 Flash (Auto)", icon: "mdi-google", color: "text-blue-700 bg-blue-50 border-blue-200" };
     }
     return { name: "AI", full: "Multi-Provider AI", model: "Auto sesuai langganan", icon: "mdi-key-variant", color: "text-slate-700 bg-slate-50 border-slate-200" };
   };

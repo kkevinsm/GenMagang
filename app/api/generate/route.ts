@@ -90,11 +90,14 @@ export async function POST(request: NextRequest) {
       ? `Status Kehadiran: Tidak Hadir Dengan Keterangan\nCatatan Singkat User:\n${aktivitas}\n\nBuatkan narasi formal Alasan Tidak Hadir (minimal 100 karakter) sesuai standar Monev Kemnaker.`
       : `Status Kehadiran: Hadir\nCatatan Aktivitas Harian:\n${aktivitas}\n\nBuatkan 3 bagian laporan Monev harian (Uraian Aktivitas, Pembelajaran, Kendala masing-masing minimal 100 karakter).`;
 
+    const preferredModel = process.env.GEMINI_MODEL;
+
     const aiResponse = await generateWithAI({
       apiKey,
       provider,
       systemInstruction,
       userPrompt,
+      preferredModel,
     });
 
     const parsed = JSON.parse(aiResponse.text);

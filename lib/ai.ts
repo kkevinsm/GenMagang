@@ -62,11 +62,14 @@ export const AI_PROVIDERS: Record<string, AIProviderConfig> = {
     keyPlaceholder: "AIzaSy...",
     keyHelpUrl: "https://aistudio.google.com/app/apikey",
     defaultModels: [
-      "gemini-2.5-flash",
       "gemini-1.5-flash",
       "gemini-2.0-flash",
       "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
+      "gemini-2.0-flash-lite",
+      "gemini-flash-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3.8-flash",
+      "gemini-3.7-flash",
     ],
   },
 };
@@ -184,7 +187,7 @@ async function callGemini(
   model: string,
   systemInstruction: string,
   userPrompt: string,
-  timeoutMs = 14000
+  timeoutMs = 10000
 ): Promise<{ text?: string; error?: string; status?: number }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -204,9 +207,9 @@ async function callGemini(
           },
         ],
         generationConfig: {
-          temperature: 0.4,
+          temperature: 0.7,
           topP: 0.9,
-          maxOutputTokens: 4096,
+          maxOutputTokens: 2048,
           responseMimeType: "application/json",
         },
       }),
@@ -294,15 +297,29 @@ export async function generateWithAI({
 
     if (result.error) {
       lastError = `[${model}]: ${result.error}`;
-      if (result.status === 401) {
+      if (
+        result.status === 401 ||
+        (result.status === 400 && result.error.toLowerCase().includes("api key not valid"))
+      ) {
         throw new Error(`API Key untuk ${providerMeta.name} tidak valid. Periksa kembali API Key Anda.`);
       }
     }
   }
 
   if (!chosenText || !chosenModel) {
+    const isQuotaError =
+      lastError.includes("Quota") ||
+      lastError.includes("RESOURCE_EXHAUSTED") ||
+      lastError.includes("429");
+
+    if (isQuotaError) {
+      throw new Error(
+        `Limit (kuota harian) pada API Key ${providerMeta.name} Anda telah habis (Rate Limit Exceeded). Buat API Key baru di ${providerMeta.keyHelpUrl}`
+      );
+    }
+
     throw new Error(
-      `Gagal menghasilkan output dari ${providerMeta.name} (${lastError || "Semua model sibuk / kuota habis"}). Silakan periksa kuota akun Anda.`
+      `Gagal menghasilkan laporan AI (${lastError || "Semua model sibuk"}). Coba lagi beberapa saat lagi.`
     );
   }
 
