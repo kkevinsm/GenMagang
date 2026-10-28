@@ -1075,7 +1075,7 @@ html, body {
   justify-content: center;
 }
 
-/* The Official Corporate Document (Pixel-perfect matches BNI sample) */
+/* The Official Corporate Document (Pixel-perfect Executive Meeting Minutes) */
 .official-document {
   background: #FFFFFF;
   width: 100%;
@@ -1105,7 +1105,7 @@ html, body {
   font-size: 24px;
   font-weight: 900;
   letter-spacing: -0.04em;
-  color: #F15A24; /* BNI corporate orange */
+  color: #0f172a;
   line-height: 1;
 }
 
@@ -1981,7 +1981,7 @@ html, body {
 }
 
 /* ==========================================================================
-   HIGH FIDELITY PRINT STYLESHEET (PIXEL-PERFECT BNI PDF OUTPUT)
+   HIGH FIDELITY PRINT STYLESHEET (EXECUTIVE CORPORATE PDF OUTPUT)
    ========================================================================== */
 @media print {
   @page {

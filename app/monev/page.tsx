@@ -179,11 +179,11 @@ function ReportSection({
   placeholder?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-surface-200/80 shadow-sm transition-all hover:border-surface-300">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/90 shadow-2xs transition-all hover:border-slate-300">
+      <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
-          <span className={`p-1.5 rounded-lg ${colorClass}`}>{icon}</span>
-          <h3 className="text-xs sm:text-sm font-bold text-surface-800">{title}</h3>
+          <span className={`p-1.5 rounded-xl ${colorClass}`}>{icon}</span>
+          <h3 className="text-xs sm:text-sm font-bold text-slate-800">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
           <CharBadge count={content.length} />
@@ -194,13 +194,13 @@ function ReportSection({
         value={content}
         onChange={(e) => onEdit(e.target.value)}
         rows={4}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 bg-surface-50/50 text-xs sm:text-sm text-surface-800 leading-relaxed resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 focus:bg-white hover:border-surface-300 placeholder:text-surface-400 font-sans"
+        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 bg-white/70 text-xs sm:text-sm text-slate-800 leading-relaxed resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 focus:bg-white hover:border-slate-300 placeholder:text-slate-400 font-sans shadow-inner"
         placeholder={placeholder || `${title} akan muncul di sini setelah di-generate...`}
       />
-      <div className="flex items-center justify-between text-[11px] text-surface-400 mt-1.5 px-0.5">
+      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 px-0.5">
         <span>Ketentuan Kemnaker: Minimal 100 karakter</span>
-        <span className={content.length >= 100 ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
-          {content.length >= 100 ? "Memenuhi syarat" : `Sisa ${100 - content.length} karakter`}
+        <span className={content.length >= 100 ? "text-emerald-600 font-semibold" : "text-amber-600 font-semibold"}>
+          {content.length >= 100 ? "✓ Memenuhi syarat" : `Sisa ${100 - content.length} karakter`}
         </span>
       </div>
     </div>
@@ -295,6 +295,23 @@ export default function GenMonevDashboard() {
     const interval = setInterval(updateClock, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const getProviderInfo = (key: string) => {
+    const clean = (key || "").trim();
+    if (clean.startsWith("sk-ant-")) {
+      return { name: "Claude", full: "Anthropic Claude", model: "Claude 3.5 Sonnet / Haiku (Auto)", icon: "mdi-brain", color: "text-amber-700 bg-amber-50 border-amber-200" };
+    }
+    if (clean.startsWith("xai-")) {
+      return { name: "Grok", full: "xAI Grok", model: "Grok-2 / Grok-beta (Auto)", icon: "mdi-flash", color: "text-purple-700 bg-purple-50 border-purple-200" };
+    }
+    if (clean.startsWith("sk-")) {
+      return { name: "ChatGPT", full: "OpenAI ChatGPT", model: "GPT-4o / GPT-4o Mini (Auto)", icon: "mdi-robot", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+    }
+    if (clean.startsWith("AIza") || clean.length > 5) {
+      return { name: "Gemini", full: "Google Gemini", model: "Gemini 2.5 Flash / 1.5 Flash (Auto)", icon: "mdi-google", color: "text-blue-700 bg-blue-50 border-blue-200" };
+    }
+    return { name: "AI", full: "Multi-Provider AI", model: "Auto sesuai langganan", icon: "mdi-key-variant", color: "text-slate-700 bg-slate-50 border-slate-200" };
+  };
 
   const handleSaveApiKey = () => {
     if (apiKeyInput.trim()) {
@@ -585,57 +602,70 @@ ${report.alasan_tidak_hadir || ""}`;
   const wibToday = getWibDateString();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#f8fafb] via-[#FBFBFA] to-emerald-50/20 text-surface-900 font-sans">
-      {/* ─── Top Navbar ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-surface-200/70 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+    <div className="relative min-h-screen w-full overflow-x-hidden flex flex-col text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
+      {/* Ambient Atmosphere & Dot Grid Canvas matching GenMagang */}
+      <div className="ambient-glow-lavender" aria-hidden="true" />
+      <div className="ambient-glow-yellow" aria-hidden="true" />
+      <div className="ambient-glow-center" aria-hidden="true" />
+      <div className="waypilot-canvas" aria-hidden="true" />
+
+      {/* ─── Fixed Floating Navbar (Pill Capsule) ─────────────────────────── */}
+      <header className="fixed top-5 left-0 right-0 z-50 px-4 w-full max-w-6xl mx-auto pointer-events-none">
+        <nav className="liquid-glass-pill rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg border border-white/85 pointer-events-auto">
           
-          {/* Logo & Navigation */}
+          {/* Logo & Breadcrumb Navigation */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-emerald-600 flex items-center justify-center text-white shadow-sm hover:scale-105 transition-transform"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25 hover:scale-105 transition-transform"
               title="Kembali ke Beranda GenMagang"
             >
-              <i className="mdi mdi-robot text-xl" />
+              <i className="mdi mdi-school text-lg" />
             </Link>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-1.5 leading-none">
                 <Link
                   href="/"
-                  className="text-xs font-semibold text-primary-700 hover:text-primary-900 flex items-center gap-1 transition-colors"
+                  className="font-extrabold text-[1.05rem] tracking-tight text-slate-900 hover:text-blue-600 transition-colors"
                 >
-                  <span>GenMagang</span>
+                  Gen<span className="text-blue-600">Magang</span>
                 </Link>
-                <span className="text-surface-300">/</span>
-                <h1 className="text-sm sm:text-base font-extrabold text-surface-900 tracking-tight flex items-center gap-2">
-                  <span>GenMonev</span>
-                  <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60">
-                    Kemnaker AI
-                  </span>
-                </h1>
+                <span className="text-slate-300 font-bold">/</span>
+                <span className="font-extrabold text-[1.05rem] tracking-tight text-emerald-700">
+                  GenMonev
+                </span>
               </div>
-              <p className="text-[11px] text-surface-500 hidden sm:block">
-                Otomatisasi Laporan Monev MagangHub Kemnaker &middot; Min. 100 Karakter Lolos Validasi
-              </p>
+              <span className="text-[0.6rem] text-slate-400 font-bold tracking-wider uppercase">
+                MagangHub Kemnaker Auto-Formulator
+              </span>
+            </div>
+
+            {/* Badge Tag */}
+            <div className="hidden lg:flex items-center ml-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[11px] font-semibold shadow-2xs">
+                <i className="mdi mdi-check-decagram text-emerald-500 text-xs" />
+                Min. 100 Karakter Lolos Validasi
+              </span>
             </div>
           </div>
 
           {/* Right Header Statuses & Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Quick Switch to Notulis */}
             <Link
               href="/notulen"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-surface-600 bg-surface-100 hover:bg-surface-200 transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-700 bg-white/75 hover:bg-white border border-slate-200/70 shadow-2xs transition-all"
             >
-              <span>📝 Buka GenNotulis</span>
+              <i className="mdi mdi-file-document-edit-outline text-blue-600 text-sm" />
+              <span>Buka GenNotulis</span>
+              <i className="mdi mdi-arrow-right text-xs" />
             </Link>
 
             {/* Kemnaker Auth Status */}
             {kemnakerToken ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="max-w-[120px] truncate">{kemnakerUser?.name || "Kemnaker Terhubung"}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="max-w-[110px] truncate">{kemnakerUser?.name || "Kemnaker"}</span>
               </div>
             ) : null}
 
@@ -643,30 +673,30 @@ ${report.alasan_tidak_hadir || ""}`;
             <button
               type="button"
               onClick={() => setShowApiKeyModal(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer shadow-2xs ${
                 apiKey
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                  : "bg-white border-surface-200 text-surface-600 hover:bg-surface-50"
+                  ? "bg-slate-900 border-slate-900 text-white hover:bg-black"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <i className="mdi mdi-key-variant text-sm" />
-              <span className="hidden sm:inline">{apiKey ? "API Key Aktif" : "API Key"}</span>
+              <i className={`mdi ${apiKey ? getProviderInfo(apiKey).icon : "mdi-key-variant"} text-sm`} />
+              <span className="hidden md:inline">{apiKey ? `AI: ${getProviderInfo(apiKey).name}` : "Set API Key"}</span>
             </button>
 
             {/* WIB Clock */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-100/90 text-xs font-mono text-surface-700 border border-surface-200/60">
-              <i className="mdi mdi-clock-outline text-surface-400" />
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 text-xs font-mono text-slate-700 border border-slate-200/70 shadow-2xs">
+              <i className="mdi mdi-clock-outline text-slate-400" />
               <span>{currentTime || "16:00:00"} WIB</span>
             </div>
           </div>
-        </div>
+        </nav>
       </header>
 
-      {/* ─── Main Content Layout ─────────────────────────────────────────── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-start">
+      {/* ─── Main Content Layout (Offset for fixed floating navbar) ─────── */}
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12 flex flex-col justify-start">
         
         {/* Sub-Header Notice Bar */}
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-white/90 border border-surface-200/80 shadow-xs">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-3xl liquid-glass-card border border-white/85 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <i className="mdi mdi-shield-check-outline text-lg" />
@@ -697,7 +727,7 @@ ${report.alasan_tidak_hadir || ""}`;
           <div className="lg:col-span-5 space-y-5">
             
             {/* 1. Status Kehadiran Card */}
-            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-primary-800 flex items-center gap-1.5">
                   <i className="mdi mdi-checkbox-marked-circle-outline text-emerald-600 text-sm" />
@@ -732,7 +762,7 @@ ${report.alasan_tidak_hadir || ""}`;
 
             {/* 2. Catatan Aktivitas / Alasan Input Card */}
             {status === "Hadir" ? (
-              <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
+              <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <label
@@ -880,10 +910,10 @@ ${report.alasan_tidak_hadir || ""}`;
           <div className="lg:col-span-7 space-y-5">
             
             {/* 1. Preview Card */}
-            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm overflow-hidden flex flex-col min-h-[460px]">
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl overflow-hidden flex flex-col min-h-[460px]">
               
               {/* Preview Card Header */}
-              <div className="px-5 py-4 border-b border-surface-100 flex items-center justify-between bg-surface-50/50">
+              <div className="px-5 py-4 border-b border-slate-100/80 flex items-center justify-between bg-white/40">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <i className="mdi mdi-file-document-check-outline text-lg" />
@@ -1096,7 +1126,7 @@ ${report.alasan_tidak_hadir || ""}`;
             </div>
 
             {/* 2. Kirim Otomatis ke Monev Card (Kemnaker Portal Sync) */}
-            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-4">
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-4">
               
               {/* Header section */}
               <div className="flex items-center justify-between gap-3">
@@ -1152,7 +1182,7 @@ ${report.alasan_tidak_hadir || ""}`;
               </div>
 
               {/* Status & Information Box */}
-              <div className="p-4 rounded-xl bg-surface-50 border border-surface-200/80 space-y-2.5 text-xs">
+              <div className="p-4 rounded-2xl bg-white/70 border border-slate-200/70 space-y-2.5 text-xs shadow-2xs">
                 <div className="flex items-center justify-between">
                   <span className="text-surface-500 flex items-center gap-1.5">
                     <i className="mdi mdi-calendar-today text-surface-400" />
@@ -1272,22 +1302,28 @@ ${report.alasan_tidak_hadir || ""}`;
 
       </main>
 
-      {/* ─── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="border-t border-surface-200/60 bg-white/70 py-5 text-xs text-surface-500">
+      {/* ─── Minimalist Floating Footer ─────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-slate-200/50 bg-white/40 backdrop-blur-md py-6 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div>
-            <span className="font-bold text-surface-700">GenMonev</span> &middot; Bagian dari ekosistem <strong>GenMagang</strong>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+              <i className="mdi mdi-school" />
+            </div>
+            <span className="font-semibold text-slate-700">GenMonev</span>
+            <span className="text-slate-300">&middot;</span>
+            <span className="text-slate-400">Bagian dari ekosistem GenMagang</span>
           </div>
-          <div className="flex items-center gap-4 text-primary-700 font-medium">
-            <Link href="/" className="hover:underline">Beranda</Link>
-            <Link href="/notulen" className="hover:underline">GenNotulis (Rapat)</Link>
+          <div className="flex items-center gap-4 text-slate-600 font-medium">
+            <Link href="/" className="hover:text-emerald-700 transition-colors">Beranda</Link>
+            <Link href="/notulen" className="hover:text-emerald-700 transition-colors">GenNotulis</Link>
             <a
               href="https://monev.maganghub.kemnaker.go.id"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:underline"
+              className="hover:text-emerald-700 transition-colors inline-flex items-center gap-0.5"
             >
-              Portal Kemnaker ↗
+              <span>Portal Kemnaker</span>
+              <i className="mdi mdi-arrow-top-right text-xs" />
             </a>
           </div>
         </div>
@@ -1301,18 +1337,19 @@ ${report.alasan_tidak_hadir || ""}`;
             if (e.target === e.currentTarget) setShowApiKeyModal(false);
           }}
         >
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-surface-200 p-6 animate-scale-in">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-6 sm:p-7 animate-scale-in">
+            {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
                   <i className="mdi mdi-key-variant text-xl" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-surface-800">
-                    Custom Gemini API Key
+                  <h3 className="text-base font-bold text-slate-900">
+                    Pengaturan AI Key Multi-Provider
                   </h3>
-                  <p className="text-xs text-surface-400">
-                    Opsional &middot; Disimpan secara lokal di browser
+                  <p className="text-xs text-slate-400">
+                    ChatGPT &middot; Claude &middot; Grok &middot; Gemini &middot; Tersimpan Lokal
                   </p>
                 </div>
               </div>
@@ -1320,49 +1357,114 @@ ${report.alasan_tidak_hadir || ""}`;
               <button
                 type="button"
                 onClick={() => setShowApiKeyModal(false)}
-                className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 cursor-pointer"
+                className="p-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 cursor-pointer"
               >
-                <i className="mdi mdi-close text-xl text-surface-400" />
+                <i className="mdi mdi-close text-xl" />
               </button>
             </div>
 
-            <p className="text-xs text-surface-500 mb-4 leading-relaxed">
-              Secara default GenMonev menggunakan API Key server internal. Jika kuota server sedang padat, Anda dapat memasukkan Gemini API Key pribadi dari Google AI Studio.
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Masukkan API Key dari provider AI langganan Anda. Sistem akan <strong>mendeteksi provider dan memilih model terbaik secara otomatis</strong> sesuai kuota langganan akun Anda (GPT-4o, Claude 3.5 Sonnet, Grok-2, atau Gemini Flash).
             </p>
 
-            <div className="space-y-3">
-              <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="AIzaSy..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-800 bg-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 font-mono"
-              />
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent-600 hover:text-accent-700 transition-colors"
-              >
-                <i className="mdi mdi-open-in-new text-xs" />
-                Dapatkan API Key di Google AI Studio
-              </a>
+            {/* Provider Badges Showcase */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("sk-") && !apiKeyInput.startsWith("sk-ant-") ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-robot text-emerald-600" />
+                  <span>ChatGPT</span>
+                </div>
+                <span className="text-[10px] text-slate-400">sk-...</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("sk-ant-") ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-brain text-amber-600" />
+                  <span>Claude</span>
+                </div>
+                <span className="text-[10px] text-slate-400">sk-ant-...</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("xai-") ? "bg-purple-50 border-purple-300 ring-2 ring-purple-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-flash text-purple-600" />
+                  <span>Grok</span>
+                </div>
+                <span className="text-[10px] text-slate-400">xai-...</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("AIza") || (!apiKeyInput.startsWith("sk-") && !apiKeyInput.startsWith("xai-") && apiKeyInput.length > 5) ? "bg-blue-50 border-blue-300 ring-2 ring-blue-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-google text-blue-600" />
+                  <span>Gemini</span>
+                </div>
+                <span className="text-[10px] text-slate-400">AIzaSy...</span>
+              </div>
             </div>
 
-            <div className="flex gap-2 mt-5">
+            {/* Input & Helper links */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tempel API Key Anda:
+                </label>
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Tempel API Key (sk-..., sk-ant-..., xai-..., atau AIzaSy...)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400 font-mono"
+                />
+              </div>
+
+              {/* Detected Provider Status Banner */}
+              {apiKeyInput.trim() && (
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex items-center gap-2 text-slate-700">
+                  <i className="mdi mdi-check-circle text-emerald-600 text-base" />
+                  <span>
+                    Provider: <strong>{getProviderInfo(apiKeyInput).full}</strong> &middot; Model: <strong>{getProviderInfo(apiKeyInput).model}</strong>
+                  </span>
+                </div>
+              )}
+
+              {/* Links to get keys */}
+              <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                <span className="font-semibold text-slate-400">Dapatkan Key:</span>
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-emerald-700 hover:underline">OpenAI ↗</a>
+                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-amber-700 hover:underline">Claude ↗</a>
+                <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:underline">xAI Grok ↗</a>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">Gemini ↗</a>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6 pt-2 border-t border-slate-100">
+              {apiKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApiKey("");
+                    setApiKeyInput("");
+                    localStorage.removeItem("monev_api_key");
+                    setShowApiKeyModal(false);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                >
+                  Hapus Key
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowApiKeyModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSaveApiKey}
-                className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-colors cursor-pointer shadow-md"
               >
-                Simpan
+                Simpan Key
               </button>
             </div>
           </div>

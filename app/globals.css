@@ -1,99 +1,58 @@
+/* Prevent accidental horizontal overflow globally */
+html,
+body {
+  overflow-x: hidden;
+  max-width: 100vw;
+  width: 100%;
+}
+
 @import "tailwindcss";
 @import "@mdi/font/css/materialdesignicons.min.css";
 
 @theme {
-  /* Color Palette - GenMonev Signature Deep Teal Green */
-  --color-primary-50: #eef5f6;
-  --color-primary-100: #d0e4e7;
-  --color-primary-200: #a1c9ce;
-  --color-primary-300: #71aeb5;
-  --color-primary-400: #428491;
-  --color-primary-500: #134f5c;
-  --color-primary-600: #10434e;
-  --color-primary-700: #0d3740;
-  --color-primary-800: #0a2b33;
-  --color-primary-900: #082025;
+  /* Color Palette - GenMagang Clean Modern */
+  --color-primary-50: #f0f7ff;
+  --color-primary-100: #e0effe;
+  --color-primary-500: #0284c7;
+  --color-primary-600: #0369a1;
+  --color-primary-900: #0c4a6e;
 
-  /* Accent - Energetic Emerald & Mint */
-  --color-emerald-400: #34d399;
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
+  --color-surface-50: #fafafc;
+  --color-surface-100: #f1f3f7;
+  --color-surface-200: #e2e6ee;
+  --color-surface-300: #cbd2df;
+  --color-surface-400: #94a0b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
+  --color-surface-900: #0f172a;
+  --color-surface-950: #0b0f17;
 
-  --color-accent-50: #eef7ff;
-  --color-accent-100: #d9ecff;
-  --color-accent-200: #bcdfff;
-  --color-accent-300: #8ecbff;
-  --color-accent-400: #59adff;
-  --color-accent-500: #338bfc;
-  --color-accent-600: #1d6df1;
-  --color-accent-700: #1556de;
-  --color-accent-800: #1847b4;
-  --color-accent-900: #193e8e;
-
-  --color-surface-50: #f8f9fb;
-  --color-surface-100: #f0f2f6;
-  --color-surface-200: #e4e7ed;
-  --color-surface-300: #cdd3dd;
-  --color-surface-400: #b1b9c8;
-  --color-surface-500: #969fb3;
-  --color-surface-600: #7f879e;
-  --color-surface-700: #6f768b;
-  --color-surface-800: #5d6272;
-  --color-surface-900: #4d515e;
-
-  --color-success-500: #22c55e;
-  --color-success-600: #16a34a;
-  --color-danger-500: #ef4444;
-  --color-danger-600: #dc2626;
-  --color-warning-500: #f59e0b;
-
-  /* Typography - Strictly Inter */
+  /* Typography */
+  --font-serif: "Playfair Display", Georgia, serif;
   --font-sans: "Inter", var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   /* Animations */
-  --animate-fade-in: fade-in 0.4s ease-out;
-  --animate-slide-up: slide-up 0.5s ease-out;
-  --animate-scale-in: scale-in 0.3s ease-out;
-  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
-  --animate-float-slow: float-slow 4s ease-in-out infinite;
-  --animate-float-alt: float-alt 5s ease-in-out infinite;
-  --animate-orbit-rotate: orbit-rotate 60s linear infinite;
+  --animate-fade-in: fade-in 0.35s ease-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-scale-in: scale-in 0.25s ease-out;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(19, 79, 92, 0.25); }
-  50% { box-shadow: 0 0 25px 6px rgba(19, 79, 92, 0.15); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes float-alt {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-6px) rotate(1deg); }
-}
-
-@keyframes orbit-rotate {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 /* Custom scrollbar */
@@ -106,83 +65,122 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-300);
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-surface-400);
+/* =========================================================================
+   WAYPILOT AMBIENT ATMOSPHERE & ULTRA-SMOOTH GRADIENTS
+   Soft, seamless Lavender on Left + Warm Lemon Yellow on Right + Crisp Dot Grid
+   ========================================================================= */
+.ambient-glow-lavender {
+  position: absolute;
+  top: -8%;
+  left: -15%;
+  width: 65vw;
+  height: 65vw;
+  max-width: 950px;
+  max-height: 950px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 45% 45%, 
+    rgba(216, 180, 254, 0.65) 0%, 
+    rgba(200, 160, 255, 0.45) 30%, 
+    rgba(224, 231, 255, 0.3) 55%, 
+    rgba(238, 242, 255, 0.12) 72%, 
+    transparent 85%
+  );
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Liquid Glass Utilities */
-.liquid-glass {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 
-    0 10px 30px -10px rgba(19, 79, 92, 0.08),
-    0 20px 40px -15px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 2px 0 rgba(19, 79, 92, 0.04);
+.ambient-glow-yellow {
+  position: absolute;
+  top: 0%;
+  right: -15%;
+  width: 60vw;
+  height: 60vw;
+  max-width: 900px;
+  max-height: 900px;
+  border-radius: 9999px;
+  background: radial-gradient(circle at 55% 45%, 
+    rgba(253, 224, 71, 0.68) 0%, 
+    rgba(250, 204, 21, 0.45) 28%, 
+    rgba(254, 240, 138, 0.32) 55%, 
+    rgba(254, 252, 232, 0.12) 72%, 
+    transparent 85%
+  );
+  filter: blur(95px);
+  pointer-events: none;
+  z-index: 0;
 }
 
+.ambient-glow-center {
+  position: absolute;
+  top: 6%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70vw;
+  height: 550px;
+  max-width: 920px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.4) 50%, transparent 75%);
+  filter: blur(55px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Crisp, prominent dot grid pattern sitting above glows */
+.waypilot-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-color: transparent;
+  background-image: radial-gradient(rgba(100, 116, 139, 0.45) 1.5px, transparent 1.5px);
+  background-size: 22px 22px;
+}
+
+/* Subtle curved orbital arch line from WayPilot reference */
+.orbital-track-arch {
+  position: absolute;
+  top: 55px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(940px, 94vw);
+  height: 500px;
+  border-radius: 940px 940px 0 0;
+  border: 1.5px solid rgba(148, 163, 184, 0.45);
+  border-bottom: none;
+  pointer-events: none;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.25) 80%, rgba(0, 0, 0, 0) 100%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0.25) 80%, rgba(0, 0, 0, 0) 100%);
+  z-index: 1;
+}
+
+/* =========================================================================
+   REFINED GLASSMORPHISM UTILITIES (Semi-Glassmorphic Transparency)
+   ========================================================================= */
 .liquid-glass-pill {
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.82);
   backdrop-filter: blur(24px) saturate(190%);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 
-    0 12px 35px -8px rgba(19, 79, 92, 0.12),
-    0 3px 10px -2px rgba(0, 0, 0, 0.04),
+    0 16px 36px -10px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
 .liquid-glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: 
-    0 20px 45px -12px rgba(19, 79, 92, 0.12),
-    0 8px 20px -4px rgba(0, 0, 0, 0.05),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-.liquid-glass-badge {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 
-    0 12px 28px -6px rgba(19, 79, 92, 0.12),
-    0 4px 12px -2px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 1);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.liquid-glass-badge:hover {
-  transform: translateY(-4px) scale(1.04);
-  box-shadow: 
-    0 18px 40px -8px rgba(19, 79, 92, 0.2),
-    0 6px 16px -3px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 0 rgba(255, 255, 255, 1);
-  border-color: rgba(66, 132, 145, 0.5);
-}
-
-/* Gradient text */
-.gradient-text-teal {
-  background: linear-gradient(135deg, #134f5c 0%, #0d3740 40%, #10b981 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-emerald {
-  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #428491 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+    0 24px 50px -12px rgba(15, 23, 42, 0.07),
+    0 8px 24px -4px rgba(15, 23, 42, 0.03),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 /* Hide Next.js dev indicator */
@@ -191,17 +189,4 @@ nextjs-portal,
 [data-nextjs-toast],
 #nextjs-dev-indicator {
   display: none !important;
-}
-
-/* Orbital Rings specific styles */
-.orbit-ring-solid {
-  border: 1.5px solid rgba(19, 79, 92, 0.28);
-}
-
-.orbit-ring-dashed {
-  border: 1.5px dashed rgba(19, 79, 92, 0.35);
-}
-
-.orbit-ring-emerald {
-  border: 2px dashed rgba(16, 185, 129, 0.55);
 }

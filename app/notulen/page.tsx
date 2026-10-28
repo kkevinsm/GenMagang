@@ -92,6 +92,18 @@ export default function NotulenPage() {
   const [actionStatusFilter, setActionStatusFilter] = useState<"all" | "pending" | "done">("all");
   const [actionTeamFilter, setActionTeamFilter] = useState<string>("all");
 
+  // ─── Corporate Identity & Logo State ───
+  const STORAGE_KEY_CORP_LOGO = "gennotulis_corp_logo";
+  const STORAGE_KEY_SHOW_CORP_LOGO = "gennotulis_show_corp_logo";
+  const STORAGE_KEY_CORP_NAME = "gennotulis_corp_name";
+  const STORAGE_KEY_CORP_TAGLINE = "gennotulis_corp_tagline";
+
+  const [corpLogo, setCorpLogo] = useState<string | null>(null);
+  const [showCorpLogo, setShowCorpLogo] = useState<boolean>(true);
+  const [corpName, setCorpName] = useState<string>("");
+  const [corpTagline, setCorpTagline] = useState<string>("Corporate Meeting Minutes");
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
+
   // Modals & Dialogs
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [folderModalMode, setFolderModalMode] = useState<"add" | "edit">("add");
@@ -185,13 +197,48 @@ export default function NotulenPage() {
     }
 
     // 3. API Key & Model
-    const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) || "";
+    const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem("monev_api_key") || localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) || "";
     setApiKey(storedKey);
     setTempApiKey(storedKey);
 
     const storedModel = localStorage.getItem(STORAGE_KEY_MODEL) || localStorage.getItem(LEGACY_STORAGE_KEY_MODEL) || "gemini-2.5-flash";
     setSelectedModel(storedModel);
+
+    // 4. Corporate Identity & Logo
+    try {
+      const storedLogo = localStorage.getItem(STORAGE_KEY_CORP_LOGO);
+      if (storedLogo) setCorpLogo(storedLogo);
+
+      const storedShowLogo = localStorage.getItem(STORAGE_KEY_SHOW_CORP_LOGO);
+      if (storedShowLogo !== null) setShowCorpLogo(storedShowLogo === "true");
+
+      const storedCorpName = localStorage.getItem(STORAGE_KEY_CORP_NAME);
+      if (storedCorpName) setCorpName(storedCorpName);
+
+      const storedTagline = localStorage.getItem(STORAGE_KEY_CORP_TAGLINE);
+      if (storedTagline) setCorpTagline(storedTagline);
+    } catch {
+      // Ignore storage errors
+    }
   }, []);
+
+  // Provider info helper
+  const getProviderInfo = (key: string) => {
+    const clean = (key || "").trim();
+    if (clean.startsWith("sk-ant-")) {
+      return { name: "Claude", full: "Anthropic Claude", model: "Claude 3.5 Sonnet / Haiku (Auto-Tier)", icon: "mdi-brain", color: "#d97706" };
+    }
+    if (clean.startsWith("xai-")) {
+      return { name: "Grok", full: "xAI Grok", model: "Grok-2 / Grok-beta (Auto-Tier)", icon: "mdi-flash", color: "#9333ea" };
+    }
+    if (clean.startsWith("sk-")) {
+      return { name: "ChatGPT", full: "OpenAI ChatGPT", model: "GPT-4o / GPT-4o Mini (Auto-Tier)", icon: "mdi-robot", color: "#059669" };
+    }
+    if (clean.startsWith("AIza") || clean.length > 5) {
+      return { name: "Gemini", full: "Google Gemini", model: "Gemini 2.5 Flash / 1.5 Flash (Auto-Tier)", icon: "mdi-google", color: "#2563eb" };
+    }
+    return { name: "AI", full: "Multi-Provider AI", model: "Auto sesuai langganan akun", icon: "mdi-key-variant", color: "#64748b" };
+  };
 
   // Save meetings helper
   const saveMeetings = useCallback((updated: Meeting[]) => {
@@ -204,6 +251,55 @@ export default function NotulenPage() {
     setFolders(updated);
     localStorage.setItem(STORAGE_KEY_FOLDERS, JSON.stringify(updated));
   }, []);
+
+  // Corporate logo and identity handlers
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Format file harus berupa gambar (PNG, JPG, SVG, WebP)");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Ukuran logo maksimal 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setCorpLogo(base64);
+        setShowCorpLogo(true);
+        localStorage.setItem(STORAGE_KEY_CORP_LOGO, base64);
+        localStorage.setItem(STORAGE_KEY_SHOW_CORP_LOGO, "true");
+        showToast("Logo korporat berhasil diunggah!");
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemoveLogo = () => {
+    setCorpLogo(null);
+    localStorage.removeItem(STORAGE_KEY_CORP_LOGO);
+    showToast("Logo korporat dihapus");
+  };
+
+  const handleToggleShowLogo = (val: boolean) => {
+    setShowCorpLogo(val);
+    localStorage.setItem(STORAGE_KEY_SHOW_CORP_LOGO, String(val));
+    showToast(val ? "Kop surat / logo diaktifkan" : "Mode tanpa logo aktif (dokumen polos)");
+  };
+
+  const handleSaveCorpDetails = (name: string, tagline: string) => {
+    setCorpName(name);
+    setCorpTagline(tagline);
+    localStorage.setItem(STORAGE_KEY_CORP_NAME, name);
+    localStorage.setItem(STORAGE_KEY_CORP_TAGLINE, tagline);
+  };
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -572,25 +668,40 @@ export default function NotulenPage() {
       let generatedData: any = null;
 
       if (apiKey.trim()) {
-        const candidateModels = [selectedModel, "gemini-2.5-flash", "gemini-1.5-flash"];
-        let lastError = null;
-
-        for (let i = 0; i < candidateModels.length; i++) {
-          const model = candidateModels[i];
-          try {
-            if (i > 0) {
-              setGenerationProgress(`Mencoba model cadangan stabil: ${model}...`);
-            }
-            generatedData = await executeGeminiRequest(apiKey.trim(), model, rawNotesInput, titleTarget, categoryTarget, mediaAttachment);
-            break;
-          } catch (err: any) {
-            console.warn(`Model ${model} gagal:`, err);
-            lastError = err;
+        try {
+          setGenerationProgress(`Menghubungi ${getProviderInfo(apiKey).full} (${getProviderInfo(apiKey).model})...`);
+          
+          let mediaInstruction = "";
+          if (mediaAttachment) {
+            mediaInstruction = mediaAttachment.type === "video" 
+              ? "File rekaman video online meeting terlampir."
+              : "File audio rekaman voice note rapat terlampir.";
           }
-        }
 
-        if (!generatedData && lastError) {
-          console.warn("Semua model API error, beralih ke generator korporat cerdas offline");
+          const res = await fetch("/api/notulen/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rawNotes: rawNotesInput,
+              title: titleTarget,
+              category: categoryTarget,
+              mediaInstruction,
+              apiKey: apiKey.trim(),
+            }),
+          });
+
+          const resData = await res.json();
+          if (res.ok && resData.data) {
+            generatedData = resData.data;
+            if (resData.model) {
+              showToast(`Diformulasikan oleh ${resData.model}`);
+            }
+          } else {
+            throw new Error(resData.error || "Gagal memproses via AI");
+          }
+        } catch (apiErr: any) {
+          console.warn("API Error, beralih ke engine cadangan:", apiErr);
+          showToast(apiErr.message || "Beralih ke pemroses cadangan...");
           generatedData = generateLocalCorporateNotulen(rawNotesInput, titleTarget, categoryTarget, mediaAttachment);
         }
       } else {
@@ -659,7 +770,7 @@ export default function NotulenPage() {
     }
 
     const prompt = `
-Anda adalah asisten korporat profesional yang ahli dalam menyusun Notulen Meeting resmi untuk perusahaan/perbankan BUMN (seperti format standar BNI).
+Anda adalah asisten profesional yang ahli dalam menyusun Notulen Meeting resmi untuk segala jenis perusahaan atau industri tempat magang (korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, hingga instansi publik).
 ${mediaInstruction}
 ${rawNotes ? 'Catatan tambahan / transkrip rapat:\n---\n' + rawNotes + '\n---' : ''}
 
@@ -693,19 +804,19 @@ SUSUN DOKUMEN NOTULEN RESMI DENGAN STRUKTUR JSON KETAT SEBAGAI BERIKUT:
   "summary": ["Ringkasan eksekutif poin 1...", "Ringkasan eksekutif poin 2..."],
   "actionItems": [
     {
-      "team": "Tim Pengembang (WDL)",
+      "team": "Tim Pengembang / IT",
       "tasks": [
         { "text": "Deskripsi tugas konkret", "due": "Tanggal deadline" }
       ]
     },
     {
-      "team": "Tim QA / Tester (TSA)",
+      "team": "Tim Pengujian / QA",
       "tasks": [
         { "text": "Deskripsi tugas pengujian", "due": "Tanggal deadline" }
       ]
     },
     {
-      "team": "Tim Bisnis (WDC)",
+      "team": "Tim Bisnis & Operasional",
       "tasks": [
         { "text": "Deskripsi tugas bisnis/persyaratan", "due": "Tanggal deadline" }
       ]
@@ -933,283 +1044,196 @@ PENTING:
   }, [meetings, quickSearchQuery]);
 
   return (
-    <div className="relative min-h-screen w-full overflow-x-hidden bg-[#FBFBFA] text-surface-900 font-sans selection:bg-primary-500 selection:text-white theme-notulis">
-      {/* =========================================================================
-          BACKGROUND CONCENTRIC ORBITAL RINGS & PLANETARY BADGES
-          (Matching Home page reference: expansive concentric orbits with ambient glow)
-          ========================================================================= */}
-      <div 
-        className="pointer-events-none absolute left-1/2 top-[350px] sm:top-[380px] md:top-[400px] -translate-x-1/2 -translate-y-1/2 w-[2300px] h-[2300px] flex items-center justify-center z-0 select-none"
-        aria-hidden="true"
-      >
-        {/* Central Ambient Glow */}
-        <div className="absolute w-[680px] h-[680px] rounded-full bg-gradient-to-tr from-emerald-200/60 via-teal-100/40 to-transparent blur-3xl opacity-75" />
+    <div className="theme-notulis relative min-h-screen w-full overflow-x-hidden">
+      {/* Ambient Atmosphere & Dot Grid Canvas matching GenMagang */}
+      <div className="ambient-glow-lavender" aria-hidden="true" />
+      <div className="ambient-glow-yellow" aria-hidden="true" />
+      <div className="ambient-glow-center" aria-hidden="true" />
+      <div className="waypilot-canvas" aria-hidden="true" />
 
-        {/* Ring 1 (Inner Solid, 520px) */}
-        <div className="absolute w-[520px] h-[520px] rounded-full orbit-ring-solid" />
-
-        {/* Ring 2 (Emerald Dashed, 880px) */}
-        <div className="absolute w-[880px] h-[880px] rounded-full orbit-ring-emerald" />
-
-        {/* Ring 3 (Solid Teal, 1300px) */}
-        <div className="absolute w-[1300px] h-[1300px] rounded-full orbit-ring-solid" />
-
-        {/* Ring 4 (Dashed Outer, 1760px) */}
-        <div className="absolute w-[1760px] h-[1760px] rounded-full orbit-ring-dashed" />
-
-        {/* Ring 5 (Outer Solid, 2260px) */}
-        <div className="absolute w-[2260px] h-[2260px] rounded-full orbit-ring-solid" />
-      </div>
-
-      {/* =========================================================================
-          FLOATING TOP LIQUID GLASS NAVBAR PILL (Matching Home page)
-          ========================================================================= */}
-      <header className="sticky top-5 z-50 px-4 w-full max-w-6xl mx-auto">
-        <nav className="liquid-glass-pill rounded-full px-4 sm:px-6 py-2.5 flex items-center justify-between shadow-lg border border-white/80 gap-3">
-          
-          {/* Brand Logo & Suite Identity */}
-          <Link href="/" className="flex items-center gap-2.5 group shrink-0" title="Kembali ke Beranda GenMagang">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-600 via-primary-700 to-emerald-600 flex items-center justify-center text-white shadow-md shadow-primary-500/20 group-hover:scale-105 transition-transform">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-              </svg>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-[1.12rem] tracking-tight leading-none text-primary-900">
-                Gen<span className="text-emerald-600">Notulis</span>
-              </span>
-              <span className="text-[0.6rem] text-surface-500 font-semibold tracking-wide">ALL-IN-ONE SUITE</span>
-            </div>
-          </Link>
-
-          {/* Center Tabs Switcher (Styled cleanly like Home's simulation tabs) */}
-          <div className="hidden md:flex items-center gap-1 p-1 bg-surface-100/90 rounded-full border border-surface-200/60 shadow-xs">
-            <button
-              type="button"
-              onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeTab === "archive"
-                  ? "bg-white text-primary-900 shadow-sm"
-                  : "text-surface-600 hover:text-surface-900"
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                <line x1="16" y1="2" x2="16" y2="6" />
-                <line x1="8" y1="2" x2="8" y2="6" />
-                <line x1="3" y1="10" x2="21" y2="10" />
-              </svg>
-              <span>Arsip Rapat</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeTab === "actions"
-                  ? "bg-white text-primary-900 shadow-sm"
-                  : "text-surface-600 hover:text-surface-900"
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M9 11l3 3L22 4" />
-                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-              </svg>
-              <span>Action Items</span>
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${stats.pendingCount > 0 ? "bg-amber-100 text-amber-800" : "bg-surface-200 text-surface-600"}`}>
-                {stats.pendingCount}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeTab === "generator"
-                  ? "bg-white text-primary-900 shadow-sm"
-                  : "text-surface-600 hover:text-surface-900"
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-              </svg>
-              <span>AI Generator</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all ${
-                activeTab === "settings"
-                  ? "bg-white text-primary-900 shadow-sm"
-                  : "text-surface-600 hover:text-surface-900"
-              }`}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-              </svg>
-              <span>Setelan</span>
-            </button>
-          </div>
-
-          {/* Right Action Option Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setIsQuickSearchOpen(true)}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-surface-600 bg-surface-100 hover:bg-surface-200 border border-surface-200/60 transition-colors"
-              title="Cari Cepat Notulen (⌘K)"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <span>Cari...</span>
-              <kbd className="text-[10px] bg-white px-1.5 py-0.5 rounded border border-surface-200 text-surface-500 font-mono">⌘K</kbd>
-            </button>
-
-            <Link
-              href="/monev"
-              className="text-xs font-bold px-3.5 py-1.5 rounded-full text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 transition-colors flex items-center gap-1.5 shrink-0"
-              title="Pindah ke Modul GenMonev Kemnaker"
-            >
-              <span>🤖</span>
-              <span className="hidden sm:inline">GenMonev</span>
+      <div className="app-container">
+        {/* Fixed Floating Top Navigation Pill */}
+        <header className="top-nav-container">
+          <nav className="top-nav-pill" aria-label="Navigasi Utama">
+            <Link href="/" className="brand-link" title="Kembali ke Beranda GenMagang">
+              <div style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", flexShrink: 0, boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)" }}>
+                <i className="mdi mdi-school text-base" />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em", color: "#0f172a" }}>Gen<span style={{ color: "#2563eb" }}>Magang</span></span>
+                  <span style={{ color: "#cbd5e1" }}>/</span>
+                  <span style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em", color: "#059669" }}>GenNotulis</span>
+                </div>
+                <span style={{ fontSize: "0.58rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }} className="brand-text-sub">
+                  Notulen Rapat Korporat
+                </span>
+              </div>
             </Link>
 
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab("generator");
-                setCurrentMeetingId(null);
-              }}
-              className="text-xs font-bold px-4 py-1.5 rounded-full text-white bg-primary-600 hover:bg-primary-700 shadow-sm hover:shadow transition-all flex items-center gap-1.5 shrink-0"
-            >
-              <span>✨</span>
-              <span>Notulen Baru</span>
-            </button>
-          </div>
-        </nav>
-      </header>
+            <div className="nav-links">
+              <button
+                className={`nav-item ${activeTab === "archive" ? "active" : ""}`}
+                onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span>Arsip Rapat</span>
+              </button>
 
-      {/* Mobile Tab Bar */}
-      <div className="md:hidden flex items-center justify-center px-4 mt-3 relative z-40">
-        <div className="w-full max-w-md p-1 bg-white/90 backdrop-blur rounded-2xl border border-surface-200/80 shadow-sm flex items-center justify-between text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
-            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "archive" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
-          >
-            Arsip
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
-            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "actions" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
-          >
-            Tindak Lanjut ({stats.pendingCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
-            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "generator" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
-          >
-            Generator
-          </button>
-          <button
-            type="button"
-            onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
-            className={`flex-1 py-1.5 rounded-xl text-center transition-all ${activeTab === "settings" ? "bg-primary-600 text-white shadow-xs" : "text-surface-600"}`}
-          >
-            Setelan
-          </button>
-        </div>
-      </div>
+              <button
+                className={`nav-item ${activeTab === "actions" ? "active" : ""}`}
+                onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 11l3 3L22 4" />
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                </svg>
+                <span>Action Items</span>
+                <span className="badge-count">{stats.pendingCount}</span>
+              </button>
 
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 pb-16">
-        {/* =========================================================================
-            HERO SECTION (Centered Content Framing - Matching Home)
-            ========================================================================= */}
-        {activeTab === "archive" && currentMeetingId === null && (
-          <section className="relative z-10 w-full max-w-4xl mx-auto px-4 pt-10 md:pt-14 pb-8 text-center">
-            {/* Sub-Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50/80 text-emerald-800 border border-emerald-200/60 text-xs font-semibold mb-4">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Corporate Meeting Intelligence &middot; Standar Resmi BUMN / Instansi
+              <button
+                className={`nav-item ${activeTab === "generator" ? "active" : ""}`}
+                onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+                <span>AI Generator</span>
+              </button>
+
+              <button
+                className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
+                onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+                <span>Setelan</span>
+              </button>
             </div>
 
-            {/* Main Headline */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-surface-900 leading-[1.15]">
-              Simpan Notulensi, Ekstrak Keputusan dalam{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-primary-600 inline-block">
-                Hitungan Detik
-              </span>
-            </h1>
+            <div className="nav-actions">
+              <Link
+                href="/monev"
+                className="btn-ghost-sm"
+                style={{
+                  textDecoration: "none",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  color: "#059669",
+                  background: "rgba(255, 255, 255, 0.85)",
+                  border: "1px solid rgba(226, 232, 240, 0.8)",
+                  padding: "6px 14px",
+                  borderRadius: "9999px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  transition: "all 150ms"
+                }}
+                title="Buka Asisten Laporan Monev Kemnaker"
+              >
+                <i className="mdi mdi-calendar-check-outline text-emerald-600" />
+                <span>Buka GenMonev</span>
+                <i className="mdi mdi-arrow-right text-xs" />
+              </Link>
 
-            {/* Subtitle */}
-            <p className="mt-4 text-sm sm:text-base text-surface-600 max-w-2xl mx-auto leading-relaxed">
-              Arsipkan risalah rapat dengan rapi, otomatisasi perumusan format resmi korporat dari rekaman suara atau catatan mentah, dan pantau action items per tim dengan bantuan Gemini AI.
+              <button
+                className="quick-search-trigger"
+                onClick={() => setIsQuickSearchOpen(true)}
+                title="Cari Cepat (⌘K)"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <span className="search-label">Cari notulen...</span>
+                <kbd className="kbd-pill">⌘K</kbd>
+              </button>
+
+              <button
+                className="btn-primary btn-pill"
+                onClick={() => {
+                  setActiveTab("generator");
+                  setCurrentMeetingId(null);
+                }}
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="12" y1="5" x2="12" y2="19" />
+                  <line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                <span>Notulen Baru</span>
+              </button>
+            </div>
+          </nav>
+        </header>
+
+        {/* Hero Headline (Only on Archive Tab) */}
+        {activeTab === "archive" && (
+          <section className="hero-section">
+            <div className="hero-badge">
+              <span className="badge-dot" />
+              <span>Corporate Meeting Intelligence</span>
+            </div>
+            <h1 className="hero-title">
+              Simpan notulensi.<br />
+              <em>Temukan keputusannya</em> dalam hitungan detik.
+            </h1>
+            <p className="hero-subtitle">
+              GenNotulis mengarsipkan risalah rapat, melacak tindak lanjut per tim, dan mengubah catatan mentah menjadi dokumen resmi standar korporat dengan bantuan Gemini AI.
             </p>
 
-            {/* Quick Stats Pills */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <div className="px-4 py-2 rounded-xl bg-white/90 border border-surface-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-surface-700">
-                <span className="text-base">📁</span>
-                <span><strong>{stats.totalMeetings}</strong> Rapat Tersimpan</span>
+            <div className="hero-quick-stats">
+              <div className="stat-pill">
+                <strong>{stats.totalMeetings}</strong> Rapat Tersimpan
               </div>
-              <div className="px-4 py-2 rounded-xl bg-white/90 border border-surface-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-amber-800">
-                <span className="text-base">⏳</span>
-                <span><strong>{stats.pendingCount}</strong> Tindak Lanjut Menunggu</span>
+              <div className="stat-pill">
+                <strong>{stats.pendingCount}</strong> Tindak Lanjut Menunggu
               </div>
-              <div className="px-4 py-2 rounded-xl bg-white/90 border border-surface-200/80 shadow-xs flex items-center gap-2 text-xs font-semibold text-emerald-800">
-                <span className="text-base">✓</span>
-                <span><strong>{stats.completedCount}</strong> Tugas Selesai</span>
+              <div className="stat-pill">
+                <strong>{stats.completedCount}</strong> Tugas Selesai
               </div>
             </div>
           </section>
         )}
 
-        {/* =========================================================================
-            MAIN WORKSPACE CARD (Inspired by Home Showcase Card)
-            ========================================================================= */}
-        <main className="mt-6 w-full">
-          <div className="bg-white/95 rounded-3xl shadow-xl border border-surface-200/80 overflow-hidden">
-            {/* Top Workspace Card Bar */}
-            <div className="px-5 sm:px-7 py-4 border-b border-surface-200/80 flex items-center justify-between gap-3 bg-gradient-to-r from-surface-50 via-white to-surface-50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary-700 border border-primary-200/60 flex items-center justify-center font-bold text-sm shadow-xs">
-                  {activeTab === "archive" ? "📁" : activeTab === "actions" ? "✅" : activeTab === "generator" ? "✨" : "⚙️"}
-                </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-extrabold text-surface-900 leading-tight">
-                    {activeTab === "archive" ? "Workspace Arsip Rapat" : activeTab === "actions" ? "Pelacak Tindak Lanjut (Action Items)" : activeTab === "generator" ? "Generator Notulensi Rapat AI" : "Setelan Kredensial Gemini"}
-                  </div>
-                  <div className="text-[11px] text-surface-500 font-medium">
-                    GenNotulis &middot; GenMagang Suite
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleExportAllJson}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-surface-700 bg-white hover:bg-surface-50 border border-surface-200 shadow-xs transition-colors"
-                  title="Unduh Cadangan Semua Data ke File JSON"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  <span className="hidden sm:inline">Cadangkan JSON</span>
-                </button>
-              </div>
+        {/* Main macOS App Window */}
+        <main className="macos-window">
+          {/* Window Title Bar */}
+          <div className="window-header">
+            <div className="traffic-lights" aria-hidden="true">
+              <span className="light red" />
+              <span className="light yellow" />
+              <span className="light green" />
             </div>
+            <div className="window-title-tab">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+              <span>GenNotulis — Workspace Rapat</span>
+            </div>
+            <div className="window-actions">
+              <button className="btn-ghost-sm" onClick={handleExportAllJson} title="Backup Semua Data ke File JSON">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Cadangkan JSON</span>
+              </button>
+            </div>
+          </div>
 
-            <div className="window-body">
+          <div className="window-body">
             {/* VIEW 1: ARSIP NOTULEN */}
             {activeTab === "archive" && (
               <section className="view-panel active">
@@ -1483,7 +1507,17 @@ PENTING:
                       <span>Salin untuk WA / Teams</span>
                     </button>
 
-                    <button className="btn-secondary btn-sm" onClick={handlePrintPdf} title="Cetak atau Simpan PDF (sesuai format BNI)">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => setIsLogoModalOpen(true)}
+                      title="Atur Logo & Kop Surat Dokumen"
+                    >
+                      <i className="mdi mdi-image-outline text-sm" />
+                      <span>{showCorpLogo && corpLogo ? "Logo Terpasang" : showCorpLogo ? "Atur Logo" : "Tanpa Logo"}</span>
+                    </button>
+
+                    <button className="btn-secondary btn-sm" onClick={handlePrintPdf} title="Cetak atau Simpan PDF Dokumen Resmi">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="6 9 6 2 18 2 18 9" />
                         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -1507,9 +1541,40 @@ PENTING:
                   <article className="official-document" id="printableOfficialDoc">
                     {/* Running Header */}
                     <div className="doc-running-header">
-                      <div className="corporate-brand-mark">
-                        <span className="corp-logo-text">BNI</span>
-                        <span className="corp-tagline">Corporate Meeting Minutes</span>
+                      <div
+                        className="corporate-brand-mark"
+                        style={{ minHeight: "44px", display: "flex", flexDirection: "column", justifyContent: "center", cursor: "pointer" }}
+                        onClick={() => setIsLogoModalOpen(true)}
+                        title="Klik untuk mengubah logo atau mengatur kop surat"
+                      >
+                        {showCorpLogo ? (
+                          corpLogo ? (
+                            <img
+                              src={corpLogo}
+                              alt={corpName || "Logo Korporat"}
+                              className="corp-logo-img"
+                              style={{ maxHeight: "44px", maxWidth: "180px", objectFit: "contain", marginBottom: "4px" }}
+                            />
+                          ) : (
+                            <span className="corp-logo-text" style={{ color: "#0f172a", fontSize: "20px", fontWeight: 800 }}>
+                              {corpName || "NAMA PERUSAHAAN / INSTANSI"}
+                            </span>
+                          )
+                        ) : null}
+
+                        {showCorpLogo && (
+                          <span className="corp-tagline" style={{ color: "#0284c7" }}>
+                            {corpTagline || "Corporate Meeting Minutes"}
+                          </span>
+                        )}
+
+                        {!showCorpLogo && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                              Notulen Resmi &middot; Format Eksekutif
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="doc-header-right">
                         <span className="doc-sublabel">Notulen – Agenda</span>
@@ -1888,7 +1953,7 @@ PENTING:
                           rows={11}
                           value={rawNotesInput}
                           onChange={(e) => setRawNotesInput(e.target.value)}
-                          placeholder="Tempelkan transkrip rapat atau catatan mentah di sini...&#10;&#10;Contoh:&#10;Rapat Selasa 20 Okt 2026 jam 2 siang di RDTX lantai 35 dan Teams. Bahas FSCM R2 dan Release 3. Mas Eko dev bilang latensi balance widget aman di pre-prod 10 CPU dibawah 30 detik..."
+                          placeholder="Tempelkan transkrip rapat atau catatan mentah di sini...&#10;&#10;Contoh:&#10;Rapat koordinasi mingguan tim produk dan teknologi via Google Meet / Ruang Rapat Utama. Membahas progress peluncuran fitur baru Q4, hasil pengujian QA, dan alokasi resource sprint depan..."
                         />
                       </div>
                     )}
@@ -2029,7 +2094,7 @@ PENTING:
                           id="genMeetingTitle"
                           value={genCustomTitle}
                           onChange={(e) => setGenCustomTitle(e.target.value)}
-                          placeholder="Misal: FSCM R2 Re-promote & Preparation Release 3"
+                          placeholder="Misal: Rapat Koordinasi Peluncuran Fitur Baru Q4 atau Evaluasi Sprint"
                         />
                       </div>
                       <div className="setting-col">
@@ -2074,7 +2139,7 @@ PENTING:
                   <div className="generator-preview-pane">
                     <div className="preview-card-header">
                       <h3>Struktur Standar yang Dihasilkan:</h3>
-                      <span className="badge-format">Format Resmi BNI</span>
+                      <span className="badge-format">Format Dokumen Resmi</span>
                     </div>
 
                     <div className="format-checklist">
@@ -2145,7 +2210,7 @@ PENTING:
                 </div>
 
                 <div className="settings-grid">
-                  {/* Gemini API Key */}
+                  {/* Multi-Provider AI Key (ChatGPT, Claude, Grok, Gemini) */}
                   <div className="settings-card">
                     <div className="settings-card-icon">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2153,15 +2218,35 @@ PENTING:
                       </svg>
                     </div>
                     <div className="settings-card-content">
-                      <h3>Google Gemini API Key</h3>
-                      <p>Kunci API disimpan secara lokal di browser Anda (LocalStorage) dan hanya digunakan untuk memanggil Google Generative Language API secara langsung dari browser Anda.</p>
+                      <h3>AI Provider &amp; API Key</h3>
+                      <p>Mendukung <strong>OpenAI (ChatGPT), Anthropic (Claude), xAI (Grok), dan Google (Gemini)</strong>. Sistem otomatis mendeteksi provider dan menggunakan model terbaik sesuai tier langganan akun Anda.</p>
+
+                      {/* Provider Badges Showcase */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', margin: '12px 0' }}>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('sk-ant-') ? '1.5px solid #10b981' : '1px solid #e2e8f0', background: tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('sk-ant-') ? '#f0fdf4' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>ChatGPT</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>sk-...</span>
+                        </div>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('sk-ant-') ? '1.5px solid #f59e0b' : '1px solid #e2e8f0', background: tempApiKey.startsWith('sk-ant-') ? '#fffbeb' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>Claude</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>sk-ant-...</span>
+                        </div>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('xai-') ? '1.5px solid #a855f7' : '1px solid #e2e8f0', background: tempApiKey.startsWith('xai-') ? '#faf5ff' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>xAI Grok</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>xai-...</span>
+                        </div>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('AIza') || (!tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('xai-') && tempApiKey.length > 5) ? '1.5px solid #3b82f6' : '1px solid #e2e8f0', background: tempApiKey.startsWith('AIza') || (!tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('xai-') && tempApiKey.length > 5) ? '#eff6ff' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>Gemini</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>AIzaSy...</span>
+                        </div>
+                      </div>
 
                       <div className="api-key-input-group">
                         <input
                           type={showApiKey ? "text" : "password"}
                           value={tempApiKey}
                           onChange={(e) => setTempApiKey(e.target.value)}
-                          placeholder="Masukkan Gemini API Key (AIzaSy...)"
+                          placeholder="Tempel API Key (sk-..., sk-ant-..., xai-..., atau AIzaSy...)"
                         />
                         <button
                           className="btn-secondary btn-sm"
@@ -2172,47 +2257,114 @@ PENTING:
                         <button
                           className="btn-primary btn-sm"
                           onClick={() => {
-                            setApiKey(tempApiKey.trim());
-                            localStorage.setItem(STORAGE_KEY_API_KEY, tempApiKey.trim());
-                            showToast("Gemini API Key berhasil disimpan!");
+                            const trimmed = tempApiKey.trim();
+                            setApiKey(trimmed);
+                            localStorage.setItem(STORAGE_KEY_API_KEY, trimmed);
+                            localStorage.setItem("monev_api_key", trimmed);
+                            showToast(`API Key ${getProviderInfo(trimmed).full} berhasil disimpan!`);
                           }}
                         >
                           Simpan Key
                         </button>
                       </div>
-                      <div className="key-hint">
-                        <span>Belum punya key? Dapatkan gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.</span>
+
+                      {tempApiKey.trim() && (
+                        <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(255, 255, 255, 0.8)', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155' }}>
+                          Terdeteksi: <strong>{getProviderInfo(tempApiKey).full}</strong> &middot; Model Otomatis: <strong>{getProviderInfo(tempApiKey).model}</strong>
+                        </div>
+                      )}
+
+                      <div className="key-hint" style={{ marginTop: '8px', fontSize: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ color: '#64748b' }}>Dapatkan key di:</span>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600 }}>OpenAI ↗</a>
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: '#d97706', fontWeight: 600 }}>Claude ↗</a>
+                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style={{ color: '#9333ea', fontWeight: 600 }}>Grok ↗</a>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Gemini ↗</a>
                       </div>
                     </div>
                   </div>
 
-                  {/* Gemini Model */}
+                  {/* Auto-Tier Model Info (No manual select needed) */}
                   <div className="settings-card">
                     <div className="settings-card-icon">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-                        <line x1="6" y1="6" x2="6.01" y2="6" />
-                        <line x1="6" y1="18" x2="6.01" y2="18" />
+                        <circle cx="12" cy="12" r="10" />
+                        <polygon points="10 8 16 12 10 16 10 8" />
                       </svg>
                     </div>
                     <div className="settings-card-content">
-                      <h3>Pilihan Model AI</h3>
-                      <p>Pilih model Gemini yang ingin digunakan untuk memproses transkrip rapat. Sistem memiliki auto-fallback ke model stabil jika limit tercapai.</p>
-                      <div className="model-select-wrap">
-                        <select
-                          className="custom-select"
-                          value={selectedModel}
-                          onChange={(e) => {
-                            setSelectedModel(e.target.value);
-                            localStorage.setItem(STORAGE_KEY_MODEL, e.target.value);
-                            showToast(`Model default diubah ke ${e.target.value}`);
-                          }}
+                      <h3>Model AI Otomatis (Auto-Tier)</h3>
+                      <p>Anda <strong>tidak perlu memilih opsi model secara manual</strong>. GenNotulis secara cerdas memilih model terbaik sesuai dengan paket langganan dan kuota akun Anda:</p>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginTop: '10px' }}>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#059669', display: 'block' }}>OpenAI ChatGPT</strong>
+                          <span style={{ color: '#64748b' }}>GPT-4o &rarr; fallback GPT-4o Mini</span>
+                        </div>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#d97706', display: 'block' }}>Anthropic Claude</strong>
+                          <span style={{ color: '#64748b' }}>Claude 3.5 Sonnet &rarr; fallback Haiku</span>
+                        </div>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#9333ea', display: 'block' }}>xAI Grok</strong>
+                          <span style={{ color: '#64748b' }}>Grok-2 &rarr; fallback Grok-beta</span>
+                        </div>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#2563eb', display: 'block' }}>Google Gemini</strong>
+                          <span style={{ color: '#64748b' }}>Gemini 2.5 Flash &rarr; fallback 1.5 Flash</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Corporate Branding & Logo Settings */}
+                  <div className="settings-card">
+                    <div className="settings-card-icon">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                    </div>
+                    <div className="settings-card-content">
+                      <h3>Identitas Kop Surat &amp; Logo Korporat</h3>
+                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung semua jenis industri tempat magang—baik korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, instansi publik, atau opsi dokumen polos tanpa logo.</p>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          className="btn-primary btn-sm"
+                          onClick={() => setIsLogoModalOpen(true)}
                         >
-                          <option value="gemini-2.5-flash">Gemini 2.5 Flash — Tercepat & Kuota Tertinggi (Rekomendasi)</option>
-                          <option value="gemini-1.5-flash">Gemini 1.5 Flash — LTS Sangat Stabil & Selalu Tersedia</option>
-                          <option value="gemini-2.5-pro">Gemini 2.5 Pro — Akurasi Tinggi untuk Rapat Panjang</option>
-                        </select>
+                          <i className="mdi mdi-image-edit-outline" />
+                          <span>{corpLogo ? "Kelola Logo Terpasang" : "Atur Logo & Kop Surat"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          onClick={() => handleToggleShowLogo(!showCorpLogo)}
+                        >
+                          {showCorpLogo ? "Ganti ke Mode Tanpa Logo" : "Aktifkan Logo / Kop Surat"}
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>Status Kop Surat:</span>
+                        {showCorpLogo ? (
+                          corpLogo ? (
+                            <span style={{ color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              ✓ Logo Gambar Terpasang ({corpName || "Nama Default"})
+                            </span>
+                          ) : (
+                            <span style={{ color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              Teks Kop: &quot;{corpName || "NAMA PERUSAHAAN / INSTANSI"}&quot;
+                            </span>
+                          )
+                        ) : (
+                          <span style={{ color: '#64748b' }}>
+                            Format Polos Tanpa Logo
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2265,22 +2417,36 @@ PENTING:
                 </div>
               </section>
             )}
-            </div>
           </div>
         </main>
-
-        {/* Footer (Matching Home & Monev) */}
-        <footer className="border-t border-surface-200/60 bg-white/60 py-6 text-center text-xs text-surface-500 mt-16 relative z-10">
-          <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <span><strong>GenNotulis</strong> &middot; Bagian dari ekosistem <strong>GenMagang</strong></span>
-            <div className="flex items-center gap-4 text-primary-700 font-semibold">
-              <Link href="/" className="hover:underline">Beranda</Link>
-              <Link href="/monev" className="hover:underline">GenMonev (Kemnaker)</Link>
-              <a href="https://github.com/kkevinsm/GenMagang" target="_blank" rel="noopener noreferrer" className="hover:underline">GitHub</a>
-            </div>
-          </div>
-        </footer>
       </div>
+
+      {/* Minimalist Floating Footer matching GenMagang */}
+      <footer className="relative z-10 border-t border-slate-200/50 bg-white/40 backdrop-blur-md py-6 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+              <i className="mdi mdi-school" />
+            </div>
+            <span className="font-semibold text-slate-700">GenNotulis</span>
+            <span className="text-slate-300">&middot;</span>
+            <span className="text-slate-400">Bagian dari ekosistem GenMagang</span>
+          </div>
+          <div className="flex items-center gap-4 text-slate-600 font-medium">
+            <Link href="/" className="hover:text-blue-600 transition-colors">Beranda</Link>
+            <Link href="/monev" className="hover:text-blue-600 transition-colors">GenMonev</Link>
+            <a
+              href="https://maganghub.kemnaker.go.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 transition-colors inline-flex items-center gap-0.5"
+            >
+              <span>MagangHub</span>
+              <i className="mdi mdi-arrow-top-right text-xs" />
+            </a>
+          </div>
+        </div>
+      </footer>
 
       {/* --- MODAL 1: TAMBAH / EDIT FOLDER --- */}
       {isFolderModalOpen && (
@@ -2418,6 +2584,141 @@ PENTING:
                   Ketik kata kunci untuk mencari notulensi rapat berdasarkan judul, agenda, atau keputusan...
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 4: KOP SURAT & LOGO KORPORAT --- */}
+      {isLogoModalOpen && (
+        <div
+          className="modal-dialog"
+          style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+          onClick={() => setIsLogoModalOpen(false)}
+        >
+          <div
+            className="modal-folder-box"
+            style={{ maxWidth: '520px', width: '100%', borderRadius: '24px', background: '#ffffff', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid rgba(226, 232, 240, 0.8)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="mdi mdi-domain text-xl" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Identitas &amp; Logo Korporat</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Atur kop surat notulen untuk segala jenis perusahaan atau industri tempat magang Anda</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-ghost-sm"
+                onClick={() => setIsLogoModalOpen(false)}
+                style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', color: '#94a3b8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mode: Tampilkan Logo vs Tanpa Logo */}
+            <div style={{ marginBottom: '18px', padding: '12px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <i className={`mdi ${showCorpLogo ? "mdi-eye-check-outline text-emerald-600" : "mdi-eye-off-outline text-slate-400"} text-xl`} />
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>
+                      {showCorpLogo ? "Tampilkan Logo / Kop Surat" : "Mode Tanpa Logo (Dokumen Polos)"}
+                    </strong>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {showCorpLogo ? "Kop surat akan dicetak di bagian atas notulen resmi" : "Dokumen bersih tanpa gambar logo atau kop perusahaan"}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={showCorpLogo}
+                  onChange={(e) => handleToggleShowLogo(e.target.checked)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+
+            {showCorpLogo && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Logo Upload & Preview Box */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                    Logo Perusahaan / Instansi:
+                  </label>
+                  
+                  {corpLogo ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px' }}>
+                      <div style={{ padding: '6px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '90px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={corpLogo} alt="Logo" style={{ maxHeight: '42px', maxWidth: '85px', objectFit: 'contain' }} />
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <label className="btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                          <span>Ganti Logo</span>
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                        </label>
+                        <button type="button" className="btn-danger-ghost btn-sm" onClick={handleRemoveLogo}>
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '18px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px', cursor: 'pointer', transition: 'all 150ms' }}>
+                      <i className="mdi mdi-cloud-upload-outline text-2xl text-blue-600" />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>Klik untuk Unggah Logo</span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Format PNG, JPG, SVG, atau WebP (Maks. 2MB)</span>
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                    </label>
+                  )}
+                </div>
+
+                {/* Nama Perusahaan */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+                    Nama Perusahaan / Organisasi (Alternatif Teks):
+                  </label>
+                  <input
+                    type="text"
+                    value={corpName}
+                    onChange={(e) => handleSaveCorpDetails(e.target.value, corpTagline)}
+                    placeholder="Misal: PT Astra International, Telkom, Kementerian, Startup..."
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                    Ditampilkan jika logo gambar belum diunggah.
+                  </span>
+                </div>
+
+                {/* Tagline Kop Surat */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+                    Sub-judul / Tagline Kop Dokumen:
+                  </label>
+                  <input
+                    type="text"
+                    value={corpTagline}
+                    onChange={(e) => handleSaveCorpDetails(corpName, e.target.value)}
+                    placeholder="Misal: Corporate Meeting Minutes, Risalah Rapat Direksi..."
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={() => setIsLogoModalOpen(false)}
+                style={{ padding: '8px 22px', borderRadius: '9999px', fontWeight: 700 }}
+              >
+                Selesai &amp; Terapkan
+              </button>
             </div>
           </div>
         </div>
