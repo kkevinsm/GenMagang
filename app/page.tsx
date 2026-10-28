@@ -63,11 +63,10 @@ export default function GenMagangLanding() {
 
             <Link
               href="/notulen"
-              className="text-xs font-bold px-4 py-2 rounded-full text-white bg-slate-900 hover:bg-black shadow-md hover:shadow-lg transition-all flex items-center gap-1.5 group"
+              className="text-xs font-bold px-4 py-2 rounded-full text-white bg-slate-900 hover:bg-black shadow-md hover:shadow-lg transition-all flex items-center gap-1.5"
             >
               <i className="mdi mdi-file-document-edit-outline text-sm" />
               <span>GenNotulis</span>
-              <i className="mdi mdi-arrow-right text-xs group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
         </nav>
