@@ -2,7 +2,7 @@
 @import "@mdi/font/css/materialdesignicons.min.css";
 
 @theme {
-  /* Color Palette - WayPilot Inspired */
+  /* Color Palette - GenMagang Clean Modern */
   --color-primary-50: #f0f7ff;
   --color-primary-100: #e0effe;
   --color-primary-500: #0284c7;
@@ -27,36 +27,24 @@
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
   /* Animations */
-  --animate-fade-in: fade-in 0.4s ease-out;
-  --animate-slide-up: slide-up 0.5s ease-out;
-  --animate-scale-in: scale-in 0.3s ease-out;
-  --animate-float-slow: float-slow 4s ease-in-out infinite;
-  --animate-float-alt: float-alt 5s ease-in-out infinite;
+  --animate-fade-in: fade-in 0.35s ease-out;
+  --animate-slide-up: slide-up 0.4s ease-out;
+  --animate-scale-in: scale-in 0.25s ease-out;
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
+  from { opacity: 0; transform: scale(0.97); }
   to { opacity: 1; transform: scale(1); }
-}
-
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes float-alt {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-6px); }
 }
 
 /* Custom scrollbar */
@@ -74,8 +62,8 @@
 }
 
 /* =========================================================================
-   WAYPILOT CANVAS & AMBIENT ATMOSPHERE
-   Crisp dot grid with ethereal lavender and warm yellow-lemon glows
+   CANVAS & AMBIENT ATMOSPHERE
+   Crisp dot grid with subtle, ethereal pastel lavender and lemon glows
    ========================================================================= */
 .waypilot-canvas {
   position: fixed;
@@ -83,109 +71,62 @@
   z-index: 0;
   pointer-events: none;
   background-color: #fafafc;
-  background-image: radial-gradient(rgba(148, 163, 184, 0.28) 1.2px, transparent 1.2px);
+  background-image: radial-gradient(rgba(148, 163, 184, 0.25) 1.2px, transparent 1.2px);
   background-size: 26px 26px;
 }
 
 .ambient-glow-lavender {
   position: absolute;
   top: -8%;
-  left: -12%;
-  width: 60vw;
-  height: 60vw;
-  max-width: 800px;
-  max-height: 800px;
+  left: -10%;
+  width: 55vw;
+  height: 55vw;
+  max-width: 750px;
+  max-height: 750px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(224, 231, 255, 0.8) 0%, rgba(238, 242, 255, 0.45) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(224, 231, 255, 0.75) 0%, rgba(238, 242, 255, 0.35) 50%, transparent 70%);
   filter: blur(65px);
   pointer-events: none;
 }
 
 .ambient-glow-yellow {
   position: absolute;
-  top: 6%;
-  right: -10%;
-  width: 55vw;
-  height: 55vw;
-  max-width: 750px;
-  max-height: 750px;
+  top: 4%;
+  right: -8%;
+  width: 50vw;
+  height: 50vw;
+  max-width: 700px;
+  max-height: 700px;
   border-radius: 9999px;
-  background: radial-gradient(circle, rgba(254, 240, 138, 0.42) 0%, rgba(254, 252, 232, 0.25) 50%, transparent 70%);
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.38) 0%, rgba(254, 252, 232, 0.2) 50%, transparent 70%);
   filter: blur(70px);
   pointer-events: none;
 }
 
-.ambient-glow-center {
-  position: absolute;
-  top: 45%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 70vw;
-  height: 500px;
-  border-radius: 9999px;
-  background: radial-gradient(circle, rgba(241, 245, 249, 0.9) 0%, transparent 70%);
-  filter: blur(80px);
-  pointer-events: none;
-}
-
-/* Orbital curved track lines from WayPilot Screenshot 1 */
-.orbital-track-arch {
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 950px;
-  height: 480px;
-  border-radius: 950px 950px 0 0;
-  border: 1px solid rgba(203, 213, 225, 0.45);
-  border-bottom: none;
-  pointer-events: none;
-  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 90%);
-  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 90%);
-}
-
 /* =========================================================================
-   TASTEFUL GLASSMORPHISM UTILITIES
-   Retaining glassmorphic elegance as requested by user
+   REFINED GLASSMORPHISM UTILITIES
+   Retaining the classic pill navbar and pristine glass cards
    ========================================================================= */
-.glass-panel-card {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+.liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 
-    0 24px 55px -12px rgba(15, 23, 42, 0.08),
-    0 8px 20px -4px rgba(15, 23, 42, 0.03),
+    0 16px 36px -10px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
-.glass-pill {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(226, 232, 240, 0.85);
+.liquid-glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 
-    0 8px 24px -4px rgba(15, 23, 42, 0.06),
-    0 2px 6px -1px rgba(15, 23, 42, 0.02);
-}
-
-.glass-dark-nav {
-  background: rgba(11, 15, 23, 0.94);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 
-    0 16px 36px -8px rgba(0, 0, 0, 0.25),
-    0 4px 12px -2px rgba(0, 0, 0, 0.15),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-/* Star matrix dots for right dark panel in Screenshot 2 */
-.dot-star {
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  clip-path: polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%);
+    0 24px 50px -12px rgba(15, 23, 42, 0.08),
+    0 8px 24px -4px rgba(15, 23, 42, 0.03),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
 /* Hide Next.js dev indicator */
