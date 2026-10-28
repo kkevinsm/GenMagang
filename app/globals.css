@@ -2,36 +2,24 @@
 @import "@mdi/font/css/materialdesignicons.min.css";
 
 @theme {
-  /* Color Palette - GenMagang Signature */
-  --color-primary-50: #eef5f6;
-  --color-primary-100: #d0e4e7;
-  --color-primary-200: #a1c9ce;
-  --color-primary-300: #71aeb5;
-  --color-primary-400: #428491;
-  --color-primary-500: #134f5c;
-  --color-primary-600: #10434e;
-  --color-primary-700: #0d3740;
-  --color-primary-800: #0a2b33;
-  --color-primary-900: #082025;
+  /* Color Palette - WayPilot Inspired */
+  --color-primary-50: #f0f7ff;
+  --color-primary-100: #e0effe;
+  --color-primary-500: #0284c7;
+  --color-primary-600: #0369a1;
+  --color-primary-900: #0c4a6e;
 
-  /* Accent - Royal Blue & Vibrant Emerald from Reference */
-  --color-blue-500: #3b82f6;
-  --color-blue-600: #2563eb;
-  --color-blue-700: #1d4ed8;
-  --color-emerald-400: #34d399;
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
-
-  --color-surface-50: #f8f9fb;
-  --color-surface-100: #f0f2f6;
-  --color-surface-200: #e4e7ed;
-  --color-surface-300: #cdd3dd;
-  --color-surface-400: #b1b9c8;
-  --color-surface-500: #969fb3;
-  --color-surface-600: #7f879e;
-  --color-surface-700: #6f768b;
-  --color-surface-800: #5d6272;
+  --color-surface-50: #fafafc;
+  --color-surface-100: #f1f3f7;
+  --color-surface-200: #e2e6ee;
+  --color-surface-300: #cbd2df;
+  --color-surface-400: #94a0b8;
+  --color-surface-500: #64748b;
+  --color-surface-600: #475569;
+  --color-surface-700: #334155;
+  --color-surface-800: #1e293b;
   --color-surface-900: #0f172a;
+  --color-surface-950: #0b0f17;
 
   /* Typography */
   --font-serif: "Playfair Display", Georgia, serif;
@@ -81,71 +69,123 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-300);
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 /* =========================================================================
-   BACKGROUND ATMOSPHERE CANVAS MATCHING MAXON REFERENCE IMAGE
-   Sunny blue sky with soft clouds and blooming wildflower meadow.
-   Kept vibrant, rich and saturated without heavy white fog.
+   WAYPILOT CANVAS & AMBIENT ATMOSPHERE
+   Crisp dot grid with ethereal lavender and warm yellow-lemon glows
    ========================================================================= */
-.bg-landscape-canvas {
+.waypilot-canvas {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: url("/assets/landscape-meadow.jpg");
-  background-size: cover;
-  background-position: center 18%;
-  background-repeat: no-repeat;
+  background-color: #fafafc;
+  background-image: radial-gradient(rgba(148, 163, 184, 0.28) 1.2px, transparent 1.2px);
+  background-size: 26px 26px;
 }
 
-.bg-landscape-overlay {
+.ambient-glow-lavender {
   position: absolute;
-  inset: 0;
-  /* Very subtle, translucent ambient wash: preserves 100% of the blue sky and wildflower colors */
-  background: linear-gradient(180deg, 
-    rgba(255, 255, 255, 0.02) 0%, 
-    rgba(255, 255, 255, 0.08) 45%, 
-    rgba(255, 255, 255, 0.22) 80%, 
-    rgba(255, 255, 255, 0.55) 100%
-  );
+  top: -8%;
+  left: -12%;
+  width: 60vw;
+  height: 60vw;
+  max-width: 800px;
+  max-height: 800px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(224, 231, 255, 0.8) 0%, rgba(238, 242, 255, 0.45) 50%, transparent 70%);
+  filter: blur(65px);
   pointer-events: none;
 }
 
-/* Liquid Glass Utilities */
-.liquid-glass-pill {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  box-shadow: 
-    0 12px 35px -8px rgba(0, 0, 0, 0.08),
-    0 3px 10px -2px rgba(0, 0, 0, 0.03),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+.ambient-glow-yellow {
+  position: absolute;
+  top: 6%;
+  right: -10%;
+  width: 55vw;
+  height: 55vw;
+  max-width: 750px;
+  max-height: 750px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.42) 0%, rgba(254, 252, 232, 0.25) 50%, transparent 70%);
+  filter: blur(70px);
+  pointer-events: none;
 }
 
-.liquid-glass-card {
+.ambient-glow-center {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70vw;
+  height: 500px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(241, 245, 249, 0.9) 0%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+}
+
+/* Orbital curved track lines from WayPilot Screenshot 1 */
+.orbital-track-arch {
+  position: absolute;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 950px;
+  height: 480px;
+  border-radius: 950px 950px 0 0;
+  border: 1px solid rgba(203, 213, 225, 0.45);
+  border-bottom: none;
+  pointer-events: none;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 90%);
+  -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 1) 0%, rgba(0, 0, 0, 0) 90%);
+}
+
+/* =========================================================================
+   TASTEFUL GLASSMORPHISM UTILITIES
+   Retaining glassmorphic elegance as requested by user
+   ========================================================================= */
+.glass-panel-card {
   background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(28px) saturate(200%);
-  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 
-    0 24px 50px -12px rgba(0, 0, 0, 0.12),
-    0 8px 24px -4px rgba(0, 0, 0, 0.04),
+    0 24px 55px -12px rgba(15, 23, 42, 0.08),
+    0 8px 20px -4px rgba(15, 23, 42, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
-.liquid-glass-badge {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(20px) saturate(190%);
-  -webkit-backdrop-filter: blur(20px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+.glass-pill {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(226, 232, 240, 0.85);
   box-shadow: 
-    0 12px 28px -6px rgba(0, 0, 0, 0.08),
-    0 4px 12px -2px rgba(0, 0, 0, 0.03),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+    0 8px 24px -4px rgba(15, 23, 42, 0.06),
+    0 2px 6px -1px rgba(15, 23, 42, 0.02);
+}
+
+.glass-dark-nav {
+  background: rgba(11, 15, 23, 0.94);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 
+    0 16px 36px -8px rgba(0, 0, 0, 0.25),
+    0 4px 12px -2px rgba(0, 0, 0, 0.15),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+/* Star matrix dots for right dark panel in Screenshot 2 */
+.dot-star {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  clip-path: polygon(50% 0%, 65% 35%, 100% 50%, 65% 65%, 50% 100%, 35% 65%, 0% 50%, 35% 35%);
 }
 
 /* Hide Next.js dev indicator */
