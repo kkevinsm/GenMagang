@@ -2,7 +2,7 @@
 @import "@mdi/font/css/materialdesignicons.min.css";
 
 @theme {
-  /* Color Palette - GenMonev Signature Deep Teal Green */
+  /* Color Palette - GenMagang Signature */
   --color-primary-50: #eef5f6;
   --color-primary-100: #d0e4e7;
   --color-primary-200: #a1c9ce;
@@ -14,21 +14,13 @@
   --color-primary-800: #0a2b33;
   --color-primary-900: #082025;
 
-  /* Accent - Energetic Emerald & Mint */
+  /* Accent - Royal Blue & Vibrant Emerald from Reference */
+  --color-blue-500: #3b82f6;
+  --color-blue-600: #2563eb;
+  --color-blue-700: #1d4ed8;
   --color-emerald-400: #34d399;
   --color-emerald-500: #10b981;
   --color-emerald-600: #059669;
-
-  --color-accent-50: #eef7ff;
-  --color-accent-100: #d9ecff;
-  --color-accent-200: #bcdfff;
-  --color-accent-300: #8ecbff;
-  --color-accent-400: #59adff;
-  --color-accent-500: #338bfc;
-  --color-accent-600: #1d6df1;
-  --color-accent-700: #1556de;
-  --color-accent-800: #1847b4;
-  --color-accent-900: #193e8e;
 
   --color-surface-50: #f8f9fb;
   --color-surface-100: #f0f2f6;
@@ -39,16 +31,10 @@
   --color-surface-600: #7f879e;
   --color-surface-700: #6f768b;
   --color-surface-800: #5d6272;
-  --color-surface-900: #4d515e;
-
-  --color-success-500: #22c55e;
-  --color-success-600: #16a34a;
-  --color-danger-500: #ef4444;
-  --color-danger-600: #dc2626;
-  --color-warning-500: #f59e0b;
+  --color-surface-900: #0f172a;
 
   /* Typography */
-  --font-serif: "Playfair Display", "Newsreader", Georgia, serif;
+  --font-serif: "Playfair Display", Georgia, serif;
   --font-sans: "Inter", var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
@@ -56,7 +42,6 @@
   --animate-fade-in: fade-in 0.4s ease-out;
   --animate-slide-up: slide-up 0.5s ease-out;
   --animate-scale-in: scale-in 0.3s ease-out;
-  --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
   --animate-float-slow: float-slow 4s ease-in-out infinite;
   --animate-float-alt: float-alt 5s ease-in-out infinite;
 }
@@ -76,19 +61,14 @@
   to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(19, 79, 92, 0.25); }
-  50% { box-shadow: 0 0 25px 6px rgba(19, 79, 92, 0.15); }
-}
-
 @keyframes float-slow {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-7px); }
+  50% { transform: translateY(-8px); }
 }
 
 @keyframes float-alt {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
+  50% { transform: translateY(-6px); }
 }
 
 /* Custom scrollbar */
@@ -105,58 +85,66 @@
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-surface-400);
-}
-
-/* Background Atmosphere Canvas (NEWDESIGN.md Sec 1) */
+/* =========================================================================
+   BACKGROUND ATMOSPHERE CANVAS MATCHING MAXON REFERENCE IMAGE
+   Sunny blue sky with soft clouds and blooming wildflower meadow.
+   Kept vibrant, rich and saturated without heavy white fog.
+   ========================================================================= */
 .bg-landscape-canvas {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background-image: url("/assets/bg.jpg");
+  background-image: url("/assets/landscape-meadow.jpg");
   background-size: cover;
-  background-position: center top;
+  background-position: center 18%;
   background-repeat: no-repeat;
 }
 
 .bg-landscape-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.76) 30%, rgba(251, 251, 250, 0.94) 65%, #FBFBFA 100%);
-  backdrop-filter: blur(1px);
-  -webkit-backdrop-filter: blur(1px);
+  /* Very subtle, translucent ambient wash: preserves 100% of the blue sky and wildflower colors */
+  background: linear-gradient(180deg, 
+    rgba(255, 255, 255, 0.02) 0%, 
+    rgba(255, 255, 255, 0.08) 45%, 
+    rgba(255, 255, 255, 0.22) 80%, 
+    rgba(255, 255, 255, 0.55) 100%
+  );
+  pointer-events: none;
 }
 
-/* Liquid Glass Utilities (NEWDESIGN.md Sec 1 & 2) */
-.liquid-glass {
-  background: rgba(255, 255, 255, 0.75);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
-}
-
+/* Liquid Glass Utilities */
 .liquid-glass-pill {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px) saturate(190%);
-  -webkit-backdrop-filter: blur(20px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   box-shadow: 
-    0 12px 35px -8px rgba(19, 79, 92, 0.12),
-    0 3px 10px -2px rgba(0, 0, 0, 0.04),
+    0 12px 35px -8px rgba(0, 0, 0, 0.08),
+    0 3px 10px -2px rgba(0, 0, 0, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
 .liquid-glass-card {
   background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.95);
   box-shadow: 
-    0 24px 48px -12px rgba(19, 79, 92, 0.1),
+    0 24px 50px -12px rgba(0, 0, 0, 0.12),
     0 8px 24px -4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+}
+
+.liquid-glass-badge {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 12px 28px -6px rgba(0, 0, 0, 0.08),
+    0 4px 12px -2px rgba(0, 0, 0, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
