@@ -8,7 +8,7 @@ export default function GenMagangLanding() {
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
-      
+
       {/* =========================================================================
           WAYPILOT CANVAS & ULTRA-SMOOTH AMBIENT ATMOSPHERE
           Soft Lavender on Left + Warm Lemon Yellow on Right + Crisp Dot Grid Pattern
@@ -27,7 +27,7 @@ export default function GenMagangLanding() {
           ========================================================================= */}
       <header className="fixed top-5 left-0 right-0 z-50 px-4 w-full max-w-5xl mx-auto pointer-events-none">
         <nav className="liquid-glass-pill rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg border border-white/85 pointer-events-auto">
-          
+
           {/* Left: Brand Logo & Status Tag */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 group">
@@ -77,7 +77,7 @@ export default function GenMagangLanding() {
           HERO SECTION (Padding adjusted for fixed floating navbar)
           ========================================================================= */}
       <main className="relative z-10 w-full max-w-5xl mx-auto px-4 pt-24 sm:pt-28 md:pt-32 pb-20 text-center">
-        
+
         {/* Hero Title (H1) - With Inline Squircle MDI Icon */}
         <h1 className="tracking-tight text-slate-900 max-w-4xl mx-auto leading-[1.08] mb-6">
           <span className="font-extrabold text-5xl sm:text-6xl md:text-7xl block">
@@ -129,18 +129,17 @@ export default function GenMagangLanding() {
             ========================================================================= */}
         <div id="simulator" className="max-w-3xl mx-auto text-left scroll-mt-28">
           <div className="liquid-glass-card rounded-3xl p-6 sm:p-8 border border-white/85 shadow-2xl relative">
-            
+
             {/* Top Bar: Module Switcher Tabs & Direct Link */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 pb-5">
               <div className="flex items-center gap-2 bg-slate-200/40 backdrop-blur-md p-1.5 rounded-2xl w-fit border border-white/60">
                 <button
                   type="button"
                   onClick={() => setActiveTab("monev")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                    activeTab === "monev"
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === "monev"
                       ? "bg-white/90 text-slate-900 shadow-xs border border-white/80"
                       : "text-slate-600 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   <i className={`mdi mdi-robot-outline text-sm ${activeTab === "monev" ? "text-emerald-600" : "text-slate-400"}`} />
                   <span>Simulasi GenMonev</span>
@@ -148,11 +147,10 @@ export default function GenMagangLanding() {
                 <button
                   type="button"
                   onClick={() => setActiveTab("notulen")}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
-                    activeTab === "notulen"
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${activeTab === "notulen"
                       ? "bg-white/90 text-slate-900 shadow-xs border border-white/80"
                       : "text-slate-600 hover:text-slate-900"
-                  }`}
+                    }`}
                 >
                   <i className={`mdi mdi-file-document-edit-outline text-sm ${activeTab === "notulen" ? "text-blue-600" : "text-slate-400"}`} />
                   <span>Simulasi GenNotulis</span>
@@ -184,7 +182,7 @@ export default function GenMagangLanding() {
             {/* TAB 1: OUTPUT PRATINJAU GENMONEV */}
             {activeTab === "monev" && (
               <div className="pt-5 space-y-4 animate-fade-in">
-                
+
                 {/* 1. Uraian Aktivitas (Semi-Glassmorphic) */}
                 <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 shadow-2xs">
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
@@ -264,14 +262,14 @@ export default function GenMagangLanding() {
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <span className="text-xs font-extrabold uppercase tracking-wide text-slate-900 flex items-center gap-1.5">
                       <i className="mdi mdi-account-group text-blue-600 text-sm" />
-                      NOTULEN RAPAT KORPORAT RESMI (STANDAR BNI)
+                      NOTULEN RAPAT KORPORAT RESMI (STANDAR EKSEKUTIF)
                     </span>
                     <span className="text-[11px] font-bold text-blue-800 bg-blue-50/90 border border-blue-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                       <i className="mdi mdi-file-check-outline text-blue-600 text-xs" />
                       <span>Dokumen Siap Cetak &amp; PDF ✓</span>
                     </span>
                   </div>
-                  
+
                   <div className="space-y-3 text-xs text-slate-800">
                     <div className="p-2.5 bg-white/60 rounded-xl border border-white/70 flex items-start gap-2">
                       <i className="mdi mdi-bookmark-outline text-slate-400 text-sm mt-0.5 shrink-0" />

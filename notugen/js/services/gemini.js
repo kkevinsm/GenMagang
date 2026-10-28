@@ -49,7 +49,7 @@ export async function executeSingleGeminiRequest(apiKey, model, rawNotes, custom
   }
 
   const prompt = `
-Anda adalah asisten korporat profesional yang ahli dalam menyusun Notulen Meeting resmi untuk perusahaan/perbankan BUMN (seperti format standar BNI).
+Anda adalah asisten korporat profesional yang ahli dalam menyusun Notulen Meeting resmi berstandar eksekutif untuk berbagai jenis perusahaan, BUMN, instansi, swasta, startup, maupun organisasi profesional.
 ${mediaInstruction}
 ${rawNotes ? 'Catatan tambahan / transkrip rapat:\n---\n' + rawNotes + '\n---' : ''}
 

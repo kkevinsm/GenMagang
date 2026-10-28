@@ -92,6 +92,18 @@ export default function NotulenPage() {
   const [actionStatusFilter, setActionStatusFilter] = useState<"all" | "pending" | "done">("all");
   const [actionTeamFilter, setActionTeamFilter] = useState<string>("all");
 
+  // ─── Corporate Identity & Logo State ───
+  const STORAGE_KEY_CORP_LOGO = "gennotulis_corp_logo";
+  const STORAGE_KEY_SHOW_CORP_LOGO = "gennotulis_show_corp_logo";
+  const STORAGE_KEY_CORP_NAME = "gennotulis_corp_name";
+  const STORAGE_KEY_CORP_TAGLINE = "gennotulis_corp_tagline";
+
+  const [corpLogo, setCorpLogo] = useState<string | null>(null);
+  const [showCorpLogo, setShowCorpLogo] = useState<boolean>(true);
+  const [corpName, setCorpName] = useState<string>("");
+  const [corpTagline, setCorpTagline] = useState<string>("Corporate Meeting Minutes");
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
+
   // Modals & Dialogs
   const [isFolderModalOpen, setIsFolderModalOpen] = useState(false);
   const [folderModalMode, setFolderModalMode] = useState<"add" | "edit">("add");
@@ -191,6 +203,23 @@ export default function NotulenPage() {
 
     const storedModel = localStorage.getItem(STORAGE_KEY_MODEL) || localStorage.getItem(LEGACY_STORAGE_KEY_MODEL) || "gemini-2.5-flash";
     setSelectedModel(storedModel);
+
+    // 4. Corporate Identity & Logo
+    try {
+      const storedLogo = localStorage.getItem(STORAGE_KEY_CORP_LOGO);
+      if (storedLogo) setCorpLogo(storedLogo);
+
+      const storedShowLogo = localStorage.getItem(STORAGE_KEY_SHOW_CORP_LOGO);
+      if (storedShowLogo !== null) setShowCorpLogo(storedShowLogo === "true");
+
+      const storedCorpName = localStorage.getItem(STORAGE_KEY_CORP_NAME);
+      if (storedCorpName) setCorpName(storedCorpName);
+
+      const storedTagline = localStorage.getItem(STORAGE_KEY_CORP_TAGLINE);
+      if (storedTagline) setCorpTagline(storedTagline);
+    } catch {
+      // Ignore storage errors
+    }
   }, []);
 
   // Save meetings helper
@@ -204,6 +233,55 @@ export default function NotulenPage() {
     setFolders(updated);
     localStorage.setItem(STORAGE_KEY_FOLDERS, JSON.stringify(updated));
   }, []);
+
+  // Corporate logo and identity handlers
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Format file harus berupa gambar (PNG, JPG, SVG, WebP)");
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("Ukuran logo maksimal 2MB");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      if (base64) {
+        setCorpLogo(base64);
+        setShowCorpLogo(true);
+        localStorage.setItem(STORAGE_KEY_CORP_LOGO, base64);
+        localStorage.setItem(STORAGE_KEY_SHOW_CORP_LOGO, "true");
+        showToast("Logo korporat berhasil diunggah!");
+      }
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleRemoveLogo = () => {
+    setCorpLogo(null);
+    localStorage.removeItem(STORAGE_KEY_CORP_LOGO);
+    showToast("Logo korporat dihapus");
+  };
+
+  const handleToggleShowLogo = (val: boolean) => {
+    setShowCorpLogo(val);
+    localStorage.setItem(STORAGE_KEY_SHOW_CORP_LOGO, String(val));
+    showToast(val ? "Kop surat / logo diaktifkan" : "Mode tanpa logo aktif (dokumen polos)");
+  };
+
+  const handleSaveCorpDetails = (name: string, tagline: string) => {
+    setCorpName(name);
+    setCorpTagline(tagline);
+    localStorage.setItem(STORAGE_KEY_CORP_NAME, name);
+    localStorage.setItem(STORAGE_KEY_CORP_TAGLINE, tagline);
+  };
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -659,7 +737,7 @@ export default function NotulenPage() {
     }
 
     const prompt = `
-Anda adalah asisten korporat profesional yang ahli dalam menyusun Notulen Meeting resmi untuk perusahaan/perbankan BUMN (seperti format standar BNI).
+Anda adalah asisten korporat profesional yang ahli dalam menyusun Notulen Meeting resmi berstandar eksekutif untuk berbagai jenis perusahaan, BUMN, kementerian/instansi, swasta, startup, maupun organisasi profesional.
 ${mediaInstruction}
 ${rawNotes ? 'Catatan tambahan / transkrip rapat:\n---\n' + rawNotes + '\n---' : ''}
 
@@ -693,19 +771,19 @@ SUSUN DOKUMEN NOTULEN RESMI DENGAN STRUKTUR JSON KETAT SEBAGAI BERIKUT:
   "summary": ["Ringkasan eksekutif poin 1...", "Ringkasan eksekutif poin 2..."],
   "actionItems": [
     {
-      "team": "Tim Pengembang (WDL)",
+      "team": "Tim Pengembang / IT",
       "tasks": [
         { "text": "Deskripsi tugas konkret", "due": "Tanggal deadline" }
       ]
     },
     {
-      "team": "Tim QA / Tester (TSA)",
+      "team": "Tim Pengujian / QA",
       "tasks": [
         { "text": "Deskripsi tugas pengujian", "due": "Tanggal deadline" }
       ]
     },
     {
-      "team": "Tim Bisnis (WDC)",
+      "team": "Tim Bisnis & Operasional",
       "tasks": [
         { "text": "Deskripsi tugas bisnis/persyaratan", "due": "Tanggal deadline" }
       ]
@@ -1396,7 +1474,17 @@ PENTING:
                       <span>Salin untuk WA / Teams</span>
                     </button>
 
-                    <button className="btn-secondary btn-sm" onClick={handlePrintPdf} title="Cetak atau Simpan PDF (sesuai format BNI)">
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => setIsLogoModalOpen(true)}
+                      title="Atur Logo & Kop Surat Dokumen"
+                    >
+                      <i className="mdi mdi-image-outline text-sm" />
+                      <span>{showCorpLogo && corpLogo ? "Logo Terpasang" : showCorpLogo ? "Atur Logo" : "Tanpa Logo"}</span>
+                    </button>
+
+                    <button className="btn-secondary btn-sm" onClick={handlePrintPdf} title="Cetak atau Simpan PDF Dokumen Resmi">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="6 9 6 2 18 2 18 9" />
                         <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
@@ -1420,9 +1508,40 @@ PENTING:
                   <article className="official-document" id="printableOfficialDoc">
                     {/* Running Header */}
                     <div className="doc-running-header">
-                      <div className="corporate-brand-mark">
-                        <span className="corp-logo-text">BNI</span>
-                        <span className="corp-tagline">Corporate Meeting Minutes</span>
+                      <div
+                        className="corporate-brand-mark"
+                        style={{ minHeight: "44px", display: "flex", flexDirection: "column", justifyContent: "center", cursor: "pointer" }}
+                        onClick={() => setIsLogoModalOpen(true)}
+                        title="Klik untuk mengubah logo atau mengatur kop surat"
+                      >
+                        {showCorpLogo ? (
+                          corpLogo ? (
+                            <img
+                              src={corpLogo}
+                              alt={corpName || "Logo Korporat"}
+                              className="corp-logo-img"
+                              style={{ maxHeight: "44px", maxWidth: "180px", objectFit: "contain", marginBottom: "4px" }}
+                            />
+                          ) : (
+                            <span className="corp-logo-text" style={{ color: "#0f172a", fontSize: "20px", fontWeight: 800 }}>
+                              {corpName || "NAMA PERUSAHAAN / INSTANSI"}
+                            </span>
+                          )
+                        ) : null}
+
+                        {showCorpLogo && (
+                          <span className="corp-tagline" style={{ color: "#0284c7" }}>
+                            {corpTagline || "Corporate Meeting Minutes"}
+                          </span>
+                        )}
+
+                        {!showCorpLogo && (
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                              Notulen Resmi &middot; Format Eksekutif
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="doc-header-right">
                         <span className="doc-sublabel">Notulen – Agenda</span>
@@ -1801,7 +1920,7 @@ PENTING:
                           rows={11}
                           value={rawNotesInput}
                           onChange={(e) => setRawNotesInput(e.target.value)}
-                          placeholder="Tempelkan transkrip rapat atau catatan mentah di sini...&#10;&#10;Contoh:&#10;Rapat Selasa 20 Okt 2026 jam 2 siang di RDTX lantai 35 dan Teams. Bahas FSCM R2 dan Release 3. Mas Eko dev bilang latensi balance widget aman di pre-prod 10 CPU dibawah 30 detik..."
+                          placeholder="Tempelkan transkrip rapat atau catatan mentah di sini...&#10;&#10;Contoh:&#10;Rapat koordinasi mingguan tim produk dan teknologi via Google Meet / Ruang Rapat Utama. Membahas progress peluncuran fitur baru Q4, hasil pengujian QA, dan alokasi resource sprint depan..."
                         />
                       </div>
                     )}
@@ -1942,7 +2061,7 @@ PENTING:
                           id="genMeetingTitle"
                           value={genCustomTitle}
                           onChange={(e) => setGenCustomTitle(e.target.value)}
-                          placeholder="Misal: FSCM R2 Re-promote & Preparation Release 3"
+                          placeholder="Misal: Rapat Koordinasi Peluncuran Fitur Baru Q4 atau Evaluasi Sprint"
                         />
                       </div>
                       <div className="setting-col">
@@ -1987,7 +2106,7 @@ PENTING:
                   <div className="generator-preview-pane">
                     <div className="preview-card-header">
                       <h3>Struktur Standar yang Dihasilkan:</h3>
-                      <span className="badge-format">Format Resmi BNI</span>
+                      <span className="badge-format">Format Dokumen Resmi</span>
                     </div>
 
                     <div className="format-checklist">
@@ -2126,6 +2245,58 @@ PENTING:
                           <option value="gemini-1.5-flash">Gemini 1.5 Flash — LTS Sangat Stabil & Selalu Tersedia</option>
                           <option value="gemini-2.5-pro">Gemini 2.5 Pro — Akurasi Tinggi untuk Rapat Panjang</option>
                         </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Corporate Branding & Logo Settings */}
+                  <div className="settings-card">
+                    <div className="settings-card-icon">
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+                      </svg>
+                    </div>
+                    <div className="settings-card-content">
+                      <h3>Identitas Kop Surat &amp; Logo Korporat</h3>
+                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung berbagai perusahaan, BUMN, kementerian/instansi, startup, atau opsi dokumen polos tanpa logo.</p>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
+                        <button
+                          type="button"
+                          className="btn-primary btn-sm"
+                          onClick={() => setIsLogoModalOpen(true)}
+                        >
+                          <i className="mdi mdi-image-edit-outline" />
+                          <span>{corpLogo ? "Kelola Logo Terpasang" : "Atur Logo & Kop Surat"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-secondary btn-sm"
+                          onClick={() => handleToggleShowLogo(!showCorpLogo)}
+                        >
+                          {showCorpLogo ? "Ganti ke Mode Tanpa Logo" : "Aktifkan Logo / Kop Surat"}
+                        </button>
+                      </div>
+
+                      <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontWeight: 700, color: '#0f172a' }}>Status Kop Surat:</span>
+                        {showCorpLogo ? (
+                          corpLogo ? (
+                            <span style={{ color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              ✓ Logo Gambar Terpasang ({corpName || "Nama Default"})
+                            </span>
+                          ) : (
+                            <span style={{ color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              Teks Kop: &quot;{corpName || "NAMA PERUSAHAAN / INSTANSI"}&quot;
+                            </span>
+                          )
+                        ) : (
+                          <span style={{ color: '#64748b' }}>
+                            Format Polos Tanpa Logo
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -2345,6 +2516,141 @@ PENTING:
                   Ketik kata kunci untuk mencari notulensi rapat berdasarkan judul, agenda, atau keputusan...
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL 4: KOP SURAT & LOGO KORPORAT --- */}
+      {isLogoModalOpen && (
+        <div
+          className="modal-dialog"
+          style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+          onClick={() => setIsLogoModalOpen(false)}
+        >
+          <div
+            className="modal-folder-box"
+            style={{ maxWidth: '520px', width: '100%', borderRadius: '24px', background: '#ffffff', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid rgba(226, 232, 240, 0.8)' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className="mdi mdi-domain text-xl" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Identitas &amp; Logo Korporat</h3>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Atur kop surat notulen untuk perusahaan atau instansi Anda</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-ghost-sm"
+                onClick={() => setIsLogoModalOpen(false)}
+                style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', color: '#94a3b8' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Mode: Tampilkan Logo vs Tanpa Logo */}
+            <div style={{ marginBottom: '18px', padding: '12px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <i className={`mdi ${showCorpLogo ? "mdi-eye-check-outline text-emerald-600" : "mdi-eye-off-outline text-slate-400"} text-xl`} />
+                  <div>
+                    <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>
+                      {showCorpLogo ? "Tampilkan Logo / Kop Surat" : "Mode Tanpa Logo (Dokumen Polos)"}
+                    </strong>
+                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                      {showCorpLogo ? "Kop surat akan dicetak di bagian atas notulen resmi" : "Dokumen bersih tanpa gambar logo atau kop perusahaan"}
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={showCorpLogo}
+                  onChange={(e) => handleToggleShowLogo(e.target.checked)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                />
+              </label>
+            </div>
+
+            {showCorpLogo && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {/* Logo Upload & Preview Box */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                    Logo Perusahaan / Instansi:
+                  </label>
+                  
+                  {corpLogo ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px' }}>
+                      <div style={{ padding: '6px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '90px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={corpLogo} alt="Logo" style={{ maxHeight: '42px', maxWidth: '85px', objectFit: 'contain' }} />
+                      </div>
+                      <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <label className="btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                          <span>Ganti Logo</span>
+                          <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                        </label>
+                        <button type="button" className="btn-danger-ghost btn-sm" onClick={handleRemoveLogo}>
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '18px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px', cursor: 'pointer', transition: 'all 150ms' }}>
+                      <i className="mdi mdi-cloud-upload-outline text-2xl text-blue-600" />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>Klik untuk Unggah Logo</span>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Format PNG, JPG, SVG, atau WebP (Maks. 2MB)</span>
+                      <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                    </label>
+                  )}
+                </div>
+
+                {/* Nama Perusahaan */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+                    Nama Perusahaan / Organisasi (Alternatif Teks):
+                  </label>
+                  <input
+                    type="text"
+                    value={corpName}
+                    onChange={(e) => handleSaveCorpDetails(e.target.value, corpTagline)}
+                    placeholder="Misal: PT Astra International, Telkom, Kementerian, Startup..."
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                  />
+                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                    Ditampilkan jika logo gambar belum diunggah.
+                  </span>
+                </div>
+
+                {/* Tagline Kop Surat */}
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+                    Sub-judul / Tagline Kop Dokumen:
+                  </label>
+                  <input
+                    type="text"
+                    value={corpTagline}
+                    onChange={(e) => handleSaveCorpDetails(corpName, e.target.value)}
+                    placeholder="Misal: Corporate Meeting Minutes, Risalah Rapat Direksi..."
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+              <button
+                type="button"
+                className="btn-primary btn-sm"
+                onClick={() => setIsLogoModalOpen(false)}
+                style={{ padding: '8px 22px', borderRadius: '9999px', fontWeight: 700 }}
+              >
+                Selesai &amp; Terapkan
+              </button>
             </div>
           </div>
         </div>
