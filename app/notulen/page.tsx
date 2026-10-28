@@ -933,29 +933,29 @@ PENTING:
   }, [meetings, quickSearchQuery]);
 
   return (
-    <div className="theme-notulis">
-      {/* Ambient Wallpaper Background */}
-      <div className="ambient-bg" aria-hidden="true" />
+    <div className="theme-notulis relative min-h-screen">
+      {/* Ambient Atmosphere & Dot Grid Canvas matching GenMagang */}
+      <div className="ambient-glow-lavender" aria-hidden="true" />
+      <div className="ambient-glow-yellow" aria-hidden="true" />
+      <div className="ambient-glow-center" aria-hidden="true" />
+      <div className="waypilot-canvas" aria-hidden="true" />
 
       <div className="app-container">
-        {/* Floating Top Navigation Pill */}
+        {/* Fixed Floating Top Navigation Pill */}
         <header className="top-nav-container">
           <nav className="top-nav-pill" aria-label="Navigasi Utama">
             <Link href="/" className="brand-link" title="Kembali ke Beranda GenMagang">
-              <div className="brand-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                  <polyline points="14 2 14 8 20 8" />
-                  <line x1="16" y1="13" x2="8" y2="13" />
-                  <line x1="16" y1="17" x2="8" y2="17" />
-                </svg>
+              <div style={{ width: 30, height: 30, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #2563eb, #1d4ed8)", color: "#fff", flexShrink: 0, boxShadow: "0 2px 6px rgba(37, 99, 235, 0.3)" }}>
+                <i className="mdi mdi-school text-base" />
               </div>
               <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
-                <span className="brand-text" style={{ fontWeight: 800, fontSize: "1.05rem", letterSpacing: "-0.02em" }}>
-                  Gen<span style={{ color: "#059669" }}>Notulis</span>
-                </span>
-                <span style={{ fontSize: "0.58rem", color: "#64748b", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  GenMagang Suite
+                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                  <span style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em", color: "#0f172a" }}>Gen<span style={{ color: "#2563eb" }}>Magang</span></span>
+                  <span style={{ color: "#cbd5e1" }}>/</span>
+                  <span style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em", color: "#059669" }}>GenNotulis</span>
+                </div>
+                <span style={{ fontSize: "0.58rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                  Notulen Rapat Korporat
                 </span>
               </div>
             </Link>
@@ -1016,18 +1016,22 @@ PENTING:
                   textDecoration: "none",
                   display: "inline-flex",
                   alignItems: "center",
-                  gap: "5px",
-                  fontWeight: 600,
+                  gap: "6px",
+                  fontWeight: 700,
                   fontSize: "0.75rem",
-                  color: "#134f5c",
-                  background: "#eef5f6",
-                  padding: "5px 12px",
+                  color: "#059669",
+                  background: "rgba(255, 255, 255, 0.85)",
+                  border: "1px solid rgba(226, 232, 240, 0.8)",
+                  padding: "6px 14px",
                   borderRadius: "9999px",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
                   transition: "all 150ms"
                 }}
                 title="Buka Asisten Laporan Monev Kemnaker"
               >
-                <span>🤖 GenMonev</span>
+                <i className="mdi mdi-calendar-check-outline text-emerald-600" />
+                <span>Buka GenMonev</span>
+                <i className="mdi mdi-arrow-right text-xs" />
               </Link>
 
               <button
@@ -2177,6 +2181,33 @@ PENTING:
           </div>
         </main>
       </div>
+
+      {/* Minimalist Floating Footer matching GenMagang */}
+      <footer className="relative z-10 border-t border-slate-200/50 bg-white/40 backdrop-blur-md py-6 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+              <i className="mdi mdi-school" />
+            </div>
+            <span className="font-semibold text-slate-700">GenNotulis</span>
+            <span className="text-slate-300">&middot;</span>
+            <span className="text-slate-400">Bagian dari ekosistem GenMagang</span>
+          </div>
+          <div className="flex items-center gap-4 text-slate-600 font-medium">
+            <Link href="/" className="hover:text-blue-600 transition-colors">Beranda</Link>
+            <Link href="/monev" className="hover:text-blue-600 transition-colors">GenMonev</Link>
+            <a
+              href="https://maganghub.kemnaker.go.id"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-blue-600 transition-colors inline-flex items-center gap-0.5"
+            >
+              <span>MagangHub</span>
+              <i className="mdi mdi-arrow-top-right text-xs" />
+            </a>
+          </div>
+        </div>
+      </footer>
 
       {/* --- MODAL 1: TAMBAH / EDIT FOLDER --- */}
       {isFolderModalOpen && (

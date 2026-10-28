@@ -14,10 +14,10 @@
   /* Color Palette - GenMagang Deep Teal & Emerald */
   --bg-canvas: #FBFBFA;
   --bg-canvas-subtle: #f0f4f5;
-  --surface-window: rgba(255, 255, 255, 0.94);
-  --surface-card: #FFFFFF;
-  --surface-muted: #f8fafb;
-  --surface-card-hover: #f0fdf4;
+  --surface-window: rgba(255, 255, 255, 0.76);
+  --surface-card: rgba(255, 255, 255, 0.82);
+  --surface-muted: rgba(248, 250, 252, 0.72);
+  --surface-card-hover: rgba(240, 253, 244, 0.88);
 
   --border-subtle: rgba(19, 79, 92, 0.08);
   --border-medium: rgba(19, 79, 92, 0.16);
@@ -69,11 +69,7 @@
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: 
-    radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.1) 0%, rgba(19, 79, 92, 0.04) 50%, transparent 75%),
-    radial-gradient(circle at 10% 20%, rgba(19, 79, 92, 0.06) 0%, transparent 35%),
-    radial-gradient(circle at 90% 20%, rgba(16, 185, 129, 0.06) 0%, transparent 35%);
-  background-color: var(--bg-canvas);
+  background-color: transparent;
   pointer-events: none;
 }
 .ambient-bg::after {
@@ -84,36 +80,40 @@
 .app-container {
   max-width: 1260px;
   margin: 0 auto;
-  padding: 24px 24px 60px;
+  padding: 95px 24px 60px;
   position: relative;
   z-index: 1;
 }
 
 /* ==========================================================================
-   Top Navigation Pill (Floating Apple/Linear Style)
+   Top Navigation Pill (Fixed Floating Pill - Always visible when scrolled)
    ========================================================================== */
 .top-nav-container {
-  position: sticky;
-  top: 18px;
+  position: fixed;
+  top: 20px;
+  left: 0;
+  right: 0;
   z-index: 100;
   display: flex;
   justify-content: center;
-  margin-bottom: 40px;
+  pointer-events: none;
+  margin-bottom: 0;
 }
 
 .top-nav-pill {
+  pointer-events: auto;
   display: flex;
   align-items: center;
   gap: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow: 
-    0 12px 35px -8px rgba(19, 79, 92, 0.12),
-    0 3px 10px -2px rgba(0, 0, 0, 0.04),
+    0 16px 36px -10px rgba(15, 23, 42, 0.08),
+    0 4px 12px -2px rgba(15, 23, 42, 0.03),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
-  padding: 8px 14px 8px 18px;
+  padding: 8px 16px 8px 18px;
   border-radius: var(--radius-pill);
 }
 
@@ -456,8 +456,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 18px;
-  background: linear-gradient(180deg, #FFFFFF 0%, #FAF8F5 100%);
-  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
   user-select: none;
 }
 
@@ -608,28 +610,30 @@
 }
 
 .folder-chip {
-  background: #FFFFFF;
-  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: var(--radius-md);
   overflow: hidden;
   text-align: left;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.04);
   padding: 0;
   position: relative;
 }
 
 .folder-chip:hover {
   transform: translateY(-2px);
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.07);
 }
 
 .folder-chip.active {
   border-color: #10b981;
-  background: #FFFFFF;
-  box-shadow: 0 0 0 1.5px #10b981, 0 4px 14px -2px rgba(16, 185, 129, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 0 1.5px #10b981, 0 6px 18px -2px rgba(16, 185, 129, 0.15);
 }
 
 .folder-chip.active .folder-name {
@@ -786,14 +790,16 @@
 }
 
 .meeting-card {
-  background: #FFFFFF;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
   padding: 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
   transition: all var(--transition-fast);
   position: relative;
   cursor: pointer;
@@ -801,8 +807,8 @@
 
 .meeting-card:hover {
   transform: translateY(-2px);
-  border-color: var(--border-medium);
-  box-shadow: var(--shadow-md);
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 16px 32px -6px rgba(15, 23, 42, 0.08), inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
 .meeting-card-top {

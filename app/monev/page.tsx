@@ -179,11 +179,11 @@ function ReportSection({
   placeholder?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl p-4 border border-surface-200/80 shadow-sm transition-all hover:border-surface-300">
-      <div className="flex items-center justify-between mb-2">
+    <div className="bg-white/80 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/90 shadow-2xs transition-all hover:border-slate-300">
+      <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
-          <span className={`p-1.5 rounded-lg ${colorClass}`}>{icon}</span>
-          <h3 className="text-xs sm:text-sm font-bold text-surface-800">{title}</h3>
+          <span className={`p-1.5 rounded-xl ${colorClass}`}>{icon}</span>
+          <h3 className="text-xs sm:text-sm font-bold text-slate-800">{title}</h3>
         </div>
         <div className="flex items-center gap-2">
           <CharBadge count={content.length} />
@@ -194,13 +194,13 @@ function ReportSection({
         value={content}
         onChange={(e) => onEdit(e.target.value)}
         rows={4}
-        className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 bg-surface-50/50 text-xs sm:text-sm text-surface-800 leading-relaxed resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 focus:bg-white hover:border-surface-300 placeholder:text-surface-400 font-sans"
+        className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200/80 bg-white/70 text-xs sm:text-sm text-slate-800 leading-relaxed resize-none transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 focus:border-emerald-400 focus:bg-white hover:border-slate-300 placeholder:text-slate-400 font-sans shadow-inner"
         placeholder={placeholder || `${title} akan muncul di sini setelah di-generate...`}
       />
-      <div className="flex items-center justify-between text-[11px] text-surface-400 mt-1.5 px-0.5">
+      <div className="flex items-center justify-between text-[11px] text-slate-400 mt-1.5 px-0.5">
         <span>Ketentuan Kemnaker: Minimal 100 karakter</span>
-        <span className={content.length >= 100 ? "text-emerald-600 font-medium" : "text-amber-600 font-medium"}>
-          {content.length >= 100 ? "Memenuhi syarat" : `Sisa ${100 - content.length} karakter`}
+        <span className={content.length >= 100 ? "text-emerald-600 font-semibold" : "text-amber-600 font-semibold"}>
+          {content.length >= 100 ? "✓ Memenuhi syarat" : `Sisa ${100 - content.length} karakter`}
         </span>
       </div>
     </div>
@@ -585,57 +585,70 @@ ${report.alasan_tidak_hadir || ""}`;
   const wibToday = getWibDateString();
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-[#f8fafb] via-[#FBFBFA] to-emerald-50/20 text-surface-900 font-sans">
-      {/* ─── Top Navbar ─────────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-md border-b border-surface-200/70 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+    <div className="relative min-h-screen flex flex-col text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
+      {/* Ambient Atmosphere & Dot Grid Canvas matching GenMagang */}
+      <div className="ambient-glow-lavender" aria-hidden="true" />
+      <div className="ambient-glow-yellow" aria-hidden="true" />
+      <div className="ambient-glow-center" aria-hidden="true" />
+      <div className="waypilot-canvas" aria-hidden="true" />
+
+      {/* ─── Fixed Floating Navbar (Pill Capsule) ─────────────────────────── */}
+      <header className="fixed top-5 left-0 right-0 z-50 px-4 w-full max-w-6xl mx-auto pointer-events-none">
+        <nav className="liquid-glass-pill rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg border border-white/85 pointer-events-auto">
           
-          {/* Logo & Navigation */}
+          {/* Logo & Breadcrumb Navigation */}
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-600 to-emerald-600 flex items-center justify-center text-white shadow-sm hover:scale-105 transition-transform"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25 hover:scale-105 transition-transform"
               title="Kembali ke Beranda GenMagang"
             >
-              <i className="mdi mdi-robot text-xl" />
+              <i className="mdi mdi-school text-lg" />
             </Link>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col text-left">
+              <div className="flex items-center gap-1.5 leading-none">
                 <Link
                   href="/"
-                  className="text-xs font-semibold text-primary-700 hover:text-primary-900 flex items-center gap-1 transition-colors"
+                  className="font-extrabold text-[1.05rem] tracking-tight text-slate-900 hover:text-blue-600 transition-colors"
                 >
-                  <span>GenMagang</span>
+                  Gen<span className="text-blue-600">Magang</span>
                 </Link>
-                <span className="text-surface-300">/</span>
-                <h1 className="text-sm sm:text-base font-extrabold text-surface-900 tracking-tight flex items-center gap-2">
-                  <span>GenMonev</span>
-                  <span className="text-[0.65rem] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/60">
-                    Kemnaker AI
-                  </span>
-                </h1>
+                <span className="text-slate-300 font-bold">/</span>
+                <span className="font-extrabold text-[1.05rem] tracking-tight text-emerald-700">
+                  GenMonev
+                </span>
               </div>
-              <p className="text-[11px] text-surface-500 hidden sm:block">
-                Otomatisasi Laporan Monev MagangHub Kemnaker &middot; Min. 100 Karakter Lolos Validasi
-              </p>
+              <span className="text-[0.6rem] text-slate-400 font-bold tracking-wider uppercase">
+                MagangHub Kemnaker Auto-Formulator
+              </span>
+            </div>
+
+            {/* Badge Tag */}
+            <div className="hidden lg:flex items-center ml-2">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[11px] font-semibold shadow-2xs">
+                <i className="mdi mdi-check-decagram text-emerald-500 text-xs" />
+                Min. 100 Karakter Lolos Validasi
+              </span>
             </div>
           </div>
 
           {/* Right Header Statuses & Actions */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {/* Quick Switch to Notulis */}
             <Link
               href="/notulen"
-              className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-surface-600 bg-surface-100 hover:bg-surface-200 transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-700 bg-white/75 hover:bg-white border border-slate-200/70 shadow-2xs transition-all"
             >
-              <span>📝 Buka GenNotulis</span>
+              <i className="mdi mdi-file-document-edit-outline text-blue-600 text-sm" />
+              <span>Buka GenNotulis</span>
+              <i className="mdi mdi-arrow-right text-xs" />
             </Link>
 
             {/* Kemnaker Auth Status */}
             {kemnakerToken ? (
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="max-w-[120px] truncate">{kemnakerUser?.name || "Kemnaker Terhubung"}</span>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium shadow-2xs">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="max-w-[110px] truncate">{kemnakerUser?.name || "Kemnaker"}</span>
               </div>
             ) : null}
 
@@ -643,30 +656,30 @@ ${report.alasan_tidak_hadir || ""}`;
             <button
               type="button"
               onClick={() => setShowApiKeyModal(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 border cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer shadow-2xs ${
                 apiKey
                   ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
-                  : "bg-white border-surface-200 text-surface-600 hover:bg-surface-50"
+                  : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
               <i className="mdi mdi-key-variant text-sm" />
-              <span className="hidden sm:inline">{apiKey ? "API Key Aktif" : "API Key"}</span>
+              <span className="hidden md:inline">{apiKey ? "API Key Aktif" : "API Key"}</span>
             </button>
 
             {/* WIB Clock */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-100/90 text-xs font-mono text-surface-700 border border-surface-200/60">
-              <i className="mdi mdi-clock-outline text-surface-400" />
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 text-xs font-mono text-slate-700 border border-slate-200/70 shadow-2xs">
+              <i className="mdi mdi-clock-outline text-slate-400" />
               <span>{currentTime || "16:00:00"} WIB</span>
             </div>
           </div>
-        </div>
+        </nav>
       </header>
 
-      {/* ─── Main Content Layout ─────────────────────────────────────────── */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col justify-start">
+      {/* ─── Main Content Layout (Offset for fixed floating navbar) ─────── */}
+      <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-24 sm:pt-28 pb-12 flex flex-col justify-start">
         
         {/* Sub-Header Notice Bar */}
-        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-white/90 border border-surface-200/80 shadow-xs">
+        <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-3xl liquid-glass-card border border-white/85 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
               <i className="mdi mdi-shield-check-outline text-lg" />
@@ -697,7 +710,7 @@ ${report.alasan_tidak_hadir || ""}`;
           <div className="lg:col-span-5 space-y-5">
             
             {/* 1. Status Kehadiran Card */}
-            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold uppercase tracking-wider text-primary-800 flex items-center gap-1.5">
                   <i className="mdi mdi-checkbox-marked-circle-outline text-emerald-600 text-sm" />
@@ -732,7 +745,7 @@ ${report.alasan_tidak_hadir || ""}`;
 
             {/* 2. Catatan Aktivitas / Alasan Input Card */}
             {status === "Hadir" ? (
-              <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-3">
+              <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <label
@@ -880,10 +893,10 @@ ${report.alasan_tidak_hadir || ""}`;
           <div className="lg:col-span-7 space-y-5">
             
             {/* 1. Preview Card */}
-            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm overflow-hidden flex flex-col min-h-[460px]">
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl overflow-hidden flex flex-col min-h-[460px]">
               
               {/* Preview Card Header */}
-              <div className="px-5 py-4 border-b border-surface-100 flex items-center justify-between bg-surface-50/50">
+              <div className="px-5 py-4 border-b border-slate-100/80 flex items-center justify-between bg-white/40">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold">
                     <i className="mdi mdi-file-document-check-outline text-lg" />
@@ -1096,7 +1109,7 @@ ${report.alasan_tidak_hadir || ""}`;
             </div>
 
             {/* 2. Kirim Otomatis ke Monev Card (Kemnaker Portal Sync) */}
-            <div className="bg-white rounded-2xl border border-surface-200/80 shadow-sm p-5 space-y-4">
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-4">
               
               {/* Header section */}
               <div className="flex items-center justify-between gap-3">
@@ -1152,7 +1165,7 @@ ${report.alasan_tidak_hadir || ""}`;
               </div>
 
               {/* Status & Information Box */}
-              <div className="p-4 rounded-xl bg-surface-50 border border-surface-200/80 space-y-2.5 text-xs">
+              <div className="p-4 rounded-2xl bg-white/70 border border-slate-200/70 space-y-2.5 text-xs shadow-2xs">
                 <div className="flex items-center justify-between">
                   <span className="text-surface-500 flex items-center gap-1.5">
                     <i className="mdi mdi-calendar-today text-surface-400" />
@@ -1272,22 +1285,28 @@ ${report.alasan_tidak_hadir || ""}`;
 
       </main>
 
-      {/* ─── Footer ─────────────────────────────────────────────────────── */}
-      <footer className="border-t border-surface-200/60 bg-white/70 py-5 text-xs text-surface-500">
+      {/* ─── Minimalist Floating Footer ─────────────────────────────────── */}
+      <footer className="relative z-10 border-t border-slate-200/50 bg-white/40 backdrop-blur-md py-6 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div>
-            <span className="font-bold text-surface-700">GenMonev</span> &middot; Bagian dari ekosistem <strong>GenMagang</strong>
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+              <i className="mdi mdi-school" />
+            </div>
+            <span className="font-semibold text-slate-700">GenMonev</span>
+            <span className="text-slate-300">&middot;</span>
+            <span className="text-slate-400">Bagian dari ekosistem GenMagang</span>
           </div>
-          <div className="flex items-center gap-4 text-primary-700 font-medium">
-            <Link href="/" className="hover:underline">Beranda</Link>
-            <Link href="/notulen" className="hover:underline">GenNotulis (Rapat)</Link>
+          <div className="flex items-center gap-4 text-slate-600 font-medium">
+            <Link href="/" className="hover:text-emerald-700 transition-colors">Beranda</Link>
+            <Link href="/notulen" className="hover:text-emerald-700 transition-colors">GenNotulis</Link>
             <a
               href="https://monev.maganghub.kemnaker.go.id"
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:underline"
+              className="hover:text-emerald-700 transition-colors inline-flex items-center gap-0.5"
             >
-              Portal Kemnaker ↗
+              <span>Portal Kemnaker</span>
+              <i className="mdi mdi-arrow-top-right text-xs" />
             </a>
           </div>
         </div>
