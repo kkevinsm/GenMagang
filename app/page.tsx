@@ -354,14 +354,14 @@ export default function GenMagangLanding() {
               </p>
             </div>
 
-            {/* Card 2: Standar Formal Korporat */}
+            {/* Card 2: Standar Formal Lintas Industri */}
             <div className="p-6 rounded-3xl bg-white/75 backdrop-blur-xl border border-white/90 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl mb-4 shadow-xs">
                 <i className="mdi mdi-domain text-2xl text-blue-600" />
               </div>
-              <h3 className="text-base font-bold text-slate-900 mb-1.5">Standar Formal Korporat</h3>
+              <h3 className="text-base font-bold text-slate-900 mb-1.5">Standar Formal Lintas Industri</h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Setiap laporan dan notulensi diformulasikan dengan tata bahasa formal profesional standar instansi BUMN dan kementerian pemerintah.
+                Setiap laporan dan notulensi diformulasikan dengan tata bahasa profesional yang adaptif untuk semua jenis industri tempat magang—mulai dari korporasi swasta, startup teknologi, agensi kreatif, perbankan, hingga instansi publik.
               </p>
             </div>
 

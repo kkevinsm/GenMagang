@@ -737,7 +737,7 @@ export default function NotulenPage() {
     }
 
     const prompt = `
-Anda adalah asisten korporat profesional yang ahli dalam menyusun Notulen Meeting resmi berstandar eksekutif untuk berbagai jenis perusahaan, BUMN, kementerian/instansi, swasta, startup, maupun organisasi profesional.
+Anda adalah asisten profesional yang ahli dalam menyusun Notulen Meeting resmi untuk segala jenis perusahaan atau industri tempat magang (korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, hingga instansi publik).
 ${mediaInstruction}
 ${rawNotes ? 'Catatan tambahan / transkrip rapat:\n---\n' + rawNotes + '\n---' : ''}
 
@@ -2259,7 +2259,7 @@ PENTING:
                     </div>
                     <div className="settings-card-content">
                       <h3>Identitas Kop Surat &amp; Logo Korporat</h3>
-                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung berbagai perusahaan, BUMN, kementerian/instansi, startup, atau opsi dokumen polos tanpa logo.</p>
+                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung semua jenis industri tempat magang—baik korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, instansi publik, atau opsi dokumen polos tanpa logo.</p>
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
                         <button
@@ -2540,7 +2540,7 @@ PENTING:
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Identitas &amp; Logo Korporat</h3>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Atur kop surat notulen untuk perusahaan atau instansi Anda</p>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Atur kop surat notulen untuk segala jenis perusahaan atau industri tempat magang Anda</p>
                 </div>
               </div>
               <button
