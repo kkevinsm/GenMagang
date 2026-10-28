@@ -47,8 +47,8 @@
   --color-danger-600: #dc2626;
   --color-warning-500: #f59e0b;
 
-  /* Typography - Strictly Inter */
-  --font-serif: "Instrument Serif", "Playfair Display", Georgia, serif;
+  /* Typography */
+  --font-serif: "Playfair Display", "Newsreader", Georgia, serif;
   --font-sans: "Inter", var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
 
@@ -59,7 +59,6 @@
   --animate-pulse-glow: pulse-glow 2s ease-in-out infinite;
   --animate-float-slow: float-slow 4s ease-in-out infinite;
   --animate-float-alt: float-alt 5s ease-in-out infinite;
-  --animate-orbit-rotate: orbit-rotate 60s linear infinite;
 }
 
 @keyframes fade-in {
@@ -84,17 +83,12 @@
 
 @keyframes float-slow {
   0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
+  50% { transform: translateY(-7px); }
 }
 
 @keyframes float-alt {
-  0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-6px) rotate(1deg); }
-}
-
-@keyframes orbit-rotate {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
 }
 
 /* Custom scrollbar */
@@ -115,100 +109,7 @@
   background: var(--color-surface-400);
 }
 
-/* Liquid Glass Utilities */
-.liquid-glass {
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 
-    0 10px 30px -10px rgba(19, 79, 92, 0.08),
-    0 20px 40px -15px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -1px 2px 0 rgba(19, 79, 92, 0.04);
-}
-
-.liquid-glass-pill {
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.95);
-  box-shadow: 
-    0 12px 35px -8px rgba(19, 79, 92, 0.12),
-    0 3px 10px -2px rgba(0, 0, 0, 0.04),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
-}
-
-.liquid-glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(24px) saturate(190%);
-  -webkit-backdrop-filter: blur(24px) saturate(190%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 
-    0 20px 45px -12px rgba(19, 79, 92, 0.12),
-    0 8px 20px -4px rgba(0, 0, 0, 0.05),
-    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
-}
-
-.liquid-glass-badge {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 
-    0 12px 28px -6px rgba(19, 79, 92, 0.12),
-    0 4px 12px -2px rgba(0, 0, 0, 0.04),
-    inset 0 1px 0 0 rgba(255, 255, 255, 1);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.liquid-glass-badge:hover {
-  transform: translateY(-4px) scale(1.04);
-  box-shadow: 
-    0 18px 40px -8px rgba(19, 79, 92, 0.2),
-    0 6px 16px -3px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 0 rgba(255, 255, 255, 1);
-  border-color: rgba(66, 132, 145, 0.5);
-}
-
-/* Gradient text */
-.gradient-text-teal {
-  background: linear-gradient(135deg, #134f5c 0%, #0d3740 40%, #10b981 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-emerald {
-  background: linear-gradient(135deg, #059669 0%, #10b981 50%, #428491 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Hide Next.js dev indicator */
-nextjs-portal,
-[data-nextjs-dev-indicator],
-[data-nextjs-toast],
-#nextjs-dev-indicator {
-  display: none !important;
-}
-
-/* Orbital Rings specific styles */
-.orbit-ring-solid {
-  border: 1.5px solid rgba(19, 79, 92, 0.28);
-}
-
-.orbit-ring-dashed {
-  border: 1.5px dashed rgba(19, 79, 92, 0.35);
-}
-
-.orbit-ring-emerald {
-  border: 2px dashed rgba(16, 185, 129, 0.55);
-}
-
-
-/* Background Atmosphere Canvas */
+/* Background Atmosphere Canvas (NEWDESIGN.md Sec 1) */
 .bg-landscape-canvas {
   position: fixed;
   inset: 0;
@@ -223,11 +124,46 @@ nextjs-portal,
 .bg-landscape-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0.75) 28%, rgba(251, 251, 250, 0.95) 60%, #FBFBFA 100%);
-  backdrop-filter: blur(1.5px);
-  -webkit-backdrop-filter: blur(1.5px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.76) 30%, rgba(251, 251, 250, 0.94) 65%, #FBFBFA 100%);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
 }
 
-.font-serif-hero {
-  font-family: var(--font-serif);
+/* Liquid Glass Utilities (NEWDESIGN.md Sec 1 & 2) */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+}
+
+.liquid-glass-pill {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 
+    0 12px 35px -8px rgba(19, 79, 92, 0.12),
+    0 3px 10px -2px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+}
+
+.liquid-glass-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 24px 48px -12px rgba(19, 79, 92, 0.1),
+    0 8px 24px -4px rgba(0, 0, 0, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
+}
+
+/* Hide Next.js dev indicator */
+nextjs-portal,
+[data-nextjs-dev-indicator],
+[data-nextjs-toast],
+#nextjs-dev-indicator {
+  display: none !important;
 }
