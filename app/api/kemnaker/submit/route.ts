@@ -4,11 +4,12 @@ export const dynamic = "force-dynamic";
 
 /**
  * Endpoint pengiriman absensi Monev Kemnaker.
- * Meneruskan request ke backend proxy mandiri Hostinger (api.mobogen.online)
+ * Meneruskan request ke backend proxy mandiri (api.genmagang.web.id / api.mobogen.online)
  * untuk menghindari blokir datacenter Cloudflare dari server Vercel.
  */
 
-const DEFAULT_PROXY_BASE = "https://api.mobogen.online";
+const PRIMARY_PROXY_BASE = process.env.KEMNAKER_PROXY_BASE_URL || "https://api.genmagang.web.id";
+const FALLBACK_PROXY_BASE = "https://api.mobogen.online";
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,9 +69,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const proxyBase = process.env.KEMNAKER_PROXY_BASE_URL || DEFAULT_PROXY_BASE;
-    const submitUrl = `${proxyBase}/api/kemnaker/submit-attendance`;
-
     const clientIp =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
       request.headers.get("x-real-ip");
@@ -85,15 +83,35 @@ export async function POST(request: NextRequest) {
       upstreamHeaders["X-Forwarded-For"] = clientIp;
     }
 
-    const upstreamRes = await fetch(submitUrl, {
-      method: "POST",
-      headers: upstreamHeaders,
-      body: JSON.stringify({ token, payload }),
-    });
+    const payloadStr = JSON.stringify({ token, payload });
 
-    const data = await upstreamRes.json().catch(() => null);
+    let upstreamRes: Response | null = null;
+    let data: any = null;
 
-    if (upstreamRes.status === 401) {
+    try {
+      upstreamRes = await fetch(`${PRIMARY_PROXY_BASE}/api/kemnaker/submit-attendance`, {
+        method: "POST",
+        headers: upstreamHeaders,
+        body: payloadStr,
+      });
+      data = await upstreamRes.json().catch(() => null);
+    } catch (primaryErr) {
+      console.warn("Primary proxy unreachable, trying fallback proxy...", primaryErr);
+      if (PRIMARY_PROXY_BASE !== FALLBACK_PROXY_BASE) {
+        try {
+          upstreamRes = await fetch(`${FALLBACK_PROXY_BASE}/api/kemnaker/submit-attendance`, {
+            method: "POST",
+            headers: upstreamHeaders,
+            body: payloadStr,
+          });
+          data = await upstreamRes.json().catch(() => null);
+        } catch (fallbackErr) {
+          console.error("Fallback proxy also failed:", fallbackErr);
+        }
+      }
+    }
+
+    if (upstreamRes?.status === 401) {
       return Response.json(
         {
           error:
@@ -103,10 +121,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!upstreamRes.ok || !data || !data.success) {
+    if (!upstreamRes || !upstreamRes.ok || !data || !data.success) {
       const errorMessage =
-        data?.error || `Pengiriman absensi gagal (HTTP ${upstreamRes.status}).`;
-      return Response.json({ error: errorMessage }, { status: upstreamRes.status || 500 });
+        data?.error || `Pengiriman absensi gagal (HTTP ${upstreamRes?.status || "ERR"}).`;
+      return Response.json({ error: errorMessage }, { status: upstreamRes?.status || 500 });
     }
 
     return Response.json({

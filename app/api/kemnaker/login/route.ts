@@ -4,14 +4,12 @@ export const dynamic = "force-dynamic";
 
 /**
  * Endpoint login Kemnaker.
- * Meneruskan request ke backend proxy mandiri milik pengguna (Hostinger / api.mobogen.online)
+ * Meneruskan request ke backend proxy mandiri (api.genmagang.web.id / api.mobogen.online)
  * yang menjalankan alur OAuth2 langsung ke SSO Kemnaker tanpa pihak ketiga.
- * 
- * Proxy mandiri di Hostinger diperlukan karena IP datacenter cloud (seperti Vercel)
- * diblokir oleh Cloudflare WAF Kemnaker (Challenge/Captcha).
  */
 
-const DEFAULT_PROXY_BASE = "https://api.mobogen.online";
+const PRIMARY_PROXY_BASE = process.env.KEMNAKER_PROXY_BASE_URL || "https://api.genmagang.web.id";
+const FALLBACK_PROXY_BASE = "https://api.mobogen.online";
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,9 +22,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    const proxyBase = process.env.KEMNAKER_PROXY_BASE_URL || DEFAULT_PROXY_BASE;
-    const loginUrl = `${proxyBase}/api/kemnaker/login`;
 
     const clientIp =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -42,21 +37,41 @@ export async function POST(request: NextRequest) {
       upstreamHeaders["X-Forwarded-For"] = clientIp;
     }
 
-    const upstreamRes = await fetch(loginUrl, {
-      method: "POST",
-      headers: upstreamHeaders,
-      body: JSON.stringify({
-        username: username.trim(),
-        password,
-      }),
+    const payloadStr = JSON.stringify({
+      username: username.trim(),
+      password,
     });
 
-    const data = await upstreamRes.json().catch(() => null);
+    let upstreamRes: Response | null = null;
+    let data: any = null;
 
-    if (!upstreamRes.ok || !data) {
+    try {
+      upstreamRes = await fetch(`${PRIMARY_PROXY_BASE}/api/kemnaker/login`, {
+        method: "POST",
+        headers: upstreamHeaders,
+        body: payloadStr,
+      });
+      data = await upstreamRes.json().catch(() => null);
+    } catch (primaryErr) {
+      console.warn("Primary proxy unreachable, trying fallback proxy...", primaryErr);
+      if (PRIMARY_PROXY_BASE !== FALLBACK_PROXY_BASE) {
+        try {
+          upstreamRes = await fetch(`${FALLBACK_PROXY_BASE}/api/kemnaker/login`, {
+            method: "POST",
+            headers: upstreamHeaders,
+            body: payloadStr,
+          });
+          data = await upstreamRes.json().catch(() => null);
+        } catch (fallbackErr) {
+          console.error("Fallback proxy also failed:", fallbackErr);
+        }
+      }
+    }
+
+    if (!upstreamRes || !upstreamRes.ok || !data) {
       const errorMessage =
-        data?.error || `Login gagal ke server Kemnaker (HTTP ${upstreamRes.status}).`;
-      return Response.json({ error: errorMessage }, { status: upstreamRes.status || 401 });
+        data?.error || `Login gagal ke server Kemnaker (HTTP ${upstreamRes?.status || "ERR"}).`;
+      return Response.json({ error: errorMessage }, { status: upstreamRes?.status || 401 });
     }
 
     if (!data.access_token) {
@@ -66,7 +81,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Success response containing access_token and user info
     return Response.json({
       access_token: data.access_token,
       user: data.user || null,
