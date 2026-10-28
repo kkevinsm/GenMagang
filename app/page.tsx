@@ -10,8 +10,8 @@ export default function GenMagangLanding() {
     <div className="relative min-h-screen w-full overflow-x-hidden text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
       
       {/* =========================================================================
-          WAYPILOT CANVAS & THICK AMBIENT ATMOSPHERE
-          Rich Lavender on Left + Warm Lemon Yellow on Right + Crisp Dot Grid Pattern
+          WAYPILOT CANVAS & ULTRA-SMOOTH AMBIENT ATMOSPHERE
+          Soft Lavender on Left + Warm Lemon Yellow on Right + Crisp Dot Grid Pattern
           ========================================================================= */}
       {/* Ambient Glows Layer (Behind dots) */}
       <div className="ambient-glow-lavender" aria-hidden="true" />
@@ -23,10 +23,10 @@ export default function GenMagangLanding() {
       <div className="orbital-track-arch" aria-hidden="true" />
 
       {/* =========================================================================
-          NAVIGATION BAR (Bentuk Lama - Pills Capsule with MDI Icons)
+          NAVIGATION BAR (Fixed Floating Pill - Always visible when scrolled)
           ========================================================================= */}
-      <header className="sticky top-5 z-50 px-4 w-full max-w-5xl mx-auto">
-        <nav className="liquid-glass-pill rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg border border-white/85">
+      <header className="fixed top-5 left-0 right-0 z-50 px-4 w-full max-w-5xl mx-auto pointer-events-none">
+        <nav className="liquid-glass-pill rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg border border-white/85 pointer-events-auto">
           
           {/* Left: Brand Logo & Status Tag */}
           <div className="flex items-center gap-3">
@@ -74,19 +74,10 @@ export default function GenMagangLanding() {
       </header>
 
       {/* =========================================================================
-          HERO SECTION (Minimalist, Focused & Modern with MDI Icons)
+          HERO SECTION (Padding adjusted for fixed floating navbar)
           ========================================================================= */}
-      <main className="relative z-10 w-full max-w-5xl mx-auto px-4 pt-12 md:pt-16 pb-20 text-center">
+      <main className="relative z-10 w-full max-w-5xl mx-auto px-4 pt-24 sm:pt-28 md:pt-32 pb-20 text-center">
         
-        {/* Top Floating Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/80 backdrop-blur-xl border border-slate-200/80 text-xs font-semibold text-slate-700 shadow-2xs mb-6">
-          <i className="mdi mdi-auto-fix text-blue-600 text-sm animate-pulse" />
-          <span className="font-bold text-slate-900">Didukung oleh Gemini 1.5 Pro</span>
-          <span className="text-slate-300">|</span>
-          <i className="mdi mdi-shield-check text-emerald-600 text-sm" />
-          <span className="text-emerald-800 font-bold">Kemnaker SIAPkerja</span>
-        </div>
-
         {/* Hero Title (H1) - With Inline Squircle MDI Icon */}
         <h1 className="tracking-tight text-slate-900 max-w-4xl mx-auto leading-[1.08] mb-6">
           <span className="font-extrabold text-5xl sm:text-6xl md:text-7xl block">
@@ -112,7 +103,7 @@ export default function GenMagangLanding() {
           Selesaikan 2 beban terbesar anak magang dalam hitungan detik: pengisian laporan <strong>Monev harian MagangHub Kemnaker</strong> dan perumusan <strong>notulensi rapat korporat resmi</strong>.
         </p>
 
-        {/* Dual Action Buttons */}
+        {/* Dual Action Buttons - Both with right arrow (→) */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-14">
           <Link
             href="/monev"
@@ -128,25 +119,26 @@ export default function GenMagangLanding() {
           >
             <i className="mdi mdi-notebook-edit-outline text-base" />
             <span>Buka GenNotulis Rapat</span>
-            <i className="mdi mdi-arrow-top-right text-xs group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            <i className="mdi mdi-arrow-right text-xs group-hover:translate-x-0.5 transition-transform" />
           </Link>
         </div>
 
         {/* =========================================================================
-            CORE INTERACTIVE SIMULATOR (Pristine Frosted Glass Showcase)
+            CORE INTERACTIVE SIMULATOR (Semi-Glassmorphic Frosted Card)
+            Refined transparency so ambient glows & dots gently shimmer through
             ========================================================================= */}
-        <div id="simulator" className="max-w-3xl mx-auto text-left scroll-mt-24">
-          <div className="liquid-glass-card rounded-3xl p-6 sm:p-8 border border-white/95 shadow-2xl relative">
+        <div id="simulator" className="max-w-3xl mx-auto text-left scroll-mt-28">
+          <div className="liquid-glass-card rounded-3xl p-6 sm:p-8 border border-white/85 shadow-2xl relative">
             
             {/* Top Bar: Module Switcher Tabs & Direct Link */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/70 pb-5">
-              <div className="flex items-center gap-2 bg-slate-100/90 p-1.5 rounded-2xl w-fit border border-slate-200/50">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 pb-5">
+              <div className="flex items-center gap-2 bg-slate-200/40 backdrop-blur-md p-1.5 rounded-2xl w-fit border border-white/60">
                 <button
                   type="button"
                   onClick={() => setActiveTab("monev")}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                     activeTab === "monev"
-                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/60"
+                      ? "bg-white/90 text-slate-900 shadow-xs border border-white/80"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -158,7 +150,7 @@ export default function GenMagangLanding() {
                   onClick={() => setActiveTab("notulen")}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
                     activeTab === "notulen"
-                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/60"
+                      ? "bg-white/90 text-slate-900 shadow-xs border border-white/80"
                       : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
@@ -167,7 +159,7 @@ export default function GenMagangLanding() {
                 </button>
               </div>
 
-              {/* Direct Module Link */}
+              {/* Direct Module Link (Right Arrow) */}
               <div>
                 {activeTab === "monev" ? (
                   <Link
@@ -193,14 +185,14 @@ export default function GenMagangLanding() {
             {activeTab === "monev" && (
               <div className="pt-5 space-y-4 animate-fade-in">
                 
-                {/* 1. Uraian Aktivitas */}
-                <div className="p-4 rounded-2xl bg-white/95 border border-slate-200/80 shadow-xs">
+                {/* 1. Uraian Aktivitas (Semi-Glassmorphic) */}
+                <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 shadow-2xs">
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <span className="text-xs font-extrabold uppercase tracking-wide text-slate-900 flex items-center gap-1.5">
                       <i className="mdi mdi-clipboard-text-outline text-emerald-600 text-sm" />
                       1. URAIAN AKTIVITAS
                     </span>
-                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50/90 border border-emerald-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                       <i className="mdi mdi-check-circle text-emerald-600 text-xs" />
                       <span>184 / 100 Karakter (Lolos Validasi ✓)</span>
                     </span>
@@ -210,16 +202,16 @@ export default function GenMagangLanding() {
                   </p>
                 </div>
 
-                {/* 2 & 3. Sub-Output Dual Column */}
+                {/* 2 & 3. Sub-Output Dual Column (Semi-Glassmorphic) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* 2. Pembelajaran */}
-                  <div className="p-4 rounded-2xl bg-white/95 border border-slate-200/80 shadow-xs">
+                  <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 shadow-2xs">
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
                         <i className="mdi mdi-lightbulb-on-outline text-amber-500 text-sm" />
                         2. Pembelajaran yang Didapat
                       </span>
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50/90 border border-emerald-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <i className="mdi mdi-check text-emerald-600 text-xs" />
                         142 Karakter
                       </span>
@@ -230,13 +222,13 @@ export default function GenMagangLanding() {
                   </div>
 
                   {/* 3. Kendala & Solusi */}
-                  <div className="p-4 rounded-2xl bg-white/95 border border-slate-200/80 shadow-xs">
+                  <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 shadow-2xs">
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
                         <i className="mdi mdi-wrench-clock-outline text-blue-600 text-sm" />
                         3. Kendala &amp; Solusi Praktis
                       </span>
-                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50/90 border border-emerald-200/80 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <i className="mdi mdi-check text-emerald-600 text-xs" />
                         118 Karakter
                       </span>
@@ -248,7 +240,7 @@ export default function GenMagangLanding() {
                 </div>
 
                 {/* Bottom Bar Simulator */}
-                <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200/60 mt-3">
+                <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200/50 mt-3">
                   <span className="text-xs text-slate-500 flex items-center gap-1.5">
                     <i className="mdi mdi-shield-lock-outline text-emerald-600 text-sm" />
                     Terintegrasi langsung dengan login SIAPkerja Kemnaker ID untuk auto-submit harian.
@@ -268,20 +260,20 @@ export default function GenMagangLanding() {
             {/* TAB 2: OUTPUT PRATINJAU GENNOTULIS */}
             {activeTab === "notulen" && (
               <div className="pt-5 space-y-4 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-white/95 border border-slate-200/80 shadow-xs">
+                <div className="p-4 rounded-2xl bg-white/70 backdrop-blur-md border border-white/80 shadow-2xs">
                   <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <span className="text-xs font-extrabold uppercase tracking-wide text-slate-900 flex items-center gap-1.5">
                       <i className="mdi mdi-account-group text-blue-600 text-sm" />
                       NOTULEN RAPAT KORPORAT RESMI (STANDAR BNI)
                     </span>
-                    <span className="text-[11px] font-bold text-blue-800 bg-blue-50 border border-blue-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                    <span className="text-[11px] font-bold text-blue-800 bg-blue-50/90 border border-blue-200/80 px-2.5 py-0.5 rounded-full flex items-center gap-1">
                       <i className="mdi mdi-file-check-outline text-blue-600 text-xs" />
                       <span>Dokumen Siap Cetak &amp; PDF ✓</span>
                     </span>
                   </div>
                   
                   <div className="space-y-3 text-xs text-slate-800">
-                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200/60 flex items-start gap-2">
+                    <div className="p-2.5 bg-white/60 rounded-xl border border-white/70 flex items-start gap-2">
                       <i className="mdi mdi-bookmark-outline text-slate-400 text-sm mt-0.5 shrink-0" />
                       <div>
                         <strong>Topik Bahasan:</strong> Sinkronisasi API Payment Gateway &amp; Timeline UAT Staging
@@ -305,11 +297,11 @@ export default function GenMagangLanding() {
                         Tindak Lanjut / Action Items:
                       </strong>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200/80 text-xs text-slate-800">
+                        <div className="flex items-center gap-2 p-2 bg-white/75 rounded-xl border border-white/80 text-xs text-slate-800">
                           <i className="mdi mdi-checkbox-marked text-blue-600 text-sm" />
                           <span>Tim Dev: Tuntaskan integrasi API (28 Okt)</span>
                         </div>
-                        <div className="flex items-center gap-2 p-2 bg-white rounded-xl border border-slate-200/80 text-xs text-slate-800">
+                        <div className="flex items-center gap-2 p-2 bg-white/75 rounded-xl border border-white/80 text-xs text-slate-800">
                           <i className="mdi mdi-checkbox-blank-outline text-slate-400 text-sm" />
                           <span>Tim QA: Verifikasi kestabilan staging (30 Okt)</span>
                         </div>
@@ -318,7 +310,7 @@ export default function GenMagangLanding() {
                   </div>
                 </div>
 
-                <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200/60 mt-3">
+                <div className="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-200/50 mt-3">
                   <span className="text-xs text-slate-500 flex items-center gap-1.5">
                     <i className="mdi mdi-microphone-outline text-blue-600 text-sm" />
                     Mendukung transkrip teks, rekam suara via mikrofon langsung, dan upload rekaman video Zoom/Teams.
@@ -354,7 +346,7 @@ export default function GenMagangLanding() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-8 text-left">
             {/* Card 1: Hemat 1-2 Jam */}
-            <div className="p-6 rounded-3xl bg-white/85 backdrop-blur-xl border border-white/95 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-6 rounded-3xl bg-white/75 backdrop-blur-xl border border-white/90 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center text-xl mb-4 shadow-xs">
                 <i className="mdi mdi-timer-sand-complete text-2xl text-emerald-600" />
               </div>
@@ -365,7 +357,7 @@ export default function GenMagangLanding() {
             </div>
 
             {/* Card 2: Standar Formal Korporat */}
-            <div className="p-6 rounded-3xl bg-white/85 backdrop-blur-xl border border-white/95 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-6 rounded-3xl bg-white/75 backdrop-blur-xl border border-white/90 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-11 h-11 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-xl mb-4 shadow-xs">
                 <i className="mdi mdi-domain text-2xl text-blue-600" />
               </div>
@@ -376,7 +368,7 @@ export default function GenMagangLanding() {
             </div>
 
             {/* Card 3: Aman & Terenkripsi Client-Side */}
-            <div className="p-6 rounded-3xl bg-white/85 backdrop-blur-xl border border-white/95 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+            <div className="p-6 rounded-3xl bg-white/75 backdrop-blur-xl border border-white/90 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
               <div className="w-11 h-11 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center text-xl mb-4 shadow-xs">
                 <i className="mdi mdi-shield-key-outline text-2xl text-amber-600" />
               </div>
