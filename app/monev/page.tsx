@@ -296,6 +296,23 @@ export default function GenMonevDashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  const getProviderInfo = (key: string) => {
+    const clean = (key || "").trim();
+    if (clean.startsWith("sk-ant-")) {
+      return { name: "Claude", full: "Anthropic Claude", model: "Claude 3.5 Sonnet / Haiku (Auto)", icon: "mdi-brain", color: "text-amber-700 bg-amber-50 border-amber-200" };
+    }
+    if (clean.startsWith("xai-")) {
+      return { name: "Grok", full: "xAI Grok", model: "Grok-2 / Grok-beta (Auto)", icon: "mdi-flash", color: "text-purple-700 bg-purple-50 border-purple-200" };
+    }
+    if (clean.startsWith("sk-")) {
+      return { name: "ChatGPT", full: "OpenAI ChatGPT", model: "GPT-4o / GPT-4o Mini (Auto)", icon: "mdi-robot", color: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+    }
+    if (clean.startsWith("AIza") || clean.length > 5) {
+      return { name: "Gemini", full: "Google Gemini", model: "Gemini 2.5 Flash / 1.5 Flash (Auto)", icon: "mdi-google", color: "text-blue-700 bg-blue-50 border-blue-200" };
+    }
+    return { name: "AI", full: "Multi-Provider AI", model: "Auto sesuai langganan", icon: "mdi-key-variant", color: "text-slate-700 bg-slate-50 border-slate-200" };
+  };
+
   const handleSaveApiKey = () => {
     if (apiKeyInput.trim()) {
       localStorage.setItem("monev_api_key", apiKeyInput.trim());
@@ -658,12 +675,12 @@ ${report.alasan_tidak_hadir || ""}`;
               onClick={() => setShowApiKeyModal(true)}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer shadow-2xs ${
                 apiKey
-                  ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                  ? "bg-slate-900 border-slate-900 text-white hover:bg-black"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <i className="mdi mdi-key-variant text-sm" />
-              <span className="hidden md:inline">{apiKey ? "API Key Aktif" : "API Key"}</span>
+              <i className={`mdi ${apiKey ? getProviderInfo(apiKey).icon : "mdi-key-variant"} text-sm`} />
+              <span className="hidden md:inline">{apiKey ? `AI: ${getProviderInfo(apiKey).name}` : "Set API Key"}</span>
             </button>
 
             {/* WIB Clock */}
@@ -1320,18 +1337,19 @@ ${report.alasan_tidak_hadir || ""}`;
             if (e.target === e.currentTarget) setShowApiKeyModal(false);
           }}
         >
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-surface-200 p-6 animate-scale-in">
+          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-6 sm:p-7 animate-scale-in">
+            {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
+                <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
                   <i className="mdi mdi-key-variant text-xl" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-surface-800">
-                    Custom Gemini API Key
+                  <h3 className="text-base font-bold text-slate-900">
+                    Pengaturan AI Key Multi-Provider
                   </h3>
-                  <p className="text-xs text-surface-400">
-                    Opsional &middot; Disimpan secara lokal di browser
+                  <p className="text-xs text-slate-400">
+                    ChatGPT &middot; Claude &middot; Grok &middot; Gemini &middot; Tersimpan Lokal
                   </p>
                 </div>
               </div>
@@ -1339,49 +1357,114 @@ ${report.alasan_tidak_hadir || ""}`;
               <button
                 type="button"
                 onClick={() => setShowApiKeyModal(false)}
-                className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 cursor-pointer"
+                className="p-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 cursor-pointer"
               >
-                <i className="mdi mdi-close text-xl text-surface-400" />
+                <i className="mdi mdi-close text-xl" />
               </button>
             </div>
 
-            <p className="text-xs text-surface-500 mb-4 leading-relaxed">
-              Secara default GenMonev menggunakan API Key server internal. Jika kuota server sedang padat, Anda dapat memasukkan Gemini API Key pribadi dari Google AI Studio.
+            <p className="text-xs text-slate-600 mb-4 leading-relaxed">
+              Masukkan API Key dari provider AI langganan Anda. Sistem akan <strong>mendeteksi provider dan memilih model terbaik secara otomatis</strong> sesuai kuota langganan akun Anda (GPT-4o, Claude 3.5 Sonnet, Grok-2, atau Gemini Flash).
             </p>
 
-            <div className="space-y-3">
-              <input
-                type="password"
-                value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
-                placeholder="AIzaSy..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-800 bg-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 font-mono"
-              />
-              <a
-                href="https://aistudio.google.com/app/apikey"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-accent-600 hover:text-accent-700 transition-colors"
-              >
-                <i className="mdi mdi-open-in-new text-xs" />
-                Dapatkan API Key di Google AI Studio
-              </a>
+            {/* Provider Badges Showcase */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("sk-") && !apiKeyInput.startsWith("sk-ant-") ? "bg-emerald-50 border-emerald-300 ring-2 ring-emerald-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-robot text-emerald-600" />
+                  <span>ChatGPT</span>
+                </div>
+                <span className="text-[10px] text-slate-400">sk-...</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("sk-ant-") ? "bg-amber-50 border-amber-300 ring-2 ring-amber-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-brain text-amber-600" />
+                  <span>Claude</span>
+                </div>
+                <span className="text-[10px] text-slate-400">sk-ant-...</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("xai-") ? "bg-purple-50 border-purple-300 ring-2 ring-purple-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-flash text-purple-600" />
+                  <span>Grok</span>
+                </div>
+                <span className="text-[10px] text-slate-400">xai-...</span>
+              </div>
+
+              <div className={`p-2 rounded-xl border text-center transition-all ${apiKeyInput.startsWith("AIza") || (!apiKeyInput.startsWith("sk-") && !apiKeyInput.startsWith("xai-") && apiKeyInput.length > 5) ? "bg-blue-50 border-blue-300 ring-2 ring-blue-400/30" : "bg-slate-50 border-slate-200"}`}>
+                <div className="font-bold text-xs text-slate-800 flex items-center justify-center gap-1">
+                  <i className="mdi mdi-google text-blue-600" />
+                  <span>Gemini</span>
+                </div>
+                <span className="text-[10px] text-slate-400">AIzaSy...</span>
+              </div>
             </div>
 
-            <div className="flex gap-2 mt-5">
+            {/* Input & Helper links */}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tempel API Key Anda:
+                </label>
+                <input
+                  type="password"
+                  value={apiKeyInput}
+                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  placeholder="Tempel API Key (sk-..., sk-ant-..., xai-..., atau AIzaSy...)"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400 font-mono"
+                />
+              </div>
+
+              {/* Detected Provider Status Banner */}
+              {apiKeyInput.trim() && (
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs flex items-center gap-2 text-slate-700">
+                  <i className="mdi mdi-check-circle text-emerald-600 text-base" />
+                  <span>
+                    Provider: <strong>{getProviderInfo(apiKeyInput).full}</strong> &middot; Model: <strong>{getProviderInfo(apiKeyInput).model}</strong>
+                  </span>
+                </div>
+              )}
+
+              {/* Links to get keys */}
+              <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                <span className="font-semibold text-slate-400">Dapatkan Key:</span>
+                <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-emerald-700 hover:underline">OpenAI ↗</a>
+                <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" className="text-amber-700 hover:underline">Claude ↗</a>
+                <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" className="text-purple-700 hover:underline">xAI Grok ↗</a>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">Gemini ↗</a>
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-6 pt-2 border-t border-slate-100">
+              {apiKey && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setApiKey("");
+                    setApiKeyInput("");
+                    localStorage.removeItem("monev_api_key");
+                    setShowApiKeyModal(false);
+                  }}
+                  className="px-4 py-2.5 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                >
+                  Hapus Key
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowApiKeyModal(false)}
-                className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSaveApiKey}
-                className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-colors cursor-pointer shadow-md"
               >
-                Simpan
+                Simpan Key
               </button>
             </div>
           </div>

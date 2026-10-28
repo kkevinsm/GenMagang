@@ -197,7 +197,7 @@ export default function NotulenPage() {
     }
 
     // 3. API Key & Model
-    const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) || "";
+    const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem("monev_api_key") || localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) || "";
     setApiKey(storedKey);
     setTempApiKey(storedKey);
 
@@ -221,6 +221,24 @@ export default function NotulenPage() {
       // Ignore storage errors
     }
   }, []);
+
+  // Provider info helper
+  const getProviderInfo = (key: string) => {
+    const clean = (key || "").trim();
+    if (clean.startsWith("sk-ant-")) {
+      return { name: "Claude", full: "Anthropic Claude", model: "Claude 3.5 Sonnet / Haiku (Auto-Tier)", icon: "mdi-brain", color: "#d97706" };
+    }
+    if (clean.startsWith("xai-")) {
+      return { name: "Grok", full: "xAI Grok", model: "Grok-2 / Grok-beta (Auto-Tier)", icon: "mdi-flash", color: "#9333ea" };
+    }
+    if (clean.startsWith("sk-")) {
+      return { name: "ChatGPT", full: "OpenAI ChatGPT", model: "GPT-4o / GPT-4o Mini (Auto-Tier)", icon: "mdi-robot", color: "#059669" };
+    }
+    if (clean.startsWith("AIza") || clean.length > 5) {
+      return { name: "Gemini", full: "Google Gemini", model: "Gemini 2.5 Flash / 1.5 Flash (Auto-Tier)", icon: "mdi-google", color: "#2563eb" };
+    }
+    return { name: "AI", full: "Multi-Provider AI", model: "Auto sesuai langganan akun", icon: "mdi-key-variant", color: "#64748b" };
+  };
 
   // Save meetings helper
   const saveMeetings = useCallback((updated: Meeting[]) => {
@@ -650,25 +668,40 @@ export default function NotulenPage() {
       let generatedData: any = null;
 
       if (apiKey.trim()) {
-        const candidateModels = [selectedModel, "gemini-2.5-flash", "gemini-1.5-flash"];
-        let lastError = null;
-
-        for (let i = 0; i < candidateModels.length; i++) {
-          const model = candidateModels[i];
-          try {
-            if (i > 0) {
-              setGenerationProgress(`Mencoba model cadangan stabil: ${model}...`);
-            }
-            generatedData = await executeGeminiRequest(apiKey.trim(), model, rawNotesInput, titleTarget, categoryTarget, mediaAttachment);
-            break;
-          } catch (err: any) {
-            console.warn(`Model ${model} gagal:`, err);
-            lastError = err;
+        try {
+          setGenerationProgress(`Menghubungi ${getProviderInfo(apiKey).full} (${getProviderInfo(apiKey).model})...`);
+          
+          let mediaInstruction = "";
+          if (mediaAttachment) {
+            mediaInstruction = mediaAttachment.type === "video" 
+              ? "File rekaman video online meeting terlampir."
+              : "File audio rekaman voice note rapat terlampir.";
           }
-        }
 
-        if (!generatedData && lastError) {
-          console.warn("Semua model API error, beralih ke generator korporat cerdas offline");
+          const res = await fetch("/api/notulen/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              rawNotes: rawNotesInput,
+              title: titleTarget,
+              category: categoryTarget,
+              mediaInstruction,
+              apiKey: apiKey.trim(),
+            }),
+          });
+
+          const resData = await res.json();
+          if (res.ok && resData.data) {
+            generatedData = resData.data;
+            if (resData.model) {
+              showToast(`Diformulasikan oleh ${resData.model}`);
+            }
+          } else {
+            throw new Error(resData.error || "Gagal memproses via AI");
+          }
+        } catch (apiErr: any) {
+          console.warn("API Error, beralih ke engine cadangan:", apiErr);
+          showToast(apiErr.message || "Beralih ke pemroses cadangan...");
           generatedData = generateLocalCorporateNotulen(rawNotesInput, titleTarget, categoryTarget, mediaAttachment);
         }
       } else {
@@ -2177,7 +2210,7 @@ PENTING:
                 </div>
 
                 <div className="settings-grid">
-                  {/* Gemini API Key */}
+                  {/* Multi-Provider AI Key (ChatGPT, Claude, Grok, Gemini) */}
                   <div className="settings-card">
                     <div className="settings-card-icon">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -2185,15 +2218,35 @@ PENTING:
                       </svg>
                     </div>
                     <div className="settings-card-content">
-                      <h3>Google Gemini API Key</h3>
-                      <p>Kunci API disimpan secara lokal di browser Anda (LocalStorage) dan hanya digunakan untuk memanggil Google Generative Language API secara langsung dari browser Anda.</p>
+                      <h3>AI Provider &amp; API Key</h3>
+                      <p>Mendukung <strong>OpenAI (ChatGPT), Anthropic (Claude), xAI (Grok), dan Google (Gemini)</strong>. Sistem otomatis mendeteksi provider dan menggunakan model terbaik sesuai tier langganan akun Anda.</p>
+
+                      {/* Provider Badges Showcase */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', margin: '12px 0' }}>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('sk-ant-') ? '1.5px solid #10b981' : '1px solid #e2e8f0', background: tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('sk-ant-') ? '#f0fdf4' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>ChatGPT</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>sk-...</span>
+                        </div>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('sk-ant-') ? '1.5px solid #f59e0b' : '1px solid #e2e8f0', background: tempApiKey.startsWith('sk-ant-') ? '#fffbeb' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>Claude</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>sk-ant-...</span>
+                        </div>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('xai-') ? '1.5px solid #a855f7' : '1px solid #e2e8f0', background: tempApiKey.startsWith('xai-') ? '#faf5ff' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>xAI Grok</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>xai-...</span>
+                        </div>
+                        <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('AIza') || (!tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('xai-') && tempApiKey.length > 5) ? '1.5px solid #3b82f6' : '1px solid #e2e8f0', background: tempApiKey.startsWith('AIza') || (!tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('xai-') && tempApiKey.length > 5) ? '#eff6ff' : '#ffffff', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>Gemini</div>
+                          <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>AIzaSy...</span>
+                        </div>
+                      </div>
 
                       <div className="api-key-input-group">
                         <input
                           type={showApiKey ? "text" : "password"}
                           value={tempApiKey}
                           onChange={(e) => setTempApiKey(e.target.value)}
-                          placeholder="Masukkan Gemini API Key (AIzaSy...)"
+                          placeholder="Tempel API Key (sk-..., sk-ant-..., xai-..., atau AIzaSy...)"
                         />
                         <button
                           className="btn-secondary btn-sm"
@@ -2204,47 +2257,62 @@ PENTING:
                         <button
                           className="btn-primary btn-sm"
                           onClick={() => {
-                            setApiKey(tempApiKey.trim());
-                            localStorage.setItem(STORAGE_KEY_API_KEY, tempApiKey.trim());
-                            showToast("Gemini API Key berhasil disimpan!");
+                            const trimmed = tempApiKey.trim();
+                            setApiKey(trimmed);
+                            localStorage.setItem(STORAGE_KEY_API_KEY, trimmed);
+                            localStorage.setItem("monev_api_key", trimmed);
+                            showToast(`API Key ${getProviderInfo(trimmed).full} berhasil disimpan!`);
                           }}
                         >
                           Simpan Key
                         </button>
                       </div>
-                      <div className="key-hint">
-                        <span>Belum punya key? Dapatkan gratis di <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.</span>
+
+                      {tempApiKey.trim() && (
+                        <div style={{ marginTop: '10px', padding: '8px 12px', background: 'rgba(255, 255, 255, 0.8)', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155' }}>
+                          Terdeteksi: <strong>{getProviderInfo(tempApiKey).full}</strong> &middot; Model Otomatis: <strong>{getProviderInfo(tempApiKey).model}</strong>
+                        </div>
+                      )}
+
+                      <div className="key-hint" style={{ marginTop: '8px', fontSize: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        <span style={{ color: '#64748b' }}>Dapatkan key di:</span>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600 }}>OpenAI ↗</a>
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: '#d97706', fontWeight: 600 }}>Claude ↗</a>
+                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style={{ color: '#9333ea', fontWeight: 600 }}>Grok ↗</a>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Gemini ↗</a>
                       </div>
                     </div>
                   </div>
 
-                  {/* Gemini Model */}
+                  {/* Auto-Tier Model Info (No manual select needed) */}
                   <div className="settings-card">
                     <div className="settings-card-icon">
                       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-                        <line x1="6" y1="6" x2="6.01" y2="6" />
-                        <line x1="6" y1="18" x2="6.01" y2="18" />
+                        <circle cx="12" cy="12" r="10" />
+                        <polygon points="10 8 16 12 10 16 10 8" />
                       </svg>
                     </div>
                     <div className="settings-card-content">
-                      <h3>Pilihan Model AI</h3>
-                      <p>Pilih model Gemini yang ingin digunakan untuk memproses transkrip rapat. Sistem memiliki auto-fallback ke model stabil jika limit tercapai.</p>
-                      <div className="model-select-wrap">
-                        <select
-                          className="custom-select"
-                          value={selectedModel}
-                          onChange={(e) => {
-                            setSelectedModel(e.target.value);
-                            localStorage.setItem(STORAGE_KEY_MODEL, e.target.value);
-                            showToast(`Model default diubah ke ${e.target.value}`);
-                          }}
-                        >
-                          <option value="gemini-2.5-flash">Gemini 2.5 Flash — Tercepat & Kuota Tertinggi (Rekomendasi)</option>
-                          <option value="gemini-1.5-flash">Gemini 1.5 Flash — LTS Sangat Stabil & Selalu Tersedia</option>
-                          <option value="gemini-2.5-pro">Gemini 2.5 Pro — Akurasi Tinggi untuk Rapat Panjang</option>
-                        </select>
+                      <h3>Model AI Otomatis (Auto-Tier)</h3>
+                      <p>Anda <strong>tidak perlu memilih opsi model secara manual</strong>. GenNotulis secara cerdas memilih model terbaik sesuai dengan paket langganan dan kuota akun Anda:</p>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginTop: '10px' }}>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#059669', display: 'block' }}>OpenAI ChatGPT</strong>
+                          <span style={{ color: '#64748b' }}>GPT-4o &rarr; fallback GPT-4o Mini</span>
+                        </div>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#d97706', display: 'block' }}>Anthropic Claude</strong>
+                          <span style={{ color: '#64748b' }}>Claude 3.5 Sonnet &rarr; fallback Haiku</span>
+                        </div>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#9333ea', display: 'block' }}>xAI Grok</strong>
+                          <span style={{ color: '#64748b' }}>Grok-2 &rarr; fallback Grok-beta</span>
+                        </div>
+                        <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
+                          <strong style={{ color: '#2563eb', display: 'block' }}>Google Gemini</strong>
+                          <span style={{ color: '#64748b' }}>Gemini 2.5 Flash &rarr; fallback 1.5 Flash</span>
+                        </div>
                       </div>
                     </div>
                   </div>
