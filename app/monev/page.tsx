@@ -585,7 +585,7 @@ ${report.alasan_tidak_hadir || ""}`;
   const wibToday = getWibDateString();
 
   return (
-    <div className="relative min-h-screen flex flex-col text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
+    <div className="relative min-h-screen w-full overflow-x-hidden flex flex-col text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
       {/* Ambient Atmosphere & Dot Grid Canvas matching GenMagang */}
       <div className="ambient-glow-lavender" aria-hidden="true" />
       <div className="ambient-glow-yellow" aria-hidden="true" />

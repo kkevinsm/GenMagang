@@ -1011,7 +1011,7 @@ PENTING:
   }, [meetings, quickSearchQuery]);
 
   return (
-    <div className="theme-notulis relative min-h-screen">
+    <div className="theme-notulis relative min-h-screen w-full overflow-x-hidden">
       {/* Ambient Atmosphere & Dot Grid Canvas matching GenMagang */}
       <div className="ambient-glow-lavender" aria-hidden="true" />
       <div className="ambient-glow-yellow" aria-hidden="true" />
@@ -1032,7 +1032,7 @@ PENTING:
                   <span style={{ color: "#cbd5e1" }}>/</span>
                   <span style={{ fontWeight: 800, fontSize: "0.95rem", letterSpacing: "-0.02em", color: "#059669" }}>GenNotulis</span>
                 </div>
-                <span style={{ fontSize: "0.58rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                <span style={{ fontSize: "0.58rem", color: "#64748b", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.04em" }} className="brand-text-sub">
                   Notulen Rapat Korporat
                 </span>
               </div>
