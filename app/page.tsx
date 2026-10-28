@@ -55,7 +55,7 @@ export default function GenMagangLanding() {
           <div className="flex items-center gap-2.5">
             <Link
               href="/monev"
-              className="text-xs font-bold px-4 py-2 rounded-full text-slate-800 bg-white/75 hover:bg-white border border-slate-200/70 shadow-xs hover:shadow transition-all flex items-center gap-1.5"
+              className="text-xs font-bold px-4 py-2 rounded-full text-slate-800 bg-white/75 hover:bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
             >
               <i className="mdi mdi-calendar-check-outline text-emerald-600 text-sm" />
               <span>GenMonev</span>
@@ -107,7 +107,7 @@ export default function GenMagangLanding() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 mb-14">
           <Link
             href="/monev"
-            className="w-full sm:w-auto px-7 py-3 rounded-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200/90 shadow-sm hover:shadow transition-all flex items-center justify-center gap-2 group"
+            className="w-full sm:w-auto px-7 py-3 rounded-full bg-white hover:bg-slate-50 text-slate-800 font-bold text-sm border border-slate-200/90 shadow-md hover:shadow-xl transition-all flex items-center justify-center gap-2 group"
           >
             <i className="mdi mdi-calendar-clock-outline text-emerald-600 text-base" />
             <span>Buka GenMonev Kemnaker</span>
