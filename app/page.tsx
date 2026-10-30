@@ -147,19 +147,17 @@ export default function GenMagangLanding() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('monev')}
-                  className={`relative z-10 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer active:scale-95 ${
-                    activeTab === 'monev'
+                  className={`relative z-10 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer active:scale-95 ${activeTab === 'monev'
                       ? 'text-slate-900'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                   aria-pressed={activeTab === 'monev'}
                 >
                   <i
-                    className={`mdi mdi-robot-outline text-sm transition-all duration-300 ${
-                      activeTab === 'monev'
+                    className={`mdi mdi-robot-outline text-sm transition-all duration-300 ${activeTab === 'monev'
                         ? 'text-emerald-600 scale-110'
                         : 'text-slate-400 group-hover:text-slate-600 scale-100'
-                    }`}
+                      }`}
                   />
                   <span>Simulasi GenMonev</span>
                 </button>
@@ -167,19 +165,17 @@ export default function GenMagangLanding() {
                 <button
                   type="button"
                   onClick={() => setActiveTab('notulen')}
-                  className={`relative z-10 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer active:scale-95 ${
-                    activeTab === 'notulen'
+                  className={`relative z-10 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center gap-2 group cursor-pointer active:scale-95 ${activeTab === 'notulen'
                       ? 'text-slate-900'
                       : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                    }`}
                   aria-pressed={activeTab === 'notulen'}
                 >
                   <i
-                    className={`mdi mdi-file-document-edit-outline text-sm transition-all duration-300 ${
-                      activeTab === 'notulen'
+                    className={`mdi mdi-file-document-edit-outline text-sm transition-all duration-300 ${activeTab === 'notulen'
                         ? 'text-blue-600 scale-110'
                         : 'text-slate-400 group-hover:text-slate-600 scale-100'
-                    }`}
+                      }`}
                   />
                   <span>Simulasi GenNotulis</span>
                 </button>
