@@ -612,76 +612,71 @@ ${report.alasan_tidak_hadir || ""}`;
       <div className="waypilot-canvas" aria-hidden="true" />
 
       {/* ─── Fixed Floating Navbar (Pill Capsule) ─────────────────────────── */}
-      <header className="fixed top-5 left-0 right-0 z-50 px-4 w-full max-w-6xl mx-auto pointer-events-none">
-        <nav className="liquid-glass-pill rounded-full px-5 py-2.5 flex items-center justify-between shadow-lg border border-white/85 pointer-events-auto">
+      <header className="fixed top-3 sm:top-5 left-0 right-0 z-50 px-3 sm:px-4 w-full max-w-6xl mx-auto pointer-events-none">
+        <nav className="liquid-glass-pill rounded-full px-3.5 sm:px-5 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-4 shadow-lg border border-white/85 pointer-events-auto">
           
           {/* Logo & Breadcrumb Navigation */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0 min-w-0">
             <Link
               href="/"
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25 hover:scale-105 transition-transform"
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 flex items-center justify-center text-white shadow-md shadow-blue-500/25 hover:scale-105 transition-transform shrink-0"
               title="Kembali ke Beranda GenMagang"
             >
               <i className="mdi mdi-school text-lg" />
             </Link>
-            <div className="flex flex-col text-left">
+            <div className="flex flex-col text-left shrink-0">
               <div className="flex items-center gap-1.5 leading-none">
                 <Link
                   href="/"
-                  className="font-extrabold text-[1.05rem] tracking-tight text-slate-900 hover:text-blue-600 transition-colors"
+                  className="font-extrabold text-[0.95rem] sm:text-[1.05rem] tracking-tight text-slate-900 hover:text-blue-600 transition-colors whitespace-nowrap"
                 >
                   Gen<span className="text-blue-600">Magang</span>
                 </Link>
                 <span className="text-slate-300 font-bold">/</span>
-                <span className="font-extrabold text-[1.05rem] tracking-tight text-emerald-700">
+                <span className="font-extrabold text-[0.95rem] sm:text-[1.05rem] tracking-tight text-emerald-700 whitespace-nowrap">
                   GenMonev
                 </span>
               </div>
-              <span className="text-[0.6rem] text-slate-400 font-bold tracking-wider uppercase">
+              <span className="text-[0.55rem] sm:text-[0.6rem] text-slate-400 font-bold tracking-wider uppercase whitespace-nowrap">
                 MagangHub Kemnaker Auto-Formulator
               </span>
             </div>
 
-            {/* Badge Tag */}
-            <div className="hidden lg:flex items-center ml-2">
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/70 text-[11px] font-semibold shadow-2xs">
-                <i className="mdi mdi-check-decagram text-emerald-500 text-xs" />
-                Min. 100 Karakter Lolos Validasi
+            {/* Validation Badge Tag - matching Image 2, strictly single line */}
+            <div className="hidden lg:flex items-center ml-1 sm:ml-2 shrink-0">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] font-semibold shadow-2xs whitespace-nowrap shrink-0">
+                <i className="mdi mdi-check-decagram text-emerald-500 text-xs shrink-0" />
+                <span>Min. 100 Karakter Lolos Validasi</span>
               </span>
             </div>
           </div>
 
           {/* Right Header Statuses & Actions */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Quick Switch to Notulis */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+            {/* Quick Switch to Notulis (Full pill on sm+, compact icon on mobile) */}
             <Link
               href="/notulen"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-700 bg-white/75 hover:bg-white border border-slate-200/70 shadow-2xs transition-all"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold text-slate-700 bg-white/75 hover:bg-white border border-slate-200/70 shadow-2xs hover:border-slate-300 transition-all whitespace-nowrap shrink-0"
+              title="Buka GenNotulis"
             >
               <i className="mdi mdi-file-document-edit-outline text-blue-600 text-sm" />
               <span>Buka GenNotulis</span>
               <i className="mdi mdi-arrow-right text-xs" />
             </Link>
+            <Link
+              href="/notulen"
+              className="inline-flex sm:hidden items-center justify-center w-8 h-8 rounded-full text-slate-700 bg-white/75 hover:bg-white border border-slate-200/70 shadow-2xs transition-all shrink-0"
+              title="Buka GenNotulis"
+            >
+              <i className="mdi mdi-file-document-edit-outline text-blue-600 text-sm" />
+            </Link>
 
-            {/* Kemnaker Auth Status */}
-            {kemnakerToken ? (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="max-w-[110px] truncate">{kemnakerUser?.name || "Kemnaker"}</span>
+            {/* Kemnaker Auth Status (Only shown if connected, keeping navbar neat and clean like Image 2) */}
+            {kemnakerToken && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 font-medium shadow-2xs whitespace-nowrap shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span className="max-w-[100px] truncate">{kemnakerUser?.name || "Kemnaker"}</span>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setKemnakerLoginError("");
-                  setShowKemnakerModal(true);
-                }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 transition-all cursor-pointer shadow-2xs"
-                title="Masuk ke Akun Kemnaker"
-              >
-                <i className="mdi mdi-account-circle-outline text-sm text-emerald-600" />
-                <span className="hidden sm:inline">Masuk Kemnaker</span>
-              </button>
             )}
 
             {/* API Key Modal Button */}
@@ -692,19 +687,19 @@ ${report.alasan_tidak_hadir || ""}`;
                 setApiKeyError("");
                 setShowApiKeyModal(true);
               }}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer shadow-2xs ${
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer shadow-2xs whitespace-nowrap shrink-0 ${
                 apiKey
                   ? "bg-slate-900 border-slate-900 text-white hover:bg-black"
                   : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
               }`}
             >
-              <i className={`mdi ${apiKey ? getProviderInfo(apiKey).icon : "mdi-key-variant"} text-sm`} />
+              <i className={`mdi ${apiKey ? getProviderInfo(apiKey).icon : "mdi-key-variant"} text-sm shrink-0`} />
               <span className="hidden md:inline">{apiKey ? `AI: ${getProviderInfo(apiKey).name}` : "Set API Key"}</span>
             </button>
 
             {/* WIB Clock */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 text-xs font-mono text-slate-700 border border-slate-200/70 shadow-2xs">
-              <i className="mdi mdi-clock-outline text-slate-400" />
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 text-xs font-mono text-slate-700 border border-slate-200/70 shadow-2xs whitespace-nowrap shrink-0">
+              <i className="mdi mdi-clock-outline text-slate-400 shrink-0" />
               <span>{currentTime || "16:00:00"} WIB</span>
             </div>
           </div>

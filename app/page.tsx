@@ -43,16 +43,16 @@ export default function GenMagangLanding() {
             </Link>
 
             {/* Status Badge Tag */}
-            <div className="hidden md:flex items-center ml-1">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 text-emerald-800 border border-emerald-200/70 text-xs font-semibold shadow-2xs">
+            <div className="md:flex items-center ml-1">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 text-emerald-800 border border-emerald-200/70 text-xs font-semibold shadow-xs">
                 <i className="mdi mdi-check-decagram text-emerald-500 text-sm" />
                 Platform Asisten Magang #1
               </span>
             </div>
           </div>
 
-          {/* Right: Quick Action Buttons */}
-          <div className="flex items-center gap-2.5">
+          {/* Right: Quick Action Buttons (Hidden on mobile/handphone, visible on sm+) */}
+          <div className="hidden sm:flex items-center gap-2.5">
             <Link
               href="/monev"
               className="text-xs font-bold px-4 py-2 rounded-full text-slate-800 bg-white/75 hover:bg-white border border-slate-200/70 shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
