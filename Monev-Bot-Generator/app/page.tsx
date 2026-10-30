@@ -1246,7 +1246,10 @@ export default function Home() {
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowKemnakerModal(false)}
+                  onClick={() => {
+                    setShowKemnakerModal(false);
+                    setKemnakerLoginError("");
+                  }}
                   disabled={kemnakerLoginLoading}
                   className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer disabled:opacity-50"
                 >
@@ -1254,16 +1257,19 @@ export default function Home() {
                 </button>
                 <button
                   type="submit"
-                  disabled={kemnakerLoginLoading || !kemnakerUsername.trim() || !kemnakerPassword}
-                  className="flex-1 py-2.5 rounded-xl bg-accent-600 text-white text-sm font-bold hover:bg-accent-700 transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={kemnakerLoginLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   {kemnakerLoginLoading ? (
                     <>
                       <i className="mdi mdi-loading mdi-spin text-base" />
-                      Menghubungkan...
+                      <span>Menghubungkan...</span>
                     </>
                   ) : (
-                    "Masuk & Hubungkan"
+                    <>
+                      <i className="mdi mdi-login text-base" />
+                      <span>Masuk &amp; Hubungkan</span>
+                    </>
                   )}
                 </button>
               </div>

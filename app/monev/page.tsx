@@ -669,7 +669,20 @@ ${report.alasan_tidak_hadir || ""}`;
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="max-w-[110px] truncate">{kemnakerUser?.name || "Kemnaker"}</span>
               </div>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setKemnakerLoginError("");
+                  setShowKemnakerModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 transition-all cursor-pointer shadow-2xs"
+                title="Masuk ke Akun Kemnaker"
+              >
+                <i className="mdi mdi-account-circle-outline text-sm text-emerald-600" />
+                <span className="hidden sm:inline">Masuk Kemnaker</span>
+              </button>
+            )}
 
             {/* API Key Modal Button */}
             <button
@@ -1278,7 +1291,7 @@ ${report.alasan_tidak_hadir || ""}`;
                       ? "bg-surface-200 text-surface-400 cursor-wait"
                       : !isConfirmed || (status !== "Tidak Hadir Tanpa Keterangan" && !report)
                       ? "bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200"
-                      : "bg-gradient-to-r from-accent-600 to-primary-700 hover:from-accent-700 hover:to-primary-800 text-white shadow-lg shadow-accent-200"
+                      : "bg-gradient-to-r from-emerald-600 to-primary-600 hover:from-emerald-700 hover:to-primary-700 text-white shadow-lg shadow-primary-200/50"
                   }`}
                 >
                   {submitLoading ? (
@@ -1522,7 +1535,7 @@ ${report.alasan_tidak_hadir || ""}`;
             {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center border border-accent-100">
+                <div className="w-10 h-10 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
                   <i className="mdi mdi-account-lock-outline text-xl" />
                 </div>
                 <div>
@@ -1537,7 +1550,10 @@ ${report.alasan_tidak_hadir || ""}`;
 
               <button
                 type="button"
-                onClick={() => setShowKemnakerModal(false)}
+                onClick={() => {
+                  setShowKemnakerModal(false);
+                  setKemnakerLoginError("");
+                }}
                 disabled={kemnakerLoginLoading}
                 className="p-1 rounded-lg hover:bg-surface-100 transition-colors text-surface-400 cursor-pointer disabled:opacity-30"
               >
@@ -1588,7 +1604,7 @@ ${report.alasan_tidak_hadir || ""}`;
               </div>
 
               <div className="p-3 rounded-xl bg-surface-50 border border-surface-200/70 text-[11px] text-surface-500 flex items-start gap-2">
-                <i className="mdi mdi-shield-check-outline text-base text-accent-500 shrink-0 mt-0.5" />
+                <i className="mdi mdi-shield-check-outline text-base text-primary-600 shrink-0 mt-0.5" />
                 <span>
                   Kredensial Anda aman dan hanya diproses langsung untuk mendapatkan sesi otorisasi ke server Kemnaker.
                 </span>
@@ -1604,7 +1620,10 @@ ${report.alasan_tidak_hadir || ""}`;
               <div className="flex gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowKemnakerModal(false)}
+                  onClick={() => {
+                    setShowKemnakerModal(false);
+                    setKemnakerLoginError("");
+                  }}
                   disabled={kemnakerLoginLoading}
                   className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer disabled:opacity-50"
                 >
@@ -1612,16 +1631,19 @@ ${report.alasan_tidak_hadir || ""}`;
                 </button>
                 <button
                   type="submit"
-                  disabled={kemnakerLoginLoading || !kemnakerUsername.trim() || !kemnakerPassword}
-                  className="flex-1 py-2.5 rounded-xl bg-accent-600 text-white text-sm font-bold hover:bg-accent-700 transition-colors cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={kemnakerLoginLoading}
+                  className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
                 >
                   {kemnakerLoginLoading ? (
                     <>
                       <i className="mdi mdi-loading mdi-spin text-base" />
-                      Menghubungkan...
+                      <span>Menghubungkan...</span>
                     </>
                   ) : (
-                    "Masuk & Hubungkan"
+                    <>
+                      <i className="mdi mdi-login text-base" />
+                      <span>Masuk &amp; Hubungkan</span>
+                    </>
                   )}
                 </button>
               </div>
