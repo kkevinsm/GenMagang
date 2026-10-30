@@ -156,6 +156,7 @@ export default function Home() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
+  const [apiKeyError, setApiKeyError] = useState("");
   const [copyAllDone, setCopyAllDone] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -234,13 +235,14 @@ export default function Home() {
   }, []);
 
   const handleSaveApiKey = () => {
-    if (apiKeyInput.trim()) {
-      localStorage.setItem("monev_api_key", apiKeyInput.trim());
-      setApiKey(apiKeyInput.trim());
-    } else {
-      localStorage.removeItem("monev_api_key");
-      setApiKey("");
+    const trimmedKey = apiKeyInput.trim();
+    if (!trimmedKey) {
+      setApiKeyError("Kolom API Key tidak boleh kosong. Silakan masukkan API Key Anda.");
+      return;
     }
+    setApiKeyError("");
+    localStorage.setItem("monev_api_key", trimmedKey);
+    setApiKey(trimmedKey);
     setShowApiKeyModal(false);
   };
 
@@ -1056,7 +1058,10 @@ export default function Home() {
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/25 backdrop-blur-sm animate-fade-in"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowApiKeyModal(false);
+            if (e.target === e.currentTarget) {
+              setShowApiKeyModal(false);
+              setApiKeyError("");
+            }
           }}
         >
           <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-surface-200 p-6 animate-scale-in">
@@ -1065,7 +1070,10 @@ export default function Home() {
                 Pengaturan API Key
               </h3>
               <button
-                onClick={() => setShowApiKeyModal(false)}
+                onClick={() => {
+                  setShowApiKeyModal(false);
+                  setApiKeyError("");
+                }}
                 className="p-1 rounded-lg hover:bg-surface-100 transition-colors cursor-pointer"
               >
                 <i className="mdi mdi-close text-xl text-surface-400" />
@@ -1080,10 +1088,32 @@ export default function Home() {
               <input
                 type="password"
                 value={apiKeyInput}
-                onChange={(e) => setApiKeyInput(e.target.value)}
+                onChange={(e) => {
+                  setApiKeyInput(e.target.value);
+                  if (apiKeyError) setApiKeyError("");
+                }}
                 placeholder="AIzaSy..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-surface-200 text-sm text-surface-800 bg-white placeholder:text-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400 font-mono"
+                className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-surface-800 bg-white placeholder:text-surface-400 focus:outline-none font-mono transition-all ${
+                  apiKeyError
+                    ? "border-red-400 ring-2 ring-red-400/30 focus:border-red-500 focus:ring-red-400/40"
+                    : "border-surface-200 focus:ring-2 focus:ring-primary-400/40 focus:border-primary-400"
+                }`}
               />
+
+              {/* Alert jika Kolom API Key Kosong */}
+              {apiKeyError && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5 animate-fade-in"
+                >
+                  <i className="mdi mdi-alert-circle text-base text-red-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold">Kolom Tidak Boleh Kosong</p>
+                    <p className="text-red-600 mt-0.5">{apiKeyError}</p>
+                  </div>
+                </div>
+              )}
+
               <a
                 href="https://aistudio.google.com/app/apikey"
                 target="_blank"
@@ -1097,7 +1127,10 @@ export default function Home() {
 
             <div className="flex gap-2 mt-5">
               <button
-                onClick={() => setShowApiKeyModal(false)}
+                onClick={() => {
+                  setShowApiKeyModal(false);
+                  setApiKeyError("");
+                }}
                 className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer"
               >
                 Batal

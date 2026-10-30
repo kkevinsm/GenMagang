@@ -219,6 +219,7 @@ export default function GenMonevDashboard() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [apiKeyInput, setApiKeyInput] = useState("");
+  const [apiKeyError, setApiKeyError] = useState("");
   const [copyAllDone, setCopyAllDone] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
 
@@ -314,13 +315,14 @@ export default function GenMonevDashboard() {
   };
 
   const handleSaveApiKey = () => {
-    if (apiKeyInput.trim()) {
-      localStorage.setItem("monev_api_key", apiKeyInput.trim());
-      setApiKey(apiKeyInput.trim());
-    } else {
-      localStorage.removeItem("monev_api_key");
-      setApiKey("");
+    const trimmedKey = apiKeyInput.trim();
+    if (!trimmedKey) {
+      setApiKeyError("Kolom API Key tidak boleh kosong. Silakan masukkan API Key Anda.");
+      return;
     }
+    setApiKeyError("");
+    localStorage.setItem("monev_api_key", trimmedKey);
+    setApiKey(trimmedKey);
     setShowApiKeyModal(false);
   };
 
@@ -672,7 +674,11 @@ ${report.alasan_tidak_hadir || ""}`;
             {/* API Key Modal Button */}
             <button
               type="button"
-              onClick={() => setShowApiKeyModal(true)}
+              onClick={() => {
+                setApiKeyInput(apiKey);
+                setApiKeyError("");
+                setShowApiKeyModal(true);
+              }}
               className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all border cursor-pointer shadow-2xs ${
                 apiKey
                   ? "bg-slate-900 border-slate-900 text-white hover:bg-black"
@@ -1334,7 +1340,10 @@ ${report.alasan_tidak_hadir || ""}`;
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fade-in"
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowApiKeyModal(false);
+            if (e.target === e.currentTarget) {
+              setShowApiKeyModal(false);
+              setApiKeyError("");
+            }
           }}
         >
           <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-6 sm:p-7 animate-scale-in">
@@ -1356,7 +1365,10 @@ ${report.alasan_tidak_hadir || ""}`;
 
               <button
                 type="button"
-                onClick={() => setShowApiKeyModal(false)}
+                onClick={() => {
+                  setShowApiKeyModal(false);
+                  setApiKeyError("");
+                }}
                 className="p-1 rounded-lg hover:bg-slate-100 transition-colors text-slate-400 cursor-pointer"
               >
                 <i className="mdi mdi-close text-xl" />
@@ -1411,11 +1423,32 @@ ${report.alasan_tidak_hadir || ""}`;
                 <input
                   type="password"
                   value={apiKeyInput}
-                  onChange={(e) => setApiKeyInput(e.target.value)}
+                  onChange={(e) => {
+                    setApiKeyInput(e.target.value);
+                    if (apiKeyError) setApiKeyError("");
+                  }}
                   placeholder="Tempel API Key (sk-..., sk-ant-..., xai-..., atau AIzaSy...)"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 bg-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400 font-mono"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-sm text-slate-800 bg-white placeholder:text-slate-400 focus:outline-none font-mono transition-all ${
+                    apiKeyError
+                      ? "border-red-400 ring-2 ring-red-400/30 focus:border-red-500 focus:ring-red-400/40"
+                      : "border-slate-200 focus:ring-2 focus:ring-blue-400/40 focus:border-blue-400"
+                  }`}
                 />
               </div>
+
+              {/* Alert jika Kolom API Key Kosong */}
+              {apiKeyError && (
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-start gap-2.5 animate-fade-in"
+                >
+                  <i className="mdi mdi-alert-circle text-base text-red-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-bold">Kolom Tidak Boleh Kosong</p>
+                    <p className="text-red-600 mt-0.5">{apiKeyError}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Detected Provider Status Banner */}
               {apiKeyInput.trim() && (
@@ -1444,6 +1477,7 @@ ${report.alasan_tidak_hadir || ""}`;
                   onClick={() => {
                     setApiKey("");
                     setApiKeyInput("");
+                    setApiKeyError("");
                     localStorage.removeItem("monev_api_key");
                     setShowApiKeyModal(false);
                   }}
@@ -1454,7 +1488,10 @@ ${report.alasan_tidak_hadir || ""}`;
               )}
               <button
                 type="button"
-                onClick={() => setShowApiKeyModal(false)}
+                onClick={() => {
+                  setShowApiKeyModal(false);
+                  setApiKeyError("");
+                }}
                 className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Batal
