@@ -62,6 +62,9 @@ interface MediaAttachment {
   fileSize: number;
 }
 
+// Threshold: files <= 20MB use inline base64; larger files use Gemini File API
+const INLINE_MEDIA_LIMIT = 20 * 1024 * 1024;
+
 // LocalStorage Keys (with backward compatibility)
 const STORAGE_KEY_MEETINGS = "gennotulis_meetings_data";
 const LEGACY_STORAGE_KEY_MEETINGS = "notugen_meetings_data";
@@ -92,7 +95,7 @@ export default function NotulenPage() {
   const [actionStatusFilter, setActionStatusFilter] = useState<"all" | "pending" | "done">("all");
   const [actionTeamFilter, setActionTeamFilter] = useState<string>("all");
 
-  // ─── Corporate Identity & Logo State ───
+  // ΓöÇΓöÇΓöÇ Corporate Identity & Logo State ΓöÇΓöÇΓöÇ
   const STORAGE_KEY_CORP_LOGO = "gennotulis_corp_logo";
   const STORAGE_KEY_SHOW_CORP_LOGO = "gennotulis_show_corp_logo";
   const STORAGE_KEY_CORP_NAME = "gennotulis_corp_name";
@@ -155,6 +158,17 @@ export default function NotulenPage() {
   
   // Media attachments (Audio / Video)
   const [mediaAttachment, setMediaAttachment] = useState<MediaAttachment | null>(null);
+  // Store raw File object for large-file upload to Gemini File API
+  const mediaFileRef = useRef<File | null>(null);
+  // Cached Gemini File URI to prevent duplicate uploads
+  const uploadedFileUriRef = useRef<string | null>(null);
+
+  // Transcription & Upload Progress State
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcriptionProgress, setTranscriptionProgress] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<{ percent: number; loadedMb: number; totalMb: number } | null>(null);
+  const [transcriptionResult, setTranscriptionResult] = useState<string>("");
+  const [transcriptionModel, setTranscriptionModel] = useState<string>("");
 
   // Settings
   const [showApiKey, setShowApiKey] = useState(false);
@@ -494,7 +508,7 @@ export default function NotulenPage() {
 
   // --- EXPORT & COPY ---
   const handleCopyWhatsApp = (meeting: Meeting) => {
-    let text = `*NOTULEN MEETING — ${meeting.category.toUpperCase()}*\n`;
+    let text = `*NOTULEN MEETING ΓÇö ${meeting.category.toUpperCase()}*\n`;
     text += `*Judul:* ${meeting.title.replace(/\n/g, ' ')}\n`;
     text += `*Waktu:* ${meeting.date} (${meeting.time})\n`;
     text += `*Tempat:* ${meeting.location}\n`;
@@ -512,7 +526,7 @@ export default function NotulenPage() {
     if (meeting.decisions && meeting.decisions.length > 0) {
       text += `*KEPUTUSAN UTAMA:*\n`;
       meeting.decisions.forEach(d => {
-        text += `• *${d.topic}*\n`;
+        text += `ΓÇó *${d.topic}*\n`;
         d.bullets.forEach(b => {
           text += `  - ${b}\n`;
         });
@@ -523,9 +537,9 @@ export default function NotulenPage() {
     if (meeting.actionItems && meeting.actionItems.length > 0) {
       text += `*ACTION ITEMS / TINDAK LANJUT:*\n`;
       meeting.actionItems.forEach(group => {
-        text += `• *${group.team}:*\n`;
+        text += `ΓÇó *${group.team}:*\n`;
         group.tasks.forEach(t => {
-          const status = t.done ? '✅ [SELESAI]' : '⏳ [PROSES]';
+          const status = t.done ? 'Γ£à [SELESAI]' : 'ΓÅ│ [PROSES]';
           const due = t.due ? ` (Target: ${t.due})` : '';
           text += `  - ${status} ${t.text}${due}\n`;
         });
@@ -554,7 +568,7 @@ export default function NotulenPage() {
   const handleExportAllJson = () => {
     const data = {
       exportDate: new Date().toISOString(),
-      app: "GenNotulis — GenMagang Suite",
+      app: "GenNotulis ΓÇö GenMagang Suite",
       folders: folders,
       meetings: meetings
     };
@@ -585,15 +599,21 @@ export default function NotulenPage() {
       };
 
       mr.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: mr.mimeType || "audio/webm" });
+        const mimeType = mr.mimeType || "audio/webm";
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        const fileName = `Voice-Note-${new Date().toISOString().slice(0, 10)}.webm`;
+        mediaFileRef.current = new File([audioBlob], fileName, { type: mimeType });
+        uploadedFileUriRef.current = null;
+        setTranscriptionResult("");
+        setUploadProgress(null);
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64 = (reader.result as string).split(",")[1];
           setMediaAttachment({
             type: "audio",
-            mimeType: mr.mimeType || "audio/webm",
+            mimeType,
             base64: base64,
-            fileName: `Voice-Note-${new Date().toISOString().slice(0, 10)}.webm`,
+            fileName: fileName,
             fileSize: audioBlob.size
           });
         };
@@ -627,67 +647,270 @@ export default function NotulenPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 30 * 1024 * 1024) {
-      showToast("File terlalu besar! Disarankan di bawah 25MB agar pemrosesan lancar");
+    if (file.size > 300 * 1024 * 1024) {
+      showToast("File terlalu besar! Maksimal ukuran file adalah 300MB");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64 = (reader.result as string).split(",")[1];
+    const mimeType = file.type || (type === "audio" ? "audio/mpeg" : "video/mp4");
+    // Always store raw File for large-file Gemini File API upload path
+    mediaFileRef.current = file;
+    uploadedFileUriRef.current = null;
+    setTranscriptionResult("");
+    setUploadProgress(null);
+
+    if (file.size <= INLINE_MEDIA_LIMIT) {
+      // Small file (<= 20MB): read as base64 for inline Gemini request
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(",")[1];
+        setMediaAttachment({
+          type: type,
+          mimeType,
+          base64: base64,
+          fileName: file.name,
+          fileSize: file.size
+        });
+        showToast(`File ${type === "audio" ? "audio" : "video"} "${file.name}" dimuat (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // Large file (> 20MB): skip base64 read into memory, upload via Gemini File API later
       setMediaAttachment({
         type: type,
-        mimeType: file.type || (type === "audio" ? "audio/mp3" : "video/mp4"),
-        base64: base64,
+        mimeType,
+        base64: "",
         fileName: file.name,
         fileSize: file.size
       });
-      showToast(`File ${type === "audio" ? "audio" : "video"} "${file.name}" berhasil dimuat`);
-    };
-    reader.readAsDataURL(file);
+      showToast(`File "${file.name}" siap (${(file.size / 1024 / 1024).toFixed(1)} MB) — akan diproses via Gemini File API`);
+    }
+    e.target.value = "";
   };
 
-  // --- AI GENERATION WITH FALLBACK RESILIENCE ---
+  // --- AI GENERATION WITH MEDIA TRANSCRIPTION (Voice / Video -> Notulen) ---
+
+  // Upload large media to Gemini File API directly from browser with real-time XHR progress
+  const uploadToGeminiFileApi = async (file: File, mimeType: string, key: string): Promise<string> => {
+    // Return cached URI if already uploaded for this session
+    if (uploadedFileUriRef.current) {
+      return uploadedFileUriRef.current;
+    }
+
+    setTranscriptionProgress("Menginisialisasi sesi upload Gemini File API...");
+    setGenerationProgress("Menginisialisasi sesi upload Gemini File API...");
+    setUploadProgress({ percent: 0, loadedMb: 0, totalMb: file.size / (1024 * 1024) });
+
+    // Step 1: Inisialisasi sesi resumable upload via backend proxy
+    const initRes = await fetch("/api/notulen/upload-media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apiKey: key, mimeType, fileName: file.name, fileSizeBytes: file.size }),
+    });
+    const initData = await initRes.json();
+    if (!initRes.ok || !initData.uploadUrl) {
+      throw new Error(initData.error || "Gagal menginisialisasi upload media.");
+    }
+
+    // Step 2: Upload byte file langsung ke resumable upload URL menggunakan XMLHttpRequest untuk progress event
+    const totalMb = file.size / (1024 * 1024);
+    const uploadUrl = initData.uploadUrl;
+
+    const uploadedData = await new Promise<any>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", uploadUrl);
+      xhr.setRequestHeader("Content-Length", String(file.size));
+      xhr.setRequestHeader("X-Goog-Upload-Offset", "0");
+      xhr.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
+      xhr.setRequestHeader("Content-Type", mimeType);
+
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const percent = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+          const loadedMb = evt.loaded / (1024 * 1024);
+          setUploadProgress({ percent, loadedMb, totalMb });
+          const progressMsg = `Mengunggah berkas ke Gemini: ${percent}% (${loadedMb.toFixed(1)} / ${totalMb.toFixed(1)} MB)...`;
+          setTranscriptionProgress(progressMsg);
+          setGenerationProgress(progressMsg);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const parsed = JSON.parse(xhr.responseText);
+            resolve(parsed);
+          } catch (err: any) {
+            reject(new Error("Gagal membaca respon upload Gemini: " + err.message));
+          }
+        } else {
+          reject(new Error(`Upload gagal [${xhr.status}]: ${xhr.responseText}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Terjadi kendala jaringan saat mengunggah file ke Gemini."));
+      };
+
+      xhr.send(file);
+    });
+
+    const fileUri: string = uploadedData?.file?.uri;
+    if (!fileUri) throw new Error("File URI tidak tersedia setelah upload.");
+
+    // Step 3: Polling sampai file berstatus ACTIVE
+    const waitMsg = "Berkas terunggah 100%. Menunggu Gemini mengindeks media...";
+    setTranscriptionProgress(waitMsg);
+    setGenerationProgress(waitMsg);
+    setUploadProgress({ percent: 100, loadedMb: totalMb, totalMb });
+
+    const fileNamePart = fileUri.split("/files/")[1];
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const pollRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/files/${fileNamePart}?key=${key}`);
+      if (pollRes.ok) {
+        const pollData = await pollRes.json();
+        if (pollData?.state === "ACTIVE") {
+          const readyMsg = "Berkas siap diproses oleh AI...";
+          setTranscriptionProgress(readyMsg);
+          setGenerationProgress(readyMsg);
+          uploadedFileUriRef.current = fileUri;
+          return fileUri;
+        }
+        if (pollData?.state === "FAILED") {
+          throw new Error("Pemrosesan berkas gagal di server Gemini. Pastikan format berkas didukung.");
+        }
+      }
+    }
+    throw new Error("Timeout menunggu file diproses Gemini. Coba beberapa saat lagi.");
+  };
+
+  // --- STEP 1: TRANSCRIBE VIDEO / AUDIO TO TEXT ---
+  const handleTranscribeMedia = async () => {
+    if (!mediaAttachment && !mediaFileRef.current) {
+      showToast("Pilih atau rekam file video/audio terlebih dahulu");
+      return;
+    }
+
+    const key = apiKey.trim();
+    if (!key) {
+      showToast("Masukkan API Key Gemini di menu Setelan untuk mentranskripsikan media");
+      return;
+    }
+
+    setIsTranscribing(true);
+    setTranscriptionProgress("Mempersiapkan berkas media untuk transkripsi...");
+    setUploadProgress(null);
+
+    try {
+      const providerInfo = getProviderInfo(key);
+      const isGemini = !key.startsWith("sk-ant-") && !key.startsWith("xai-") && !key.startsWith("sk-");
+
+      const requestBody: Record<string, any> = {
+        apiKey: key,
+        mediaType: mediaAttachment?.type || "video",
+        mediaMimeType: mediaAttachment?.mimeType || "video/mp4",
+        contextNotes: rawNotesInput.trim(),
+      };
+
+      if (isGemini && (mediaAttachment?.fileSize || 0) > INLINE_MEDIA_LIMIT) {
+        // Large file (> 20MB): upload to Gemini File API with real-time progress
+        const rawFile = mediaFileRef.current;
+        if (!rawFile) throw new Error("Berkas media tidak ditemukan. Silakan pilih ulang berkas.");
+        const fileUri = await uploadToGeminiFileApi(rawFile, mediaAttachment!.mimeType, key);
+        requestBody.mediaFileUri = fileUri;
+        setTranscriptionProgress(`Gemini (${providerInfo.model}) sedang mentranskripsi percakapan audio & visual...`);
+      } else if (mediaAttachment?.base64) {
+        // Small file (<= 20MB): inline base64
+        requestBody.mediaBase64 = mediaAttachment.base64;
+        setTranscriptionProgress(`Gemini (${providerInfo.model}) sedang mentranskripsi percakapan...`);
+      }
+
+      const res = await fetch("/api/notulen/transcribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      const resData = await res.json();
+      if (res.ok && resData.transcript) {
+        setTranscriptionResult(resData.transcript);
+        setTranscriptionModel(resData.model || "Gemini");
+        // Also populate rawNotesInput so user can edit or review immediately
+        setRawNotesInput(resData.transcript);
+        showToast("Transkripsi berhasil! Tinjau transkrip di bawah sebelum membuat notulen.");
+      } else {
+        throw new Error(resData.error || "Gagal mentranskripsi berkas");
+      }
+    } catch (err: any) {
+      console.error(err);
+      showToast("Kendala transkripsi: " + (err.message || "Coba ulangi"));
+    } finally {
+      setIsTranscribing(false);
+      setTranscriptionProgress("");
+      setUploadProgress(null);
+    }
+  };
+
+  // --- STEP 2: GENERATE OFFICIAL NOTULEN DOCUMENT ---
   const handleGenerateMeeting = async () => {
     if (generatorMode === "transcript" && !rawNotesInput.trim()) {
       showToast("Silakan masukkan transkrip atau catatan kasar rapat terlebih dahulu");
       return;
     }
-    if ((generatorMode === "voice" || generatorMode === "video") && !mediaAttachment && !rawNotesInput.trim()) {
+    if ((generatorMode === "voice" || generatorMode === "video") && !mediaAttachment && !rawNotesInput.trim() && !transcriptionResult.trim()) {
       showToast("Silakan rekam suara, pilih file media, atau masukkan teks catatan");
       return;
     }
 
     setIsGenerating(true);
-    setGenerationProgress("Menganalisis catatan & mengekstrak keputusan resmi...");
+    setGenerationProgress("Mempersiapkan data rapat...");
 
     const categoryTarget = genCategory || (folders[0] ? folders[0].id : "Umum");
     const titleTarget = genCustomTitle.trim();
+    const key = apiKey.trim();
 
     try {
       let generatedData: any = null;
 
-      if (apiKey.trim()) {
+      if (key) {
         try {
-          setGenerationProgress(`Menghubungi ${getProviderInfo(apiKey).full} (${getProviderInfo(apiKey).model})...`);
-          
-          let mediaInstruction = "";
-          if (mediaAttachment) {
-            mediaInstruction = mediaAttachment.type === "video" 
-              ? "File rekaman video online meeting terlampir."
-              : "File audio rekaman voice note rapat terlampir.";
+          const providerInfo = getProviderInfo(key);
+          const isGemini = !key.startsWith("sk-ant-") && !key.startsWith("xai-") && !key.startsWith("sk-");
+
+          const requestBody: Record<string, any> = {
+            rawNotes: rawNotesInput || transcriptionResult,
+            title: titleTarget,
+            category: categoryTarget,
+            apiKey: key,
+          };
+
+          // If we already have transcription text, we prioritize generating from text (faster & accurate)
+          // Otherwise, if user clicked directly without transcribing first, process media directly
+          if (!rawNotesInput.trim() && !transcriptionResult.trim() && mediaAttachment) {
+            requestBody.mediaType = mediaAttachment.type;
+            requestBody.mediaMimeType = mediaAttachment.mimeType;
+
+            if (isGemini && mediaAttachment.fileSize > INLINE_MEDIA_LIMIT) {
+              const rawFile = mediaFileRef.current;
+              if (!rawFile) {
+                throw new Error("File media tidak ditemukan. Silakan pilih kembali file Anda.");
+              }
+              const fileUri = await uploadToGeminiFileApi(rawFile, mediaAttachment.mimeType, key);
+              requestBody.mediaFileUri = fileUri;
+              setGenerationProgress(`Menganalisis ${mediaAttachment.type === "video" ? "rekaman video meeting" : "voice note rapat"} dengan ${providerInfo.full}...`);
+            } else if (mediaAttachment.base64) {
+              requestBody.mediaBase64 = mediaAttachment.base64;
+              setGenerationProgress(`Menganalisis ${mediaAttachment.type === "video" ? "rekaman video meeting" : "voice note rapat"} dengan ${providerInfo.full}...`);
+            }
+          } else {
+            setGenerationProgress(`Menyusun format notulen resmi dari transkrip dengan ${providerInfo.full}...`);
           }
 
           const res = await fetch("/api/notulen/generate", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              rawNotes: rawNotesInput,
-              title: titleTarget,
-              category: categoryTarget,
-              mediaInstruction,
-              apiKey: apiKey.trim(),
-            }),
+            body: JSON.stringify(requestBody),
           });
 
           const resData = await res.json();
@@ -702,13 +925,13 @@ export default function NotulenPage() {
         } catch (apiErr: any) {
           console.warn("API Error, beralih ke engine cadangan:", apiErr);
           showToast(apiErr.message || "Beralih ke pemroses cadangan...");
-          generatedData = generateLocalCorporateNotulen(rawNotesInput, titleTarget, categoryTarget, mediaAttachment);
+          generatedData = generateLocalCorporateNotulen(rawNotesInput || transcriptionResult, titleTarget, categoryTarget, mediaAttachment);
         }
       } else {
         // Fallback local instant generation
         setGenerationProgress("Menyusun format standar notulen resmi...");
         await new Promise(r => setTimeout(r, 600));
-        generatedData = generateLocalCorporateNotulen(rawNotesInput, titleTarget, categoryTarget, mediaAttachment);
+        generatedData = generateLocalCorporateNotulen(rawNotesInput || transcriptionResult, titleTarget, categoryTarget, mediaAttachment);
       }
 
       // Format action items IDs
@@ -746,6 +969,10 @@ export default function NotulenPage() {
       setRawNotesInput("");
       setGenCustomTitle("");
       setMediaAttachment(null);
+      mediaFileRef.current = null;
+      uploadedFileUriRef.current = null;
+      setTranscriptionResult("");
+      setUploadProgress(null);
       
       // Open the new meeting directly
       setCurrentMeetingId(newMeeting.id);
@@ -757,6 +984,7 @@ export default function NotulenPage() {
     } finally {
       setIsGenerating(false);
       setGenerationProgress("");
+      setUploadProgress(null);
     }
   };
 
@@ -1148,14 +1376,14 @@ PENTING:
               <button
                 className="quick-search-trigger"
                 onClick={() => setIsQuickSearchOpen(true)}
-                title="Cari Cepat (⌘K)"
+                title="Cari Cepat (ΓîÿK)"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
                 <span className="search-label">Cari notulen...</span>
-                <kbd className="kbd-pill">⌘K</kbd>
+                <kbd className="kbd-pill">ΓîÿK</kbd>
               </button>
 
               <button
@@ -1219,7 +1447,7 @@ PENTING:
                 <line x1="8" y1="21" x2="16" y2="21" />
                 <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
-              <span>GenNotulis — Workspace Rapat</span>
+              <span>GenNotulis ΓÇö Workspace Rapat</span>
             </div>
             <div className="window-actions">
               <button className="btn-ghost-sm" onClick={handleExportAllJson} title="Backup Semua Data ke File JSON">
@@ -1256,7 +1484,7 @@ PENTING:
                         placeholder="Cari agenda, keputusan, atau nama..."
                       />
                       {filterKeyword && (
-                        <button className="btn-clear-search" onClick={() => setFilterKeyword("")}>×</button>
+                        <button className="btn-clear-search" onClick={() => setFilterKeyword("")}>├ù</button>
                       )}
                     </div>
 
@@ -1577,7 +1805,7 @@ PENTING:
                         )}
                       </div>
                       <div className="doc-header-right">
-                        <span className="doc-sublabel">Notulen – Agenda</span>
+                        <span className="doc-sublabel">Notulen ΓÇô Agenda</span>
                       </div>
                     </div>
 
@@ -1858,7 +2086,7 @@ PENTING:
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '0.78rem', color: '#78716c' }}>
                               <span>Target: <strong>{item.task.due || 'Segera'}</strong></span>
-                              <span>•</span>
+                              <span>ΓÇó</span>
                               <button
                                 onClick={() => handleOpenMeetingDetail(item.meetingId)}
                                 style={{ background: 'none', border: 'none', color: '#134f5c', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}
@@ -2019,18 +2247,102 @@ PENTING:
                                 <strong className="preview-filename">{mediaAttachment.fileName}</strong>
                                 <span className="preview-filesize">{(mediaAttachment.fileSize / 1024).toFixed(1)} KB</span>
                               </div>
-                              <button type="button" className="btn-ghost-sm" onClick={() => setMediaAttachment(null)}>✕ Hapus</button>
+                              <button type="button" className="btn-ghost-sm" onClick={() => { setMediaAttachment(null); setTranscriptionResult(""); setUploadProgress(null); }}>✕ Hapus</button>
                             </div>
+
+                            {/* Upload Progress Bar for Audio */}
+                            {isTranscribing && (
+                              <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
+                                    {uploadProgress ? `Mengunggah ke Gemini (${uploadProgress.percent}%)` : 'AI Sedang Mentranskripsi...'}
+                                  </span>
+                                  {uploadProgress && (
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#15803d' }}>
+                                      {uploadProgress.loadedMb.toFixed(1)} / {uploadProgress.totalMb.toFixed(1)} MB
+                                    </span>
+                                  )}
+                                </div>
+                                <div style={{ width: '100%', height: '7px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+                                  <div
+                                    style={{
+                                      width: `${uploadProgress ? uploadProgress.percent : 100}%`,
+                                      height: '100%',
+                                      background: 'linear-gradient(90deg, #10b981, #059669)',
+                                      transition: 'width 200ms ease',
+                                      borderRadius: '9999px'
+                                    }}
+                                  />
+                                </div>
+                                <span style={{ fontSize: '0.7rem', color: '#15803d', display: 'block', marginTop: '4px' }}>
+                                  {transcriptionProgress || 'Menganalisis percakapan audio rapat...'}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Transcribe Button for Audio */}
+                            {!isTranscribing && !transcriptionResult && (
+                              <button
+                                type="button"
+                                className="btn-secondary"
+                                onClick={handleTranscribeMedia}
+                                disabled={isTranscribing || isGenerating}
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 14px',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.82rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '6px',
+                                  marginTop: '8px',
+                                  background: '#ffffff',
+                                  border: '1.5px solid #2563eb',
+                                  color: '#2563eb'
+                                }}
+                              >
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                                <span>Mulai Transkripsi Audio ke Teks</span>
+                              </button>
+                            )}
                           </div>
                         )}
+
+                            {/* Success Badge for Audio */}
+                            {transcriptionResult && !isTranscribing && (
+                              <div style={{ marginTop: '10px', padding: '10px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <i className="mdi mdi-check-circle text-emerald-600 text-base" />
+                                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#065f46' }}>
+                                    Transkripsi Selesai • Lihat Hasil di Panel Kanan ➔
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-ghost-sm"
+                                  style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#d97706' }}
+                                  onClick={handleTranscribeMedia}
+                                  title="Transkripsi ulang audio"
+                                >
+                                  Ulangi
+                                </button>
+                              </div>
+                            )}
 
                         <div className="media-context-input" style={{ marginTop: '12px' }}>
                           <label><strong>Catatan Tambahan untuk Audio (Opsional):</strong></label>
                           <input
                             type="text"
-                            value={rawNotesInput}
-                            onChange={(e) => setRawNotesInput(e.target.value)}
+                            value={rawNotesInput && transcriptionResult ? "" : rawNotesInput}
+                            onChange={(e) => {
+                              if (!transcriptionResult) setRawNotesInput(e.target.value);
+                            }}
                             placeholder="Misal: Agenda pembahasan migrasi database dan rilis 3"
+                            disabled={!!transcriptionResult}
                           />
                         </div>
                       </div>
@@ -2050,7 +2362,7 @@ PENTING:
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                           </svg>
                           <span className="dropzone-title">Klik atau Seret Rekaman Video Meeting ke Sini</span>
-                          <span className="dropzone-hint">Format MP4, WebM, MOV (&lt; 25MB)</span>
+                          <span className="dropzone-hint">Format MP4, WebM, MOV (&lt; 300MB)</span>
                         </label>
                         <input
                           type="file"
@@ -2063,23 +2375,110 @@ PENTING:
                         {mediaAttachment && mediaAttachment.type === "video" && (
                           <div className="media-preview-box" style={{ marginTop: '12px' }}>
                             <div className="preview-media-info">
-                              <span className="preview-icon">🎥</span>
+                              <span className="preview-icon">🎬</span>
                               <div className="preview-text-col">
                                 <strong className="preview-filename">{mediaAttachment.fileName}</strong>
                                 <span className="preview-filesize">{(mediaAttachment.fileSize / (1024 * 1024)).toFixed(2)} MB</span>
                               </div>
-                              <button type="button" className="btn-ghost-sm" onClick={() => setMediaAttachment(null)}>✕ Hapus</button>
+                              <button type="button" className="btn-ghost-sm" onClick={() => { setMediaAttachment(null); setTranscriptionResult(""); setUploadProgress(null); }}>✕ Hapus</button>
                             </div>
+
+                            {/* Real-time Progress Bar Upload ke Gemini */}
+                            {isTranscribing && (
+                              <div style={{ marginTop: '12px', padding: '12px 14px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <div className="spinner-circle" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
+                                    <strong style={{ fontSize: '0.8rem', color: '#1e40af' }}>
+                                      {uploadProgress ? `Mengunggah ke Gemini File API (${uploadProgress.percent}%)` : 'AI Sedang Mentranskripsi Video...'}
+                                    </strong>
+                                  </div>
+                                  {uploadProgress && (
+                                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#2563eb' }}>
+                                      {uploadProgress.loadedMb.toFixed(1)} / {uploadProgress.totalMb.toFixed(1)} MB
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Animated Progress Bar Track */}
+                                <div style={{ width: '100%', height: '8px', background: '#dbeafe', borderRadius: '9999px', overflow: 'hidden' }}>
+                                  <div
+                                    style={{
+                                      width: `${uploadProgress ? uploadProgress.percent : 100}%`,
+                                      height: '100%',
+                                      background: 'linear-gradient(90deg, #2563eb, #06b6d4, #10b981)',
+                                      transition: 'width 250ms ease',
+                                      borderRadius: '9999px'
+                                    }}
+                                  />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', color: '#1e40af', display: 'block', marginTop: '6px' }}>
+                                  {transcriptionProgress || 'Mentranskripsi percakapan audio & visual video rapat...'}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Transcribe Button for Video */}
+                            {!isTranscribing && !transcriptionResult && (
+                              <button
+                                type="button"
+                                className="btn-primary"
+                                onClick={handleTranscribeMedia}
+                                disabled={isTranscribing || isGenerating}
+                                style={{
+                                  width: '100%',
+                                  padding: '10px 16px',
+                                  borderRadius: '10px',
+                                  fontWeight: 700,
+                                  fontSize: '0.84rem',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: '8px',
+                                  marginTop: '10px',
+                                  background: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+                                  boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)'
+                                }}
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                                <span>Mulai Transkripsi Video ke Teks</span>
+                              </button>
+                            )}
                           </div>
                         )}
+
+                            {/* Success Badge for Video */}
+                            {transcriptionResult && !isTranscribing && (
+                              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <i className="mdi mdi-check-circle text-emerald-600 text-base" />
+                                  <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#065f46' }}>
+                                    Transkripsi Selesai • Tampil di Panel Kanan ➔
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn-ghost-sm"
+                                  style={{ fontSize: '0.72rem', padding: '2px 8px', color: '#d97706' }}
+                                  onClick={handleTranscribeMedia}
+                                  title="Transkripsi ulang video"
+                                >
+                                  Ulangi
+                                </button>
+                              </div>
+                            )}
 
                         <div className="media-context-input" style={{ marginTop: '12px' }}>
                           <label><strong>Catatan Tambahan untuk Video (Opsional):</strong></label>
                           <input
                             type="text"
-                            value={rawNotesInput}
-                            onChange={(e) => setRawNotesInput(e.target.value)}
+                            value={rawNotesInput && transcriptionResult ? "" : rawNotesInput}
+                            onChange={(e) => {
+                              if (!transcriptionResult) setRawNotesInput(e.target.value);
+                            }}
                             placeholder="Misal: Rapat evaluasi sprint mingguan tim Core Banking"
+                            disabled={!!transcriptionResult}
                           />
                         </div>
                       </div>
@@ -2125,73 +2524,238 @@ PENTING:
                       <button
                         className="btn-primary btn-generate"
                         onClick={handleGenerateMeeting}
-                        disabled={isGenerating}
+                        disabled={isGenerating || isTranscribing}
+                        style={transcriptionResult ? {
+                          background: 'linear-gradient(135deg, #059669, #10b981)',
+                          boxShadow: '0 4px 14px rgba(16, 185, 129, 0.3)'
+                        } : {}}
                       >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                         </svg>
-                        <span>{isGenerating ? "Memproses Dokumen..." : "Format Menjadi Dokumen Notulen Resmi"}</span>
+                        <span>
+                          {isGenerating
+                            ? "Menyusun Dokumen Notulen..."
+                            : isTranscribing
+                            ? "Sedang Mentranskripsi Media..."
+                            : transcriptionResult
+                            ? "✨ Langkah 2: Buat Notulen Resmi yang Disarankan"
+                            : "Format Menjadi Dokumen Notulen Resmi"}
+                        </span>
                       </button>
                     </div>
                   </div>
 
-                  {/* Right Column: Structure Checklist & Progress */}
-                  <div className="generator-preview-pane">
-                    <div className="preview-card-header">
-                      <h3>Struktur Standar yang Dihasilkan:</h3>
-                      <span className="badge-format">Format Dokumen Resmi</span>
+                  {/* Right Column: Live Transcription Results & Format Action */}
+                  <div className="generator-preview-pane" style={{ display: 'flex', flexDirection: 'column' }}>
+                    {/* Header Card */}
+                    <div className="preview-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: transcriptionResult ? '#ecfdf5' : '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: transcriptionResult ? '#059669' : '#2563eb' }}>
+                          <i className={`mdi ${transcriptionResult ? 'mdi-file-document-check-outline' : isTranscribing ? 'mdi-loading mdi-spin' : 'mdi-text-box-search-outline'} text-lg`} />
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '0.98rem', fontWeight: 800, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
+                            {transcriptionResult ? "Hasil Transkripsi Percakapan" : isTranscribing ? "Mentranskripsikan Media..." : "Hasil Transkrip Rapat"}
+                          </h3>
+                          <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                            {transcriptionResult ? "Teks dialog percakapan berhasil diekstrak" : "Transkrip video & suara akan muncul di sini"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {transcriptionResult ? (
+                        <span className="badge-format" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #86efac', fontWeight: 700, fontSize: '0.7rem' }}>
+                          {transcriptionModel || "Gemini AI"}
+                        </span>
+                      ) : (
+                        <span className="badge-format">Transkrip Otomatis</span>
+                      )}
                     </div>
 
-                    <div className="format-checklist">
-                      <div className="check-item">
-                        <span className="check-icon">✓</span>
-                        <div>
-                          <strong>Tabel Identitas Rapat Lengkap</strong>
-                          <p>Judul, Folder Proyek, Hari/Tanggal, Jam, Tempat, Pimpinan, & Peserta.</p>
-                        </div>
-                      </div>
-                      <div className="check-item">
-                        <span className="check-icon">✓</span>
-                        <div>
-                          <strong>Agenda Meeting</strong>
-                          <p>Poin-poin topik bahasan utama yang dibahas terurut.</p>
-                        </div>
-                      </div>
-                      <div className="check-item">
-                        <span className="check-icon">✓</span>
-                        <div>
-                          <strong>Keputusan Meeting</strong>
-                          <p>Kesepakatan teknis, batas target (SLA), dan verifikasi lingkungan.</p>
-                        </div>
-                      </div>
-                      <div className="check-item">
-                        <span className="check-icon">✓</span>
-                        <div>
-                          <strong>Memo Dinamika & Pembahasan Teknis</strong>
-                          <p>Catatan argumen teknis berdasarkan kontribusi PIC/stakeholder terkait.</p>
-                        </div>
-                      </div>
-                      <div className="check-item">
-                        <span className="check-icon">✓</span>
-                        <div>
-                          <strong>Kesimpulan Rapat</strong>
-                          <p>Ringkasan eksekutif hasil rapat.</p>
-                        </div>
-                      </div>
-                      <div className="check-item">
-                        <span className="check-icon">✓</span>
-                        <div>
-                          <strong>Action Items Tindak Lanjut per Unit Kerja</strong>
-                          <p>Daftar tugas terstruktur untuk Tim WDL, TSA, WDC, ADV, dan STA.</p>
-                        </div>
-                      </div>
-                    </div>
+                    {/* STATE A: Sedang Proses Transkripsi / Unggah */}
+                    {isTranscribing && (
+                      <div style={{ padding: '26px 18px', background: '#f8fafc', border: '1.5px dashed #93c5fd', borderRadius: '14px', textAlign: 'center', minHeight: '340px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                        <div className="spinner-circle" style={{ width: '36px', height: '36px', borderWidth: '3px', marginBottom: '14px' }} />
+                        <h4 style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e3a8a', margin: '0 0 6px 0' }}>
+                          {uploadProgress ? `Mengunggah Berkas Media (${uploadProgress.percent}%)` : "AI Mentranskripsikan Rekaman..."}
+                        </h4>
+                        <p style={{ fontSize: '0.78rem', color: '#475569', maxWidth: '340px', margin: '0 0 16px 0' }}>
+                          {transcriptionProgress || "Gemini sedang mendengarkan audio dan menganalisis visual rapat..."}
+                        </p>
 
+                        {/* Progress Bar Unggah Real-time */}
+                        {uploadProgress && (
+                          <div style={{ width: '100%', maxWidth: '320px', background: '#ffffff', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#1e40af', marginBottom: '6px' }}>
+                              <span>Progres Unggah</span>
+                              <span>{uploadProgress.percent}% ({uploadProgress.loadedMb.toFixed(1)} / {uploadProgress.totalMb.toFixed(1)} MB)</span>
+                            </div>
+                            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  width: `${uploadProgress.percent}%`,
+                                  height: '100%',
+                                  background: 'linear-gradient(90deg, #2563eb, #06b6d4, #10b981)',
+                                  transition: 'width 250ms ease',
+                                  borderRadius: '9999px'
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* STATE B: Hasil Transkripsi Muncul di Card Ini */}
+                    {!isTranscribing && transcriptionResult && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {/* Toolbar Aksi Transkrip */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>
+                            📊 Estimasi: ~{rawNotesInput.split(/\s+/).filter(Boolean).length} kata
+                          </span>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="btn-ghost-sm"
+                              onClick={() => {
+                                navigator.clipboard.writeText(rawNotesInput);
+                                showToast("Transkrip berhasil disalin ke clipboard!");
+                              }}
+                              style={{ fontSize: '0.72rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              <i className="mdi mdi-content-copy text-xs" />
+                              <span>Salin Teks</span>
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-ghost-sm"
+                              onClick={handleTranscribeMedia}
+                              style={{ fontSize: '0.72rem', padding: '4px 10px', color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                              title="Transkripsi ulang media"
+                            >
+                              <i className="mdi mdi-refresh text-xs" />
+                              <span>Ulangi</span>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Editable Transcript Text Area */}
+                        <textarea
+                          rows={15}
+                          value={rawNotesInput}
+                          onChange={(e) => setRawNotesInput(e.target.value)}
+                          placeholder="Hasil transkripsi percakapan..."
+                          style={{
+                            width: '100%',
+                            padding: '14px 16px',
+                            borderRadius: '12px',
+                            border: '1.5px solid #cbd5e1',
+                            fontSize: '0.84rem',
+                            lineHeight: '1.6',
+                            fontFamily: 'inherit',
+                            background: '#ffffff',
+                            color: '#0f172a',
+                            resize: 'vertical',
+                            minHeight: '320px',
+                            maxHeight: '520px',
+                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.02)'
+                          }}
+                        />
+
+                        {/* Step 2 CTA Banner */}
+                        <div style={{ padding: '14px 16px', background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)', border: '1.5px solid #a7f3d0', borderRadius: '12px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                            <i className="mdi mdi-check-decagram text-emerald-600 text-lg" />
+                            <strong style={{ fontSize: '0.84rem', color: '#065f46' }}>Transkripsi Siap Diformulasikan</strong>
+                          </div>
+                          <p style={{ fontSize: '0.74rem', color: '#047857', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                            Tinjau teks percakapan di atas. Klik tombol di bawah untuk menyusun dokumen notulen rapat resmi korporat lengkap (Agenda, Keputusan, Memo PIC, &amp; Action Items).
+                          </p>
+                          <button
+                            type="button"
+                            className="btn-primary"
+                            onClick={handleGenerateMeeting}
+                            disabled={isGenerating}
+                            style={{
+                              width: '100%',
+                              padding: '10px 16px',
+                              borderRadius: '10px',
+                              fontWeight: 800,
+                              fontSize: '0.86rem',
+                              background: 'linear-gradient(135deg, #059669, #10b981)',
+                              boxShadow: '0 3px 10px rgba(16, 185, 129, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: '8px'
+                            }}
+                          >
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
+                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                            </svg>
+                            <span>{isGenerating ? "Menyusun Notulen Resmi..." : "✨ Buat Notulen Resmi yang Disarankan"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* STATE C: Belum Ada Transkripsi (Idle State) */}
+                    {!isTranscribing && !transcriptionResult && (
+                      <div>
+                        <div style={{ padding: '26px 18px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '14px', textAlign: 'center', marginBottom: '18px' }}>
+                          <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#e0e7ff', color: '#3730a3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px auto' }}>
+                            <i className="mdi mdi-text-box-search-outline text-2xl" />
+                          </div>
+                          <h4 style={{ fontWeight: 800, fontSize: '0.92rem', color: '#1e293b', margin: '0 0 6px 0' }}>
+                            Transkrip Percakapan Akan Muncul di Sini
+                          </h4>
+                          <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0, lineHeight: 1.4, maxWidth: '320px', marginLeft: 'auto', marginRight: 'auto' }}>
+                            Unggah video rapat atau voice note di kolom kiri, lalu klik <strong>&quot;Mulai Transkripsi&quot;</strong> untuk melihat seluruh transkrip percakapan di card ini.
+                          </p>
+                        </div>
+
+                        <div className="preview-card-header" style={{ marginBottom: '10px' }}>
+                          <h4 style={{ fontSize: '0.82rem', fontWeight: 700, color: '#334155', margin: 0 }}>Notulen yang Dihasilkan Meliputi:</h4>
+                        </div>
+
+                        <div className="format-checklist" style={{ opacity: 0.85 }}>
+                          <div className="check-item">
+                            <span className="check-icon">✓</span>
+                            <div>
+                              <strong>Tabel Identitas Rapat Lengkap</strong>
+                              <p>Judul, Folder Proyek, Hari/Tanggal, Jam, Tempat, Pimpinan, &amp; Peserta.</p>
+                            </div>
+                          </div>
+                          <div className="check-item">
+                            <span className="check-icon">✓</span>
+                            <div>
+                              <strong>Agenda &amp; Keputusan Rapat</strong>
+                              <p>Poin bahasan utama dan kesepakatan target (SLA).</p>
+                            </div>
+                          </div>
+                          <div className="check-item">
+                            <span className="check-icon">✓</span>
+                            <div>
+                              <strong>Memo Dinamika &amp; Action Items</strong>
+                              <p>Daftar tugas terstruktur per unit kerja lengkap dengan target tenggat waktu.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Overlay saat generate notulen */}
                     {isGenerating && (
-                      <div className="gen-loading-overlay" style={{ display: 'flex' }}>
+                      <div className="gen-loading-overlay" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', textAlign: 'center' }}>
                         <div className="spinner-circle" />
-                        <p className="loading-status-text">{generationProgress || "Gemini sedang menyusun notulen resmi..."}</p>
-                        <span className="loading-subtext">Mengekstrak keputusan teknis dan daftar action items</span>
+                        <p className="loading-status-text" style={{ marginTop: '14px', marginBottom: '4px' }}>
+                          {generationProgress || "Gemini sedang menyusun notulen resmi..."}
+                        </p>
+                        <span className="loading-subtext" style={{ marginTop: '6px' }}>
+                          Mengekstrak keputusan teknis dan daftar action items ber-deadline
+                        </span>
                       </div>
                     )}
                   </div>
@@ -2276,10 +2840,10 @@ PENTING:
 
                       <div className="key-hint" style={{ marginTop: '8px', fontSize: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         <span style={{ color: '#64748b' }}>Dapatkan key di:</span>
-                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600 }}>OpenAI ↗</a>
-                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: '#d97706', fontWeight: 600 }}>Claude ↗</a>
-                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style={{ color: '#9333ea', fontWeight: 600 }}>Grok ↗</a>
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Gemini ↗</a>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600 }}>OpenAI Γåù</a>
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: '#d97706', fontWeight: 600 }}>Claude Γåù</a>
+                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style={{ color: '#9333ea', fontWeight: 600 }}>Grok Γåù</a>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Gemini Γåù</a>
                       </div>
                     </div>
                   </div>
@@ -2327,7 +2891,7 @@ PENTING:
                     </div>
                     <div className="settings-card-content">
                       <h3>Identitas Kop Surat &amp; Logo Korporat</h3>
-                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung semua jenis industri tempat magang—baik korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, instansi publik, atau opsi dokumen polos tanpa logo.</p>
+                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung semua jenis industri tempat magangΓÇöbaik korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, instansi publik, atau opsi dokumen polos tanpa logo.</p>
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
                         <button
@@ -2353,7 +2917,7 @@ PENTING:
                         {showCorpLogo ? (
                           corpLogo ? (
                             <span style={{ color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              ✓ Logo Gambar Terpasang ({corpName || "Nama Default"})
+                              Γ£ô Logo Gambar Terpasang ({corpName || "Nama Default"})
                             </span>
                           ) : (
                             <span style={{ color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -2454,7 +3018,7 @@ PENTING:
           <div className="modal-folder-box">
             <div className="modal-folder-header">
               <h3>{folderModalMode === "add" ? "Tambah Folder Proyek Baru" : "Ganti Nama Folder"}</h3>
-              <button className="btn-ghost-sm" onClick={() => setIsFolderModalOpen(false)}>✕</button>
+              <button className="btn-ghost-sm" onClick={() => setIsFolderModalOpen(false)}>Γ£ò</button>
             </div>
 
             <form onSubmit={handleSaveFolder} className="modal-folder-form">
@@ -2570,7 +3134,7 @@ PENTING:
                         <strong style={{ fontSize: '0.88rem' }}>{m.title.split('\n')[0]}</strong>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                        {m.date} • {m.location}
+                        {m.date} ΓÇó {m.location}
                       </div>
                     </div>
                   ))
@@ -2617,7 +3181,7 @@ PENTING:
                 onClick={() => setIsLogoModalOpen(false)}
                 style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', color: '#94a3b8' }}
               >
-                ✕
+                Γ£ò
               </button>
             </div>
 

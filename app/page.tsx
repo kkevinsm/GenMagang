@@ -430,7 +430,6 @@ export default function GenMagangLanding() {
           </div>
         </div>
       </footer>
-
     </div>
   );
 }
