@@ -62,14 +62,13 @@ export const AI_PROVIDERS: Record<string, AIProviderConfig> = {
     keyPlaceholder: "AIzaSy...",
     keyHelpUrl: "https://aistudio.google.com/app/apikey",
     defaultModels: [
-      "gemini-1.5-flash",
       "gemini-2.0-flash",
-      "gemini-1.5-flash-8b",
       "gemini-2.0-flash-lite",
+      "gemini-1.5-flash",
+      "gemini-2.5-flash",
+      "gemini-1.5-flash-8b",
+      "gemini-1.5-pro",
       "gemini-flash-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3.8-flash",
-      "gemini-3.7-flash",
     ],
   },
 };
@@ -187,7 +186,7 @@ async function callGemini(
   model: string,
   systemInstruction: string,
   userPrompt: string,
-  timeoutMs = 10000
+  timeoutMs = 45000
 ): Promise<{ text?: string; error?: string; status?: number }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -207,9 +206,9 @@ async function callGemini(
           },
         ],
         generationConfig: {
-          temperature: 0.7,
+          temperature: 0.2,
           topP: 0.9,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 8192,
           responseMimeType: "application/json",
         },
       }),

@@ -95,7 +95,7 @@ export default function NotulenPage() {
   const [actionStatusFilter, setActionStatusFilter] = useState<"all" | "pending" | "done">("all");
   const [actionTeamFilter, setActionTeamFilter] = useState<string>("all");
 
-  // ΓöÇΓöÇΓöÇ Corporate Identity & Logo State ΓöÇΓöÇΓöÇ
+  // ─── Corporate Identity & Logo State ───
   const STORAGE_KEY_CORP_LOGO = "gennotulis_corp_logo";
   const STORAGE_KEY_SHOW_CORP_LOGO = "gennotulis_show_corp_logo";
   const STORAGE_KEY_CORP_NAME = "gennotulis_corp_name";
@@ -508,7 +508,7 @@ export default function NotulenPage() {
 
   // --- EXPORT & COPY ---
   const handleCopyWhatsApp = (meeting: Meeting) => {
-    let text = `*NOTULEN MEETING ΓÇö ${meeting.category.toUpperCase()}*\n`;
+    let text = `*NOTULEN MEETING — ${meeting.category.toUpperCase()}*\n`;
     text += `*Judul:* ${meeting.title.replace(/\n/g, ' ')}\n`;
     text += `*Waktu:* ${meeting.date} (${meeting.time})\n`;
     text += `*Tempat:* ${meeting.location}\n`;
@@ -526,7 +526,7 @@ export default function NotulenPage() {
     if (meeting.decisions && meeting.decisions.length > 0) {
       text += `*KEPUTUSAN UTAMA:*\n`;
       meeting.decisions.forEach(d => {
-        text += `ΓÇó *${d.topic}*\n`;
+        text += `• *${d.topic}*\n`;
         d.bullets.forEach(b => {
           text += `  - ${b}\n`;
         });
@@ -537,9 +537,9 @@ export default function NotulenPage() {
     if (meeting.actionItems && meeting.actionItems.length > 0) {
       text += `*ACTION ITEMS / TINDAK LANJUT:*\n`;
       meeting.actionItems.forEach(group => {
-        text += `ΓÇó *${group.team}:*\n`;
+        text += `• *${group.team}:*\n`;
         group.tasks.forEach(t => {
-          const status = t.done ? 'Γ£à [SELESAI]' : 'ΓÅ│ [PROSES]';
+          const status = t.done ? '✅ [SELESAI]' : '⏳ [PROSES]';
           const due = t.due ? ` (Target: ${t.due})` : '';
           text += `  - ${status} ${t.text}${due}\n`;
         });
@@ -568,7 +568,7 @@ export default function NotulenPage() {
   const handleExportAllJson = () => {
     const data = {
       exportDate: new Date().toISOString(),
-      app: "GenNotulis ΓÇö GenMagang Suite",
+      app: "GenNotulis — GenMagang Suite",
       folders: folders,
       meetings: meetings
     };
@@ -582,7 +582,151 @@ export default function NotulenPage() {
     showToast("Cadangan file JSON berhasil diunduh");
   };
 
-  // --- AUDIO / VOICE NOTE RECORDING ---
+  // --- AUDIO / VOICE NOTE RECORDING & LIVE SPEECH-TO-TEXT ---
+  const speechRecognitionRef = useRef<any>(null);
+  const liveSpeechTranscriptRef = useRef<string>("");
+
+  // Core transcription runner (supports automatic trigger on upload & manual re-run)
+  const runMediaTranscription = async (targetAttachment?: MediaAttachment | null, targetFile?: File | null) => {
+    const attachment = targetAttachment || mediaAttachment;
+    const rawFile = targetFile || mediaFileRef.current;
+
+    if (!attachment && !rawFile) {
+      showToast("Pilih atau rekam file video/audio terlebih dahulu");
+      return;
+    }
+
+    const totalBytes = rawFile?.size || attachment?.fileSize || 0;
+    const totalMb = totalBytes / (1024 * 1024);
+    const resolvedKey = (
+      apiKey ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem(STORAGE_KEY_API_KEY) ||
+          localStorage.getItem("monev_api_key") ||
+          localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) ||
+          ""
+        : "")
+    ).trim();
+
+    if (!resolvedKey) {
+      showToast("⚠️ Masukkan API Key Gemini di menu Setelan terlebih dahulu.");
+      setActiveTab("settings");
+      return;
+    }
+
+    const providerInfo = getProviderInfo(resolvedKey);
+
+    setIsTranscribing(true);
+    let currentPct = 5;
+    setUploadProgress({ percent: currentPct, loadedMb: (totalMb * currentPct) / 100, totalMb: Math.max(0.01, totalMb) });
+    setTranscriptionProgress(`Mempersiapkan berkas media (${totalMb.toFixed(1)} MB)...`);
+
+    let tickerInterval: any = null;
+
+    try {
+      const resData = await new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/notulen/transcribe");
+
+        // Tahap 1: Pengiriman berkas dari browser ke server (5% - 40%)
+        xhr.upload.onprogress = (evt) => {
+          if (evt.lengthComputable) {
+            const rawPct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+            const scaled = Math.round(5 + (rawPct * 35) / 100);
+            currentPct = Math.max(currentPct, scaled);
+            const loadedMb = (totalMb * currentPct) / 100;
+            setUploadProgress({ percent: currentPct, loadedMb, totalMb: Math.max(0.01, totalMb) });
+            setTranscriptionProgress(
+              `Mengunggah berkas media: ${currentPct}% (${loadedMb.toFixed(1)} / ${totalMb.toFixed(1)} MB)...`
+            );
+          }
+        };
+
+        xhr.upload.onload = () => {
+          // Tahap 2: Pengiriman dari server ke Google Gemini Cloud & proses transkripsi AI (40% - 90%)
+          setTranscriptionProgress(
+            `Berkas diterima. Mengunggah ke Google Gemini Cloud & menganalisis audio...`
+          );
+          tickerInterval = setInterval(() => {
+            if (currentPct < 90) {
+              currentPct += (currentPct < 65 ? 3 : 1);
+              const loadedMb = (totalMb * currentPct) / 100;
+              setUploadProgress({ percent: currentPct, loadedMb, totalMb: Math.max(0.01, totalMb) });
+              if (currentPct < 65) {
+                setTranscriptionProgress(`Mengunggah ke Gemini Cloud API (${currentPct}%)...`);
+              } else if (currentPct < 80) {
+                setTranscriptionProgress(`Gemini AI sedang mendengarkan seluruh rekaman (${currentPct}%)...`);
+              } else {
+                setTranscriptionProgress(`AI sedang menyusun transkrip percakapan kata demi kata (${currentPct}%)...`);
+              }
+            }
+          }, 700);
+        };
+
+        xhr.onload = () => {
+          if (tickerInterval) clearInterval(tickerInterval);
+          try {
+            const parsed = JSON.parse(xhr.responseText || "{}");
+            if (xhr.status >= 200 && xhr.status < 300 && parsed.transcript) {
+              setUploadProgress({ percent: 100, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb) });
+              setTranscriptionProgress("Transkripsi berhasil diselesaikan!");
+              resolve(parsed);
+            } else {
+              reject(new Error(parsed.error || `Gagal mentranskripsi berkas [${xhr.status}]`));
+            }
+          } catch {
+            reject(new Error("Gagal membaca respon server transkripsi."));
+          }
+        };
+
+        xhr.onerror = () => {
+          if (tickerInterval) clearInterval(tickerInterval);
+          reject(new Error("Terjadi gangguan jaringan saat mengunggah berkas ke server transkripsi."));
+        };
+
+        if (rawFile) {
+          const formData = new FormData();
+          formData.append("file", rawFile);
+          formData.append("apiKey", resolvedKey);
+          formData.append("mediaType", attachment?.type || (rawFile.type.startsWith("audio/") ? "audio" : "video"));
+          formData.append("mediaMimeType", attachment?.mimeType || rawFile.type || "video/mp4");
+          formData.append("fileName", attachment?.fileName || rawFile.name || "recording.mp4");
+          formData.append("contextNotes", transcriptionResult ? "" : rawNotesInput.trim());
+          xhr.send(formData);
+        } else {
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.send(
+            JSON.stringify({
+              apiKey: resolvedKey,
+              mediaType: attachment?.type || "video",
+              mediaMimeType: attachment?.mimeType || "video/mp4",
+              mediaBase64: attachment?.base64 || "",
+              fileName: attachment?.fileName || "recording.mp4",
+              contextNotes: transcriptionResult ? "" : rawNotesInput.trim(),
+            })
+          );
+        }
+      });
+
+      setTranscriptionResult(resData.transcript);
+      setTranscriptionModel(resData.model || providerInfo.name);
+      setRawNotesInput(resData.transcript);
+      showToast("Transkripsi kata demi kata selesai! Silakan tinjau di panel kanan.");
+    } catch (err: any) {
+      console.error("Transcribe error:", err);
+      const errMsg = err?.message || "Gagal mentranskripsi berkas media.";
+      showToast(errMsg);
+      if (errMsg.includes("API Key")) {
+        setActiveTab("settings");
+      }
+    } finally {
+      if (tickerInterval) clearInterval(tickerInterval);
+      setIsTranscribing(false);
+      setTranscriptionProgress("");
+      setUploadProgress(null);
+    }
+  };
+
   const startRecording = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -591,31 +735,86 @@ export default function NotulenPage() {
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
+      liveSpeechTranscriptRef.current = "";
       const mr = new MediaRecorder(stream);
       mediaRecorderRef.current = mr;
+
+      // Optional browser Web Speech API for real-time Indonesian voice transcription
+      const SpeechRecognitionAPI =
+        typeof window !== "undefined"
+          ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+          : null;
+
+      if (SpeechRecognitionAPI) {
+        try {
+          const recognition = new SpeechRecognitionAPI();
+          recognition.lang = "id-ID";
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.onresult = (event: any) => {
+            let finalSegment = "";
+            let interimSegment = "";
+            for (let i = 0; i < event.results.length; i++) {
+              const transcriptPiece = event.results[i][0].transcript;
+              if (event.results[i].isFinal) {
+                finalSegment += transcriptPiece + " ";
+              } else {
+                interimSegment += transcriptPiece;
+              }
+            }
+            const combined = (finalSegment + interimSegment).trim();
+            if (combined) {
+              liveSpeechTranscriptRef.current = combined;
+              setTranscriptionResult(combined);
+              setTranscriptionModel("Live Speech-to-Text (id-ID)");
+              setRawNotesInput(combined);
+            }
+          };
+          recognition.start();
+          speechRecognitionRef.current = recognition;
+        } catch {
+          // Ignore if browser blocks SpeechRecognition
+        }
+      }
 
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
       mr.onstop = () => {
+        if (speechRecognitionRef.current) {
+          try {
+            speechRecognitionRef.current.stop();
+          } catch {
+            // Ignore
+          }
+          speechRecognitionRef.current = null;
+        }
+
         const mimeType = mr.mimeType || "audio/webm";
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         const fileName = `Voice-Note-${new Date().toISOString().slice(0, 10)}.webm`;
-        mediaFileRef.current = new File([audioBlob], fileName, { type: mimeType });
+        const rawFile = new File([audioBlob], fileName, { type: mimeType });
+        mediaFileRef.current = rawFile;
         uploadedFileUriRef.current = null;
-        setTranscriptionResult("");
         setUploadProgress(null);
+
         const reader = new FileReader();
         reader.onloadend = () => {
           const base64 = (reader.result as string).split(",")[1];
-          setMediaAttachment({
+          const newAttachment: MediaAttachment = {
             type: "audio",
             mimeType,
             base64: base64,
             fileName: fileName,
-            fileSize: audioBlob.size
-          });
+            fileSize: audioBlob.size,
+          };
+          setMediaAttachment(newAttachment);
+
+          // Automatically transcribe with AI if no live speech was captured
+          if (!liveSpeechTranscriptRef.current.trim()) {
+            runMediaTranscription(newAttachment, rawFile);
+          }
         };
         reader.readAsDataURL(audioBlob);
         stream.getTracks().forEach(t => t.stop());
@@ -635,12 +834,19 @@ export default function NotulenPage() {
   };
 
   const stopRecording = () => {
+    if (speechRecognitionRef.current) {
+      try {
+        speechRecognitionRef.current.stop();
+      } catch {
+        // Ignore
+      }
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
       mediaRecorderRef.current.stop();
     }
     if (recordIntervalRef.current) clearInterval(recordIntervalRef.current);
     setIsRecording(false);
-    showToast("Rekaman suara selesai disimpan");
+    showToast("Rekaman suara selesai disimpan — memproses transkripsi...");
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: "audio" | "video") => {
@@ -652,38 +858,61 @@ export default function NotulenPage() {
       return;
     }
 
+    const resolvedKey = (
+      apiKey ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem(STORAGE_KEY_API_KEY) ||
+          localStorage.getItem("monev_api_key") ||
+          localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) ||
+          ""
+        : "")
+    ).trim();
+
+    if (!resolvedKey) {
+      showToast("⚠️ Masukkan API Key Gemini di menu Setelan terlebih dahulu.");
+      setActiveTab("settings");
+      e.target.value = "";
+      return;
+    }
+
     const mimeType = file.type || (type === "audio" ? "audio/mpeg" : "video/mp4");
-    // Always store raw File for large-file Gemini File API upload path
+    // Always store raw File for media transcription runner
     mediaFileRef.current = file;
     uploadedFileUriRef.current = null;
     setTranscriptionResult("");
-    setUploadProgress(null);
+    setIsTranscribing(true);
+    setUploadProgress({ percent: 5, loadedMb: 0.1, totalMb: Math.max(0.01, file.size / (1024 * 1024)) });
+    setTranscriptionProgress(`Mempersiapkan "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
 
     if (file.size <= INLINE_MEDIA_LIMIT) {
-      // Small file (<= 20MB): read as base64 for inline Gemini request
+      // Small file (<= 20MB): read as base64 then auto-start transcription
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = (reader.result as string).split(",")[1];
-        setMediaAttachment({
+        const newAttachment: MediaAttachment = {
           type: type,
           mimeType,
           base64: base64,
           fileName: file.name,
-          fileSize: file.size
-        });
-        showToast(`File ${type === "audio" ? "audio" : "video"} "${file.name}" dimuat (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+          fileSize: file.size,
+        };
+        setMediaAttachment(newAttachment);
+        showToast(`Berkas "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB) dimuat — memulai transkripsi...`);
+        runMediaTranscription(newAttachment, file);
       };
       reader.readAsDataURL(file);
     } else {
-      // Large file (> 20MB): skip base64 read into memory, upload via Gemini File API later
-      setMediaAttachment({
+      // Large file (> 20MB up to 300MB): skip base64 read into memory, upload via Gemini File API & transcribe
+      const newAttachment: MediaAttachment = {
         type: type,
         mimeType,
         base64: "",
         fileName: file.name,
-        fileSize: file.size
-      });
-      showToast(`File "${file.name}" siap (${(file.size / 1024 / 1024).toFixed(1)} MB) — akan diproses via Gemini File API`);
+        fileSize: file.size,
+      };
+      setMediaAttachment(newAttachment);
+      showToast(`Mengunggah & mentranskripsi "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
+      runMediaTranscription(newAttachment, file);
     }
     e.target.value = "";
   };
@@ -787,69 +1016,7 @@ export default function NotulenPage() {
 
   // --- STEP 1: TRANSCRIBE VIDEO / AUDIO TO TEXT ---
   const handleTranscribeMedia = async () => {
-    if (!mediaAttachment && !mediaFileRef.current) {
-      showToast("Pilih atau rekam file video/audio terlebih dahulu");
-      return;
-    }
-
-    const key = apiKey.trim();
-    if (!key) {
-      showToast("Masukkan API Key Gemini di menu Setelan untuk mentranskripsikan media");
-      return;
-    }
-
-    setIsTranscribing(true);
-    setTranscriptionProgress("Mempersiapkan berkas media untuk transkripsi...");
-    setUploadProgress(null);
-
-    try {
-      const providerInfo = getProviderInfo(key);
-      const isGemini = !key.startsWith("sk-ant-") && !key.startsWith("xai-") && !key.startsWith("sk-");
-
-      const requestBody: Record<string, any> = {
-        apiKey: key,
-        mediaType: mediaAttachment?.type || "video",
-        mediaMimeType: mediaAttachment?.mimeType || "video/mp4",
-        contextNotes: rawNotesInput.trim(),
-      };
-
-      if (isGemini && (mediaAttachment?.fileSize || 0) > INLINE_MEDIA_LIMIT) {
-        // Large file (> 20MB): upload to Gemini File API with real-time progress
-        const rawFile = mediaFileRef.current;
-        if (!rawFile) throw new Error("Berkas media tidak ditemukan. Silakan pilih ulang berkas.");
-        const fileUri = await uploadToGeminiFileApi(rawFile, mediaAttachment!.mimeType, key);
-        requestBody.mediaFileUri = fileUri;
-        setTranscriptionProgress(`Gemini (${providerInfo.model}) sedang mentranskripsi percakapan audio & visual...`);
-      } else if (mediaAttachment?.base64) {
-        // Small file (<= 20MB): inline base64
-        requestBody.mediaBase64 = mediaAttachment.base64;
-        setTranscriptionProgress(`Gemini (${providerInfo.model}) sedang mentranskripsi percakapan...`);
-      }
-
-      const res = await fetch("/api/notulen/transcribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-
-      const resData = await res.json();
-      if (res.ok && resData.transcript) {
-        setTranscriptionResult(resData.transcript);
-        setTranscriptionModel(resData.model || "Gemini");
-        // Also populate rawNotesInput so user can edit or review immediately
-        setRawNotesInput(resData.transcript);
-        showToast("Transkripsi berhasil! Tinjau transkrip di bawah sebelum membuat notulen.");
-      } else {
-        throw new Error(resData.error || "Gagal mentranskripsi berkas");
-      }
-    } catch (err: any) {
-      console.error(err);
-      showToast("Kendala transkripsi: " + (err.message || "Coba ulangi"));
-    } finally {
-      setIsTranscribing(false);
-      setTranscriptionProgress("");
-      setUploadProgress(null);
-    }
+    await runMediaTranscription(mediaAttachment, mediaFileRef.current);
   };
 
   // --- STEP 2: GENERATE OFFICIAL NOTULEN DOCUMENT ---
@@ -868,7 +1035,12 @@ export default function NotulenPage() {
 
     const categoryTarget = genCategory || (folders[0] ? folders[0].id : "Umum");
     const titleTarget = genCustomTitle.trim();
-    const key = apiKey.trim();
+    const key = (
+      apiKey ||
+      (typeof window !== "undefined"
+        ? localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem("monev_api_key") || ""
+        : "")
+    ).trim();
 
     try {
       let generatedData: any = null;
@@ -1101,85 +1273,82 @@ PENTING:
     return JSON.parse(cleaned);
   }
 
-  // Fallback template builder
+  // Fallback template builder (dinamis mengekstrak baris transkrip asli tanpa teks dummy)
   function generateLocalCorporateNotulen(rawNotes: string, customTitle: string, category: string, media: MediaAttachment | null) {
     const today = new Intl.DateTimeFormat("id-ID", { dateStyle: "full" }).format(new Date());
-    let defaultTitle = "Notulen Pembahasan Teknis & Koordinasi Proyek";
-    let agendaTopic = "Evaluasi progres dan koordinasi teknis";
+    const cleanNotes = (rawNotes || "").trim();
+    const rawLines = cleanNotes
+      .split("\n")
+      .map(l => l.trim())
+      .filter(l => l.length > 0 && !l.startsWith("---") && !l.startsWith("==="));
 
-    if (media) {
-      if (media.type === "video") {
-        defaultTitle = customTitle || "Notulen Rekaman Video Online Meeting";
-        agendaTopic = "Penyelarasan rekaman video rapat daring";
-      } else {
-        defaultTitle = customTitle || "Notulen Rekaman Suara & Voice Note Rapat";
-        agendaTopic = "Penyelarasan poin rekaman audio rapat";
-      }
-    } else if (rawNotes) {
-      const lines = rawNotes.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-      if (lines[0]) defaultTitle = lines[0];
+    let defaultTitle = "Notulen Rapat Koordinasi";
+    if (customTitle.trim()) {
+      defaultTitle = customTitle.trim();
+    } else if (media) {
+      defaultTitle = media.fileName
+        ? `Notulen Pembahasan ${media.fileName.replace(/\.[^/.]+$/, "")}`
+        : "Notulen Rekaman Rapat";
+    } else if (rawLines[0]) {
+      defaultTitle = rawLines[0].replace(/^\[.*?\]\s*/, "").slice(0, 80);
     }
 
-    const title = customTitle || defaultTitle;
+    const title = defaultTitle;
+
+    // Filter baris teks transkrip nyata yang memiliki konten substansial
+    const contentLines = rawLines.filter(l => l.length > 12);
+
+    const agendas = contentLines.slice(0, 3).map((l, i) => `${i + 1}. ${l.replace(/^\[.*?\]\s*/, "")}`);
+    if (agendas.length === 0) agendas.push(`1. Pembahasan materi ${title}`);
+
+    const decisionsBullets = contentLines.slice(1, 4).map(l => l.replace(/^\[.*?\]\s*/, ""));
+    if (decisionsBullets.length === 0) decisionsBullets.push(`Seluruh poin kesepakatan pada rekaman rapat telah disetujui bersama.`);
+
+    const memoItems = contentLines.slice(0, 5).map(l => l.replace(/^\[.*?\]\s*/, ""));
+    if (memoItems.length === 0) memoItems.push(`Diskusi dan pembahasan topik ${title}.`);
+
+    const summaryItems = contentLines.slice(2, 5).map(l => l.replace(/^\[.*?\]\s*/, ""));
+    if (summaryItems.length === 0) summaryItems.push(`Rapat koordinasi telah meninjau jalannya pembahasan secara menyeluruh.`);
+
+    const actionTasks = contentLines.slice(0, 3).map((l, idx) => ({
+      text: l.replace(/^\[.*?\]\s*/, "").slice(0, 110),
+      due: idx === 0 ? "Segera" : "Sesuai timeline"
+    }));
+    if (actionTasks.length === 0) {
+      actionTasks.push({ text: `Tindak lanjut hasil pembahasan ${title}`, due: "Segera" });
+    }
 
     return {
       category: category || "Umum",
       title: title,
       date: today,
       time: "14.00 - Selesai WIB",
-      location: media ? (media.type === "video" ? "Ms. Teams / Zoom Video Meeting" : "Ruang Rapat & Voice Recording") : "Ruang Rapat Utama & Ms. Teams",
-      leader: "Project Coordinator / Lead Architect",
-      attendees: "Tim Pengembang, Tim QA, Tim Bisnis, PMO, dan Stakeholders Terkait",
-      agendas: [
-        `1. ${agendaTopic} dan penanganan prioritas implementasi.`,
-        "2. Penyelarasan timeline rilis dan mitigasi dependensi antar tim.",
-        "3. Penetapan action items dan komitmen target penyelesaian."
-      ],
+      location: media ? (media.type === "video" ? "Online Video Meeting" : "Rekaman Audio Rapat") : "Ruang Rapat Koordinasi",
+      leader: "Pimpinan / Pembicara Rapat",
+      attendees: "Seluruh Peserta & Stakeholders Terkait",
+      agendas: agendas,
       decisions: [
         {
-          topic: `Keputusan Utama Terkait ${title.split('\n')[0]}:`,
-          bullets: [
-            media ? `Rekaman ${media.type === 'video' ? 'video' : 'audio'} telah dianalisis; seluruh kesepakatan target rilis disetujui bersama.` : 'Seluruh tim menyepakati target penyelesaian milestone sesuai jadwal yang ditetapkan.',
-            "Uji fungsional (UAT) bersama unit kerja dijadwalkan segera setelah verifikasi lingkungan stabil."
-          ]
+          topic: `Poin Kesepakatan Terkait ${title.split('\n')[0]}:`,
+          bullets: decisionsBullets
         }
       ],
       memos: [
         {
-          header: "1. Poin Diskusi & Catatan Stakeholder",
+          header: "1. Catatan Pembahasan & Dinamika Rapat",
           speakers: [
             {
-              label: "Catatan Tim Pengembang & Tim Penguji:",
-              items: [
-                "Verifikasi performa modul utama menunjukkan peningkatan efisiensi yang memadai.",
-                "Dependensi konfigurasi database sedang dituntaskan sebelum fase joint test."
-              ]
+              label: "Poin Bahasan Peserta Rapat:",
+              items: memoItems
             }
           ]
         }
       ],
-      summary: [
-        "Hasil koordinasi menyepakati prioritas penyelesaian isu pada komponen utama sebelum memasuki periode freeze.",
-        "Seluruh tim unit kerja bertanggung jawab menyelesaikan action items sesuai tenggat yang telah ditetapkan."
-      ],
+      summary: summaryItems,
       actionItems: [
         {
-          team: "Tim Pengembang (WDL)",
-          tasks: [
-            { text: `Menuntaskan perbaikan dan pengujian internal untuk ${title.split('\n')[0]}.`, due: "28 Okt 2026" }
-          ]
-        },
-        {
-          team: "Tim QA / Tester (TSA)",
-          tasks: [
-            { text: "Menyiapkan skenario joint testing dan memantau stabilitas environment.", due: "30 Okt 2026" }
-          ]
-        },
-        {
-          team: "Tim Bisnis (WDC)",
-          tasks: [
-            { text: "Validasi dokumen kriteria penerimaan pengguna bersama tim operasional.", due: "02 Nov 2026" }
-          ]
+          team: "Tim Pelaksana / PIC Terkait",
+          tasks: actionTasks
         }
       ]
     };
@@ -1376,14 +1545,14 @@ PENTING:
               <button
                 className="quick-search-trigger"
                 onClick={() => setIsQuickSearchOpen(true)}
-                title="Cari Cepat (ΓîÿK)"
+                title="Cari Cepat (⌘K)"
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
                 <span className="search-label">Cari notulen...</span>
-                <kbd className="kbd-pill">ΓîÿK</kbd>
+                <kbd className="kbd-pill">⌘K</kbd>
               </button>
 
               <button
@@ -1447,7 +1616,7 @@ PENTING:
                 <line x1="8" y1="21" x2="16" y2="21" />
                 <line x1="12" y1="17" x2="12" y2="21" />
               </svg>
-              <span>GenNotulis ΓÇö Workspace Rapat</span>
+              <span>GenNotulis — Workspace Rapat</span>
             </div>
             <div className="window-actions">
               <button className="btn-ghost-sm" onClick={handleExportAllJson} title="Backup Semua Data ke File JSON">
@@ -1484,7 +1653,7 @@ PENTING:
                         placeholder="Cari agenda, keputusan, atau nama..."
                       />
                       {filterKeyword && (
-                        <button className="btn-clear-search" onClick={() => setFilterKeyword("")}>├ù</button>
+                        <button className="btn-clear-search" onClick={() => setFilterKeyword("")}>×</button>
                       )}
                     </div>
 
@@ -1805,7 +1974,7 @@ PENTING:
                         )}
                       </div>
                       <div className="doc-header-right">
-                        <span className="doc-sublabel">Notulen ΓÇô Agenda</span>
+                        <span className="doc-sublabel">Notulen – Agenda</span>
                       </div>
                     </div>
 
@@ -2086,7 +2255,7 @@ PENTING:
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '6px', fontSize: '0.78rem', color: '#78716c' }}>
                               <span>Target: <strong>{item.task.due || 'Segera'}</strong></span>
-                              <span>ΓÇó</span>
+                              <span>•</span>
                               <button
                                 onClick={() => handleOpenMeetingDetail(item.meetingId)}
                                 style={{ background: 'none', border: 'none', color: '#134f5c', cursor: 'pointer', textDecoration: 'underline', padding: 0, font: 'inherit' }}
@@ -2840,10 +3009,10 @@ PENTING:
 
                       <div className="key-hint" style={{ marginTop: '8px', fontSize: '0.75rem', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                         <span style={{ color: '#64748b' }}>Dapatkan key di:</span>
-                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600 }}>OpenAI Γåù</a>
-                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: '#d97706', fontWeight: 600 }}>Claude Γåù</a>
-                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style={{ color: '#9333ea', fontWeight: 600 }}>Grok Γåù</a>
-                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Gemini Γåù</a>
+                        <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" style={{ color: '#059669', fontWeight: 600 }}>OpenAI ↗</a>
+                        <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer" style={{ color: '#d97706', fontWeight: 600 }}>Claude ↗</a>
+                        <a href="https://console.x.ai/" target="_blank" rel="noopener noreferrer" style={{ color: '#9333ea', fontWeight: 600 }}>Grok ↗</a>
+                        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', fontWeight: 600 }}>Gemini ↗</a>
                       </div>
                     </div>
                   </div>
@@ -2891,7 +3060,7 @@ PENTING:
                     </div>
                     <div className="settings-card-content">
                       <h3>Identitas Kop Surat &amp; Logo Korporat</h3>
-                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung semua jenis industri tempat magangΓÇöbaik korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, instansi publik, atau opsi dokumen polos tanpa logo.</p>
+                      <p>Kustomisasi logo dan nama perusahaan untuk format resmi Notulen Rapat Anda. Mendukung semua jenis industri tempat magang—baik korporasi swasta, startup teknologi, agensi kreatif, perbankan, BUMN, instansi publik, atau opsi dokumen polos tanpa logo.</p>
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px', marginTop: '12px' }}>
                         <button
@@ -2917,7 +3086,7 @@ PENTING:
                         {showCorpLogo ? (
                           corpLogo ? (
                             <span style={{ color: '#059669', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                              Γ£ô Logo Gambar Terpasang ({corpName || "Nama Default"})
+                              ✓ Logo Gambar Terpasang ({corpName || "Nama Default"})
                             </span>
                           ) : (
                             <span style={{ color: '#2563eb', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -3018,7 +3187,7 @@ PENTING:
           <div className="modal-folder-box">
             <div className="modal-folder-header">
               <h3>{folderModalMode === "add" ? "Tambah Folder Proyek Baru" : "Ganti Nama Folder"}</h3>
-              <button className="btn-ghost-sm" onClick={() => setIsFolderModalOpen(false)}>Γ£ò</button>
+              <button className="btn-ghost-sm" onClick={() => setIsFolderModalOpen(false)}>✕</button>
             </div>
 
             <form onSubmit={handleSaveFolder} className="modal-folder-form">
@@ -3134,7 +3303,7 @@ PENTING:
                         <strong style={{ fontSize: '0.88rem' }}>{m.title.split('\n')[0]}</strong>
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                        {m.date} ΓÇó {m.location}
+                        {m.date} • {m.location}
                       </div>
                     </div>
                   ))
@@ -3181,7 +3350,7 @@ PENTING:
                 onClick={() => setIsLogoModalOpen(false)}
                 style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', color: '#94a3b8' }}
               >
-                Γ£ò
+                ✕
               </button>
             </div>
 

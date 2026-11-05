@@ -12,9 +12,9 @@ function buildNotulenPrompt(
 ): string {
   return `${mediaContext ? mediaContext + "\n\n" : ""}${
     rawNotes
-      ? "Catatan tambahan / transkrip rapat:\n---\n" + rawNotes + "\n---\n\n"
+      ? "TRANSKRIP REKAMAN / CATATAN RAPAT (Gunakan seluruh teks dan fakta berikut secara akurat):\n---\n" + rawNotes + "\n---\n\n"
       : ""
-  }SUSUN DOKUMEN NOTULEN RESMI DENGAN STRUKTUR JSON KETAT SEBAGAI BERIKUT:
+  }Berdasarkan data rapat di atas, susun DOKUMEN NOTULEN RESMI yang merangkum poin-poin yang BENAR-BENAR DIBICARAKAN (jangan mengarang topik atau pembicara yang tidak ada di transkrip) dengan STRUKTUR JSON KETAT SEBAGAI BERIKUT:
 {
   "category": "${category || "Umum"}",
   "title": "${title ? title : "Judul meeting profesional berpoin (misal: a. ... \\n b. ...)"}",
@@ -229,11 +229,13 @@ Keluarkan output HANYA dalam format JSON valid sesuai skema yang diminta, tanpa 
     // --- Gemini with media (inline or File API) ---
     if (hasMedia && activeProvider === "gemini") {
       const geminiModels = [
-        "gemini-2.5-flash",
-        "gemini-2.5-flash-preview-05-20",
         "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
         "gemini-1.5-flash",
+        "gemini-2.5-flash",
+        "gemini-1.5-flash-8b",
         "gemini-1.5-pro",
+        "gemini-flash-latest",
       ];
 
       for (const model of geminiModels) {
@@ -263,7 +265,7 @@ Keluarkan output HANYA dalam format JSON valid sesuai skema yang diminta, tanpa 
           break;
         } catch (err: any) {
           console.warn(`Gemini media [${model}] failed:`, err.message);
-          // If quota or auth error, don't try next model
+          // If auth error, stop immediately
           if (
             err.message.includes("401") ||
             err.message.includes("API key not valid")
@@ -272,10 +274,10 @@ Keluarkan output HANYA dalam format JSON valid sesuai skema yang diminta, tanpa 
               "API Key Gemini tidak valid. Periksa kembali di menu Setelan."
             );
           }
+          // On quota or rate limit, continue to the next model in the fallback list
           if (err.message.includes("429") || err.message.includes("RESOURCE_EXHAUSTED")) {
-            throw new Error(
-              "Kuota harian Gemini API habis. Coba buat API Key baru di aistudio.google.com."
-            );
+            console.warn(`Model ${model} kuota habis (429), mencoba model Gemini berikutnya...`);
+            continue;
           }
         }
       }
