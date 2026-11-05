@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
-export const maxDuration = 600;
+export const maxDuration = 300;
 
 // Otomatis ekstrak audio track dari video menjadi MP3 ringan menggunakan ffmpeg
 // Menghemat ukuran berkas 80-95% dan membuat gemini-3.5-transcribe bekerja dengan sempurna
