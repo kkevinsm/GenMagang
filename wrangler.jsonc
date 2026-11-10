@@ -1,0 +1,24 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "genmagang",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-10",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "triggers": {
+    "crons": [
+      "30 9 * * 1-5"
+    ]
+  },
+  "r2_buckets": [
+    {
+      "binding": "KIZUNA_STORAGE",
+      "bucket_name": "kizuna-storage"
+    }
+  ]
+}

@@ -624,103 +624,148 @@ export default function NotulenPage() {
     let tickerInterval: any = null;
 
     try {
-      const resData = await new Promise<any>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/notulen/transcribe");
+      interface TranscribeResponse {
+        type?: string;
+        percent?: number;
+        message?: string;
+        partialTranscript?: string;
+        transcript?: string;
+        model?: string;
+        error?: string;
+        warning?: string;
+      }
+      let resData: TranscribeResponse | null = null;
 
-        // Tahap 1: Pengiriman berkas dari browser ke server (5% - 40%)
-        xhr.upload.onprogress = (evt) => {
-          if (evt.lengthComputable) {
-            const rawPct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
-            const scaled = Math.round(5 + (rawPct * 35) / 100);
-            currentPct = Math.max(currentPct, scaled);
-            const loadedMb = (totalMb * currentPct) / 100;
-            setUploadProgress({ percent: currentPct, loadedMb, totalMb: Math.max(0.01, totalMb) });
-            setTranscriptionProgress(
-              `Mengunggah berkas media: ${currentPct}% (${loadedMb.toFixed(1)} / ${totalMb.toFixed(1)} MB)...`
-            );
-          }
-        };
+      const { promise, resolve, reject } = Promise.withResolvers<TranscribeResponse>();
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/api/notulen/transcribe");
+      xhr.setRequestHeader("x-stream-progress", "1");
 
-        xhr.upload.onload = () => {
-          // Tahap 2: Pengiriman dari server ke Google Gemini Cloud & proses transkripsi AI (40% - 90%)
+      let processedLines = 0;
+
+      // Tahap 1: Pengiriman berkas dari browser ke server (5% - 25%)
+      xhr.upload.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          const rawPct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+          const scaled = Math.round(5 + (rawPct * 20) / 100);
+          currentPct = Math.max(currentPct, scaled);
+          const loadedMb = (totalMb * rawPct) / 100;
+          setUploadProgress({ percent: currentPct, loadedMb, totalMb: Math.max(0.01, totalMb) });
           setTranscriptionProgress(
-            `Berkas diterima. Mengunggah ke Google Gemini Cloud & menganalisis audio...`
-          );
-          tickerInterval = setInterval(() => {
-            if (currentPct < 90) {
-              currentPct += (currentPct < 65 ? 3 : 1);
-              const loadedMb = (totalMb * currentPct) / 100;
-              setUploadProgress({ percent: currentPct, loadedMb, totalMb: Math.max(0.01, totalMb) });
-              if (currentPct < 65) {
-                setTranscriptionProgress(`Mengunggah ke Gemini Cloud API (${currentPct}%)...`);
-              } else if (currentPct < 80) {
-                setTranscriptionProgress(`Gemini AI sedang mendengarkan seluruh rekaman (${currentPct}%)...`);
-              } else {
-                setTranscriptionProgress(`AI sedang menyusun transkrip percakapan kata demi kata (${currentPct}%)...`);
-              }
-            }
-          }, 700);
-        };
-
-        xhr.onload = () => {
-          if (tickerInterval) clearInterval(tickerInterval);
-          try {
-            const parsed = JSON.parse(xhr.responseText || "{}");
-            if (xhr.status >= 200 && xhr.status < 300 && parsed.transcript) {
-              setUploadProgress({ percent: 100, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb) });
-              setTranscriptionProgress("Transkripsi berhasil diselesaikan!");
-              resolve(parsed);
-            } else {
-              reject(new Error(parsed.error || `Gagal mentranskripsi berkas [${xhr.status}]`));
-            }
-          } catch {
-            reject(new Error("Gagal membaca respon server transkripsi."));
-          }
-        };
-
-        xhr.onerror = () => {
-          if (tickerInterval) clearInterval(tickerInterval);
-          reject(new Error("Terjadi gangguan jaringan saat mengunggah berkas ke server transkripsi."));
-        };
-
-        if (rawFile) {
-          const formData = new FormData();
-          formData.append("file", rawFile);
-          formData.append("apiKey", resolvedKey);
-          formData.append("mediaType", attachment?.type || (rawFile.type.startsWith("audio/") ? "audio" : "video"));
-          formData.append("mediaMimeType", attachment?.mimeType || rawFile.type || "video/mp4");
-          formData.append("fileName", attachment?.fileName || rawFile.name || "recording.mp4");
-          formData.append("contextNotes", transcriptionResult ? "" : rawNotesInput.trim());
-          xhr.send(formData);
-        } else {
-          xhr.setRequestHeader("Content-Type", "application/json");
-          xhr.send(
-            JSON.stringify({
-              apiKey: resolvedKey,
-              mediaType: attachment?.type || "video",
-              mediaMimeType: attachment?.mimeType || "video/mp4",
-              mediaBase64: attachment?.base64 || "",
-              fileName: attachment?.fileName || "recording.mp4",
-              contextNotes: transcriptionResult ? "" : rawNotesInput.trim(),
-            })
+            `Mengunggah berkas media: ${rawPct}% (${loadedMb.toFixed(1)} / ${totalMb.toFixed(1)} MB)...`
           );
         }
-      });
+      };
 
-      setTranscriptionResult(resData.transcript);
-      setTranscriptionModel(resData.model || providerInfo.name);
-      setRawNotesInput(resData.transcript);
-      showToast("Transkripsi kata demi kata selesai! Silakan tinjau di panel kanan.");
-    } catch (err: any) {
+      xhr.upload.onload = () => {
+        currentPct = Math.max(currentPct, 28);
+        setUploadProgress({ percent: currentPct, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb) });
+        setTranscriptionProgress(
+          `Berkas diterima server. Mengekstrak audio & memulai transkripsi Gemini Flash...`
+        );
+        tickerInterval = setInterval(() => {
+          if (currentPct < 97) {
+            currentPct += 1;
+            setUploadProgress({ percent: currentPct, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb) });
+          }
+        }, 3500);
+      };
+
+      // Tahap 2: Streaming progres per bagian dari server (30% - 97%)
+      xhr.onprogress = () => {
+        const lines = (xhr.responseText || "").split("\n");
+        // Baris terakhir mungkin belum lengkap sampai diakhiri newline
+        const completeCount = lines.length - 1;
+        for (let i = processedLines; i < completeCount; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          try {
+            const evt = JSON.parse(line) as TranscribeResponse;
+            if (evt.type === "progress") {
+              if (typeof evt.percent === "number") {
+                currentPct = Math.max(currentPct, evt.percent);
+                setUploadProgress({ percent: currentPct, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb) });
+              }
+              if (evt.message) {
+                setTranscriptionProgress(evt.message);
+              }
+              if (evt.partialTranscript) {
+                setTranscriptionResult(evt.partialTranscript);
+                setRawNotesInput(evt.partialTranscript);
+              }
+            }
+          } catch {
+            // Abaikan potongan baris yang belum utuh
+          }
+        }
+        processedLines = Math.max(processedLines, completeCount);
+      };
+
+      xhr.onload = () => {
+        clearInterval(tickerInterval);
+        try {
+          const lines = (xhr.responseText || "")
+            .split("\n")
+            .map((l) => l.trim())
+            .filter(Boolean);
+          const lastLine = lines[lines.length - 1] || "{}";
+          const parsed = JSON.parse(lastLine) as TranscribeResponse;
+          if (xhr.status >= 200 && xhr.status < 300 && parsed.transcript && parsed.type !== "error") {
+            setUploadProgress({ percent: 100, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb) });
+            setTranscriptionProgress("Transkripsi berhasil diselesaikan!");
+            resolve(parsed);
+          } else {
+            reject(new Error(parsed.error || `Gagal mentranskripsi berkas [${xhr.status}]`));
+          }
+        } catch {
+          reject(new Error("Gagal membaca respon server transkripsi."));
+        }
+      };
+
+      xhr.onerror = () => {
+        clearInterval(tickerInterval);
+        reject(new Error("Terjadi gangguan jaringan saat mengunggah berkas ke server transkripsi."));
+      };
+
+      if (rawFile) {
+        const formData = new FormData();
+        formData.append("file", rawFile);
+        formData.append("apiKey", resolvedKey);
+        formData.append("mediaType", attachment?.type || (rawFile.type.startsWith("audio/") ? "audio" : "video"));
+        formData.append("mediaMimeType", attachment?.mimeType || rawFile.type || "video/mp4");
+        formData.append("fileName", attachment?.fileName || rawFile.name || "recording.mp4");
+        formData.append("contextNotes", transcriptionResult ? "" : rawNotesInput.trim());
+        xhr.send(formData);
+      } else {
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(
+          JSON.stringify({
+            apiKey: resolvedKey,
+            mediaType: attachment?.type || "video",
+            mediaMimeType: attachment?.mimeType || "video/mp4",
+            mediaBase64: attachment?.base64 || "",
+            fileName: attachment?.fileName || "recording.mp4",
+            contextNotes: transcriptionResult ? "" : rawNotesInput.trim(),
+          })
+        );
+      }
+      resData = await promise;
+
+        if (resData?.transcript) {
+        setTranscriptionResult(resData.transcript);
+        setTranscriptionModel(resData.model || providerInfo.name);
+        setRawNotesInput(resData.transcript);
+        showToast(resData.warning || "Transkripsi kata demi kata selesai! Silakan tinjau di panel kanan.");
+      }
+    } catch (err: unknown) {
       console.error("Transcribe error:", err);
-      const errMsg = err?.message || "Gagal mentranskripsi berkas media.";
+      const errMsg = err instanceof Error ? err.message : "Gagal mentranskripsi berkas media.";
       showToast(errMsg);
       if (errMsg.includes("API Key")) {
         setActiveTab("settings");
       }
     } finally {
-      if (tickerInterval) clearInterval(tickerInterval);
+      clearInterval(tickerInterval);
       setIsTranscribing(false);
       setTranscriptionProgress("");
       setUploadProgress(null);
@@ -853,8 +898,8 @@ export default function NotulenPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 300 * 1024 * 1024) {
-      showToast("File terlalu besar! Maksimal ukuran file adalah 300MB");
+    if (file.size > 2000 * 1024 * 1024) {
+      showToast("File terlalu besar! Maksimal ukuran file adalah 2GB");
       return;
     }
 
@@ -876,143 +921,26 @@ export default function NotulenPage() {
     }
 
     const mimeType = file.type || (type === "audio" ? "audio/mpeg" : "video/mp4");
-    // Always store raw File for media transcription runner
     mediaFileRef.current = file;
     uploadedFileUriRef.current = null;
     setTranscriptionResult("");
-    setIsTranscribing(true);
-    setUploadProgress({ percent: 5, loadedMb: 0.1, totalMb: Math.max(0.01, file.size / (1024 * 1024)) });
-    setTranscriptionProgress(`Mempersiapkan "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
 
-    if (file.size <= INLINE_MEDIA_LIMIT) {
-      // Small file (<= 20MB): read as base64 then auto-start transcription
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const newAttachment: MediaAttachment = {
-          type: type,
-          mimeType,
-          base64: base64,
-          fileName: file.name,
-          fileSize: file.size,
-        };
-        setMediaAttachment(newAttachment);
-        showToast(`Berkas "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB) dimuat — memulai transkripsi...`);
-        runMediaTranscription(newAttachment, file);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      // Large file (> 20MB up to 300MB): skip base64 read into memory, upload via Gemini File API & transcribe
-      const newAttachment: MediaAttachment = {
-        type: type,
-        mimeType,
-        base64: "",
-        fileName: file.name,
-        fileSize: file.size,
-      };
-      setMediaAttachment(newAttachment);
-      showToast(`Mengunggah & mentranskripsi "${file.name}" (${(file.size / 1024 / 1024).toFixed(1)} MB)...`);
-      runMediaTranscription(newAttachment, file);
-    }
+    const newAttachment: MediaAttachment = {
+      type: type,
+      mimeType,
+      base64: "",
+      fileName: file.name,
+      fileSize: file.size,
+    };
+    setMediaAttachment(newAttachment);
+
+    showToast(`Memproses transkripsi otomatis untuk "${file.name}"...`);
+    runMediaTranscription(newAttachment, file);
     e.target.value = "";
   };
 
   // --- AI GENERATION WITH MEDIA TRANSCRIPTION (Voice / Video -> Notulen) ---
 
-  // Upload large media to Gemini File API directly from browser with real-time XHR progress
-  const uploadToGeminiFileApi = async (file: File, mimeType: string, key: string): Promise<string> => {
-    // Return cached URI if already uploaded for this session
-    if (uploadedFileUriRef.current) {
-      return uploadedFileUriRef.current;
-    }
-
-    setTranscriptionProgress("Menginisialisasi sesi upload Gemini File API...");
-    setGenerationProgress("Menginisialisasi sesi upload Gemini File API...");
-    setUploadProgress({ percent: 0, loadedMb: 0, totalMb: file.size / (1024 * 1024) });
-
-    // Step 1: Inisialisasi sesi resumable upload via backend proxy
-    const initRes = await fetch("/api/notulen/upload-media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ apiKey: key, mimeType, fileName: file.name, fileSizeBytes: file.size }),
-    });
-    const initData = await initRes.json();
-    if (!initRes.ok || !initData.uploadUrl) {
-      throw new Error(initData.error || "Gagal menginisialisasi upload media.");
-    }
-
-    // Step 2: Upload byte file langsung ke resumable upload URL menggunakan XMLHttpRequest untuk progress event
-    const totalMb = file.size / (1024 * 1024);
-    const uploadUrl = initData.uploadUrl;
-
-    const uploadedData = await new Promise<any>((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", uploadUrl);
-      xhr.setRequestHeader("Content-Length", String(file.size));
-      xhr.setRequestHeader("X-Goog-Upload-Offset", "0");
-      xhr.setRequestHeader("X-Goog-Upload-Command", "upload, finalize");
-      xhr.setRequestHeader("Content-Type", mimeType);
-
-      xhr.upload.onprogress = (evt) => {
-        if (evt.lengthComputable) {
-          const percent = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
-          const loadedMb = evt.loaded / (1024 * 1024);
-          setUploadProgress({ percent, loadedMb, totalMb });
-          const progressMsg = `Mengunggah berkas ke Gemini: ${percent}% (${loadedMb.toFixed(1)} / ${totalMb.toFixed(1)} MB)...`;
-          setTranscriptionProgress(progressMsg);
-          setGenerationProgress(progressMsg);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          try {
-            const parsed = JSON.parse(xhr.responseText);
-            resolve(parsed);
-          } catch (err: any) {
-            reject(new Error("Gagal membaca respon upload Gemini: " + err.message));
-          }
-        } else {
-          reject(new Error(`Upload gagal [${xhr.status}]: ${xhr.responseText}`));
-        }
-      };
-
-      xhr.onerror = () => {
-        reject(new Error("Terjadi kendala jaringan saat mengunggah file ke Gemini."));
-      };
-
-      xhr.send(file);
-    });
-
-    const fileUri: string = uploadedData?.file?.uri;
-    if (!fileUri) throw new Error("File URI tidak tersedia setelah upload.");
-
-    // Step 3: Polling sampai file berstatus ACTIVE
-    const waitMsg = "Berkas terunggah 100%. Menunggu Gemini mengindeks media...";
-    setTranscriptionProgress(waitMsg);
-    setGenerationProgress(waitMsg);
-    setUploadProgress({ percent: 100, loadedMb: totalMb, totalMb });
-
-    const fileNamePart = fileUri.split("/files/")[1];
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 3000));
-      const pollRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/files/${fileNamePart}?key=${key}`);
-      if (pollRes.ok) {
-        const pollData = await pollRes.json();
-        if (pollData?.state === "ACTIVE") {
-          const readyMsg = "Berkas siap diproses oleh AI...";
-          setTranscriptionProgress(readyMsg);
-          setGenerationProgress(readyMsg);
-          uploadedFileUriRef.current = fileUri;
-          return fileUri;
-        }
-        if (pollData?.state === "FAILED") {
-          throw new Error("Pemrosesan berkas gagal di server Gemini. Pastikan format berkas didukung.");
-        }
-      }
-    }
-    throw new Error("Timeout menunggu file diproses Gemini. Coba beberapa saat lagi.");
-  };
 
   // --- STEP 1: TRANSCRIBE VIDEO / AUDIO TO TEXT ---
   const handleTranscribeMedia = async () => {
@@ -1021,12 +949,18 @@ export default function NotulenPage() {
 
   // --- STEP 2: GENERATE OFFICIAL NOTULEN DOCUMENT ---
   const handleGenerateMeeting = async () => {
-    if (generatorMode === "transcript" && !rawNotesInput.trim()) {
-      showToast("Silakan masukkan transkrip atau catatan kasar rapat terlebih dahulu");
+    if (isTranscribing) {
+      showToast("⏳ Transkripsi media sedang berlangsung... Mohon tunggu hingga transkrip teks selesai.");
       return;
     }
-    if ((generatorMode === "voice" || generatorMode === "video") && !mediaAttachment && !rawNotesInput.trim() && !transcriptionResult.trim()) {
-      showToast("Silakan rekam suara, pilih file media, atau masukkan teks catatan");
+
+    const finalNotes = (rawNotesInput || transcriptionResult || "").trim();
+    if (!finalNotes) {
+      if (mediaAttachment) {
+        showToast("⏳ Berkas media belum selesai ditranskripsi. Silakan tunggu hingga transkrip selesai.");
+      } else {
+        showToast("⚠️ Silakan masukkan transkrip atau catatan kasar rapat terlebih dahulu.");
+      }
       return;
     }
 
@@ -1048,36 +982,16 @@ export default function NotulenPage() {
       if (key) {
         try {
           const providerInfo = getProviderInfo(key);
-          const isGemini = !key.startsWith("sk-ant-") && !key.startsWith("xai-") && !key.startsWith("sk-");
 
-          const requestBody: Record<string, any> = {
-            rawNotes: rawNotesInput || transcriptionResult,
+          // HANYA kirim teks transkrip percakapan ke AI generator — ZERO re-upload file media!
+          const requestBody = {
+            rawNotes: finalNotes,
             title: titleTarget,
             category: categoryTarget,
             apiKey: key,
           };
 
-          // If we already have transcription text, we prioritize generating from text (faster & accurate)
-          // Otherwise, if user clicked directly without transcribing first, process media directly
-          if (!rawNotesInput.trim() && !transcriptionResult.trim() && mediaAttachment) {
-            requestBody.mediaType = mediaAttachment.type;
-            requestBody.mediaMimeType = mediaAttachment.mimeType;
-
-            if (isGemini && mediaAttachment.fileSize > INLINE_MEDIA_LIMIT) {
-              const rawFile = mediaFileRef.current;
-              if (!rawFile) {
-                throw new Error("File media tidak ditemukan. Silakan pilih kembali file Anda.");
-              }
-              const fileUri = await uploadToGeminiFileApi(rawFile, mediaAttachment.mimeType, key);
-              requestBody.mediaFileUri = fileUri;
-              setGenerationProgress(`Menganalisis ${mediaAttachment.type === "video" ? "rekaman video meeting" : "voice note rapat"} dengan ${providerInfo.full}...`);
-            } else if (mediaAttachment.base64) {
-              requestBody.mediaBase64 = mediaAttachment.base64;
-              setGenerationProgress(`Menganalisis ${mediaAttachment.type === "video" ? "rekaman video meeting" : "voice note rapat"} dengan ${providerInfo.full}...`);
-            }
-          } else {
-            setGenerationProgress(`Menyusun format notulen resmi dari transkrip dengan ${providerInfo.full}...`);
-          }
+          setGenerationProgress(`Menyusun format notulen resmi dari transkrip dengan ${providerInfo.full}...`);
 
           const res = await fetch("/api/notulen/generate", {
             method: "POST",
@@ -2424,11 +2338,17 @@ PENTING:
                               <div style={{ marginTop: '10px', padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
-                                    {uploadProgress ? `Mengunggah ke Gemini (${uploadProgress.percent}%)` : 'AI Sedang Mentranskripsi...'}
+                                    {uploadProgress
+                                      ? uploadProgress.percent <= 26
+                                        ? `Mengunggah Audio (${uploadProgress.percent}%)`
+                                        : `Transkripsi Gemini Flash (${uploadProgress.percent}%)`
+                                      : 'AI Sedang Mentranskripsi...'}
                                   </span>
                                   {uploadProgress && (
                                     <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#15803d' }}>
-                                      {uploadProgress.loadedMb.toFixed(1)} / {uploadProgress.totalMb.toFixed(1)} MB
+                                      {uploadProgress.percent <= 26
+                                        ? `${uploadProgress.loadedMb.toFixed(1)} / ${uploadProgress.totalMb.toFixed(1)} MB`
+                                        : `${uploadProgress.percent}% selesai`}
                                     </span>
                                   )}
                                 </div>
@@ -2531,7 +2451,7 @@ PENTING:
                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                           </svg>
                           <span className="dropzone-title">Klik atau Seret Rekaman Video Meeting ke Sini</span>
-                          <span className="dropzone-hint">Format MP4, WebM, MOV (&lt; 300MB)</span>
+                          <span className="dropzone-hint">Format MP4, WebM, MOV (Maks. 2GB via Gemini Cloud)</span>
                         </label>
                         <input
                           type="file"
@@ -2559,12 +2479,18 @@ PENTING:
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                     <div className="spinner-circle" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
                                     <strong style={{ fontSize: '0.8rem', color: '#1e40af' }}>
-                                      {uploadProgress ? `Mengunggah ke Gemini File API (${uploadProgress.percent}%)` : 'AI Sedang Mentranskripsi Video...'}
+                                      {uploadProgress
+                                        ? uploadProgress.percent <= 26
+                                          ? `Mengunggah Video (${uploadProgress.percent}%)`
+                                          : `Transkripsi Gemini Flash (${uploadProgress.percent}%)`
+                                        : 'AI Sedang Mentranskripsi Video...'}
                                     </strong>
                                   </div>
                                   {uploadProgress && (
                                     <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#2563eb' }}>
-                                      {uploadProgress.loadedMb.toFixed(1)} / {uploadProgress.totalMb.toFixed(1)} MB
+                                      {uploadProgress.percent <= 26
+                                        ? `${uploadProgress.loadedMb.toFixed(1)} / ${uploadProgress.totalMb.toFixed(1)} MB`
+                                        : `${uploadProgress.percent}% selesai`}
                                     </span>
                                   )}
                                 </div>
@@ -2747,18 +2673,26 @@ PENTING:
                       <div style={{ padding: '26px 18px', background: '#f8fafc', border: '1.5px dashed #93c5fd', borderRadius: '14px', textAlign: 'center', minHeight: '340px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <div className="spinner-circle" style={{ width: '36px', height: '36px', borderWidth: '3px', marginBottom: '14px' }} />
                         <h4 style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e3a8a', margin: '0 0 6px 0' }}>
-                          {uploadProgress ? `Mengunggah Berkas Media (${uploadProgress.percent}%)` : "AI Mentranskripsikan Rekaman..."}
+                          {uploadProgress
+                            ? uploadProgress.percent <= 26
+                              ? `Mengunggah Berkas Media (${uploadProgress.percent}%)`
+                              : `Mentranskripsi dengan Gemini Flash (${uploadProgress.percent}%)`
+                            : "AI Mentranskripsikan Rekaman..."}
                         </h4>
-                        <p style={{ fontSize: '0.78rem', color: '#475569', maxWidth: '340px', margin: '0 0 16px 0' }}>
-                          {transcriptionProgress || "Gemini sedang mendengarkan audio dan menganalisis visual rapat..."}
+                        <p style={{ fontSize: '0.78rem', color: '#475569', maxWidth: '380px', margin: '0 0 16px 0' }}>
+                          {transcriptionProgress || "Gemini Flash sedang mendengarkan audio dan menyusun transkrip..."}
                         </p>
 
-                        {/* Progress Bar Unggah Real-time */}
+                        {/* Progress Bar Real-time */}
                         {uploadProgress && (
-                          <div style={{ width: '100%', maxWidth: '320px', background: '#ffffff', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+                          <div style={{ width: '100%', maxWidth: '360px', background: '#ffffff', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#1e40af', marginBottom: '6px' }}>
-                              <span>Progres Unggah</span>
-                              <span>{uploadProgress.percent}% ({uploadProgress.loadedMb.toFixed(1)} / {uploadProgress.totalMb.toFixed(1)} MB)</span>
+                              <span>{uploadProgress.percent <= 26 ? "Progres Unggah" : "Progres Transkripsi AI"}</span>
+                              <span>
+                                {uploadProgress.percent <= 26
+                                  ? `${uploadProgress.percent}% (${uploadProgress.loadedMb.toFixed(1)} / ${uploadProgress.totalMb.toFixed(1)} MB)`
+                                  : `${uploadProgress.percent}% selesai`}
+                              </span>
                             </div>
                             <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
                               <div
@@ -2771,6 +2705,15 @@ PENTING:
                                 }}
                               />
                             </div>
+                          </div>
+                        )}
+
+                        {transcriptionResult && (
+                          <div style={{ width: '100%', marginTop: '14px', textAlign: 'left', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '10px 12px', maxHeight: '160px', overflowY: 'auto', fontSize: '0.76rem', color: '#334155', whiteSpace: 'pre-wrap' }}>
+                            <div style={{ fontWeight: 700, color: '#059669', marginBottom: '4px', fontSize: '0.72rem' }}>
+                              ✓ Pratinjau Bagian yang Sudah Selesai:
+                            </div>
+                            {transcriptionResult.slice(-600)}
                           </div>
                         )}
                       </div>

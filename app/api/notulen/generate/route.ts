@@ -1,5 +1,10 @@
 import { NextRequest } from "next/server";
-import { generateWithAI, AI_PROVIDERS, detectProvider } from "@/lib/ai";
+import {
+  generateWithAI,
+  AI_PROVIDERS,
+  detectProvider,
+  resolveGeminiModels,
+} from "@/lib/ai";
 
 export const maxDuration = 120;
 
@@ -228,15 +233,7 @@ Keluarkan output HANYA dalam format JSON valid sesuai skema yang diminta, tanpa 
 
     // --- Gemini with media (inline or File API) ---
     if (hasMedia && activeProvider === "gemini") {
-      const geminiModels = [
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
-        "gemini-1.5-flash",
-        "gemini-2.5-flash",
-        "gemini-1.5-flash-8b",
-        "gemini-1.5-pro",
-        "gemini-flash-latest",
-      ];
+      const geminiModels = await resolveGeminiModels(key);
 
       for (const model of geminiModels) {
         try {

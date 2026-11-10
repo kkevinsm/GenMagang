@@ -61,17 +61,93 @@ export const AI_PROVIDERS: Record<string, AIProviderConfig> = {
     keyPrefix: "AIza",
     keyPlaceholder: "AIzaSy...",
     keyHelpUrl: "https://aistudio.google.com/app/apikey",
-    defaultModels: [
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-1.5-flash",
-      "gemini-2.5-flash",
-      "gemini-1.5-flash-8b",
-      "gemini-1.5-pro",
-      "gemini-flash-latest",
-    ],
+    defaultModels: ["gemini-flash-latest", "gemini-flash-lite-latest"],
   },
 };
+
+interface CachedGeminiModels {
+  models: string[];
+  expiresAt: number;
+}
+
+const geminiModelsCache = new Map<string, CachedGeminiModels>();
+
+/** Cadangan saat daftar model tidak bisa diambil (jaringan/key kosong). Alias *-latest tidak ikut deprecated. */
+export const DEFAULT_GEMINI_MODELS: string[] = ["gemini-flash-latest", "gemini-flash-lite-latest"];
+
+/**
+ * Urutan prioritas: khusus keluarga Gemini Flash (flash -> flash-lite), versi tertinggi lebih dulu.
+ * Model transcribe (limit 10k TPM) dan pro (limit 0 di Free Tier) dikecualikan agar tidak memicu 429.
+ */
+function scoreGeminiModel(name: string): number {
+  const lower = name.toLowerCase();
+  if (!lower.startsWith("gemini")) return 0;
+  if (!lower.includes("flash")) return 0;
+  if (/embedding|imagen|image|aqa|tts|transcribe|robotics|live|audio/.test(lower)) return 0;
+
+  const family = lower.includes("flash-lite") ? 2000 : 3000;
+  const version = parseFloat(lower.match(/^gemini-(\d+(?:\.\d+)?)/)?.[1] ?? "0");
+  const penalty = (/preview|exp/.test(lower) ? 5 : 0) + (lower.includes("customtools") ? 5 : 0);
+
+  return family + version * 100 - penalty;
+}
+
+/**
+ * Mengambil daftar model Gemini yang tersedia secara faktual pada API Key tersebut,
+ * diurutkan mulai dari Flash paling latest hingga model fallback lain yang tidak sibuk.
+ */
+export async function resolveGeminiModels(apiKey: string): Promise<string[]> {
+  const cleanKey = (apiKey || "").trim();
+  if (!cleanKey) return [...DEFAULT_GEMINI_MODELS];
+
+  const cached = geminiModelsCache.get(cleanKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.models;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      const rawList = Array.isArray(data?.models) ? data.models : [];
+      const validModels: { name: string; score: number }[] = [];
+
+      for (const item of rawList) {
+        const methods: string[] = item?.supportedGenerationMethods || [];
+        if (!methods.includes("generateContent")) continue;
+
+        const rawName: string = item?.name || "";
+        const cleanName = rawName.replace(/^models\//, "");
+        const score = scoreGeminiModel(cleanName);
+        if (score > 0) {
+          validModels.push({ name: cleanName, score });
+        }
+      }
+
+      if (validModels.length > 0) {
+        validModels.sort((a, b) => b.score - a.score);
+        const resolved = validModels.map((m) => m.name);
+        geminiModelsCache.set(cleanKey, {
+          models: resolved,
+          expiresAt: Date.now() + 10 * 60 * 1000,
+        });
+        return resolved;
+      }
+    }
+  } catch (err: unknown) {
+    console.warn("Gagal auto-discover model Gemini via API, menggunakan urutan default:", err);
+  }
+
+  return [...DEFAULT_GEMINI_MODELS];
+}
 
 export function detectProvider(apiKey: string, explicitProvider?: string): "openai" | "anthropic" | "xai" | "gemini" {
   if (explicitProvider && explicitProvider !== "auto" && AI_PROVIDERS[explicitProvider]) {
@@ -251,9 +327,14 @@ export async function generateWithAI({
   const activeProvider = detectProvider(apiKey, provider);
   const providerMeta = AI_PROVIDERS[activeProvider];
 
+  const baseModels =
+    activeProvider === "gemini"
+      ? await resolveGeminiModels(apiKey)
+      : providerMeta.defaultModels;
+
   const candidateModels = preferredModel
-    ? [preferredModel, ...providerMeta.defaultModels.filter((m) => m !== preferredModel)]
-    : [...providerMeta.defaultModels];
+    ? [preferredModel, ...baseModels.filter((m) => m !== preferredModel)]
+    : [...baseModels];
 
   let chosenText: string | null = null;
   let chosenModel: string | null = null;

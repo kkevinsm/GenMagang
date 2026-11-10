@@ -1,9 +1,16 @@
 import { NextRequest } from "next/server";
-import { detectProvider } from "@/lib/ai";
+import { detectProvider, resolveGeminiModels } from "@/lib/ai";
 import { execFile } from "child_process";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import {
+  CHUNK_SEC,
+  formatClock,
+  shiftTimestamps,
+  splitAudioIntoChunks,
+  type AudioChunk,
+} from "@/lib/notulen-audio";
 
 export const maxDuration = 300;
 
@@ -124,8 +131,15 @@ async function uploadBufferToGeminiFileApi(
     throw new Error("File URI tidak ditemukan setelah unggah ke Gemini.");
   }
 
+  if (uploadData?.file?.state === "ACTIVE") {
+    return fileUri;
+  }
+
   // Poll until Google finishes decoding the video/audio stream (state === "ACTIVE")
-  const fileNamePart = fileUri.split("/files/")[1];
+  const rawFileName = uploadData?.file?.name || fileUri;
+  const fileNamePart = rawFileName.includes("/files/")
+    ? rawFileName.split("/files/")[1]
+    : rawFileName.replace(/^files\//, "");
   const pollUrl = `https://generativelanguage.googleapis.com/v1beta/files/${fileNamePart}?key=${apiKey}`;
 
   for (let i = 0; i < 60; i++) {
@@ -376,23 +390,30 @@ async function callGeminiTranscribeFileUri(
   systemInstruction: string,
   textPrompt: string,
   fileUri: string,
-  mediaMimeType: string
+  mediaMimeType: string,
+  maxLoops = 2
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const maxTokens = (model.includes("2.5") || model.includes("2.0") || model.includes("3.")) ? 65536 : 8192;
+  const maxTokens = 8192;
 
   let fullTranscript = "";
   const conversationContents: any[] = [
     {
-      role: "user",
       parts: [
-        { fileData: { mimeType: mediaMimeType, fileUri: fileUri } },
+        {
+          file_data: {
+            mime_type: mediaMimeType,
+            file_uri: fileUri,
+          },
+        },
         { text: textPrompt },
       ],
     },
   ];
 
-  for (let loop = 0; loop < 5; loop++) {
+  for (let loop = 0; loop < maxLoops; loop++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
     const fetchPayload = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -405,16 +426,15 @@ async function callGeminiTranscribeFileUri(
           maxOutputTokens: maxTokens,
         },
       }),
+      signal: controller.signal,
     };
 
-    let res = await fetch(url, fetchPayload);
-
-    // Auto-retry once on 503 high demand spike
-    if (res.status === 503) {
-      await new Promise((r) => setTimeout(r, 1500));
+    let res: Response;
+    try {
       res = await fetch(url, fetchPayload);
+    } finally {
+      clearTimeout(timeoutId);
     }
-
     if (!res.ok) {
       const errText = await res.text();
       // If 65536 token limit is rejected on a specific tier, fallback to 8192
@@ -495,10 +515,11 @@ async function callGeminiTranscribeInline(
   systemInstruction: string,
   textPrompt: string,
   mediaBase64: string,
-  mediaMimeType: string
+  mediaMimeType: string,
+  maxLoops = 2
 ): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  const maxTokens = (model.includes("2.5") || model.includes("2.0") || model.includes("3.")) ? 65536 : 8192;
+  const maxTokens = 8192;
 
   let fullTranscript = "";
   const conversationContents: any[] = [
@@ -511,7 +532,9 @@ async function callGeminiTranscribeInline(
     },
   ];
 
-  for (let loop = 0; loop < 5; loop++) {
+  for (let loop = 0; loop < maxLoops; loop++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
     const fetchPayload = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -524,16 +547,15 @@ async function callGeminiTranscribeInline(
           maxOutputTokens: maxTokens,
         },
       }),
+      signal: controller.signal,
     };
 
-    let res = await fetch(url, fetchPayload);
-
-    // Auto-retry once on 503 high demand spike
-    if (res.status === 503) {
-      await new Promise((r) => setTimeout(r, 1500));
+    let res: Response;
+    try {
       res = await fetch(url, fetchPayload);
+    } finally {
+      clearTimeout(timeoutId);
     }
-
     if (!res.ok) {
       const errText = await res.text();
       throw new Error(`Gemini Inline Transcribe Error [${res.status}]: ${errText}`);
@@ -616,6 +638,254 @@ async function callOpenAIWhisper(
   return text;
 }
 
+const AUTH_MESSAGE = "API Key Gemini tidak valid. Periksa kembali API Key Anda di menu Setelan.";
+
+/** Error yang tidak boleh di-retry (mis. API key salah). */
+class FatalTranscribeError extends Error {}
+
+interface MediaSource {
+  fileUri: string;
+  base64: string;
+  mimeType: string;
+}
+
+interface FailoverState {
+  models: string[];
+  /** Model yang terbukti tidak bisa dipakai (404 / kuota free tier 0): dilewati untuk sisa request. */
+  dead: Set<string>;
+  /** Model yang terakhir sukses: dicoba lebih dulu pada potongan berikutnya. */
+  preferred: string | null;
+  used: Set<string>;
+  specialistDead: boolean;
+}
+
+interface TranscribeOptions {
+  systemInstruction: string;
+  textPrompt: string;
+  durationSec: number;
+  maxLoops?: number;
+  label: string;
+}
+
+interface ProgressUpdate {
+  percent: number;
+  message: string;
+  partialTranscript?: string;
+}
+
+/** Ronde percobaan ulang atas seluruh model: tanpa jeda, lalu jeda 8 dtk, lalu 20 dtk. */
+const RETRY_ROUND_DELAYS_MS = [0, 8_000, 20_000];
+
+function errMsg(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function errorStatus(message: string): number | null {
+  const m = message.match(/\[(\d{3})\]/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function isAuthFailure(message: string): boolean {
+  return errorStatus(message) === 401 || /api key not valid/i.test(message);
+}
+
+function shortError(message: string): string {
+  const status = errorStatus(message);
+  const text = message.match(/"message":\s*"([^"]{0,140})/)?.[1] ?? message.slice(0, 140);
+  return `${status ?? "?"} ${text}`;
+}
+
+function failureMessage(lastErr: string): string {
+  if (lastErr.includes("429") || lastErr.includes("RESOURCE_EXHAUSTED")) {
+    return "Kuota semua model Gemini pada API Key Anda sedang penuh (Rate Limit 429). Tunggu sekitar 1 menit lalu klik 'Ulangi', atau gunakan API Key baru.";
+  }
+  return `Gagal mentranskripsikan media (${shortError(lastErr)}). Model Gemini sedang sibuk atau tidak tersedia, coba lagi beberapa menit lagi.`;
+}
+
+function liveModels(state: FailoverState): string[] {
+  const alive = state.models.filter((m) => !state.dead.has(m));
+  if (state.preferred && alive.includes(state.preferred)) {
+    return [state.preferred, ...alive.filter((m) => m !== state.preferred)];
+  }
+  return alive;
+}
+
+/**
+ * Transkripsi satu sumber media langsung menggunakan keluarga model Gemini Flash
+ * secara berurutan, lalu ulangi ronde dengan jeda bila terjadi 503/429 sementara.
+ */
+async function transcribeSource(
+  key: string,
+  state: FailoverState,
+  source: MediaSource,
+  opts: TranscribeOptions
+): Promise<string> {
+  let lastErr = "";
+  let empties = 0;
+
+  for (let round = 0; round < RETRY_ROUND_DELAYS_MS.length; round++) {
+    const candidates = liveModels(state);
+    if (candidates.length === 0) break;
+
+    if (round > 0) {
+      console.warn(
+        `[${opts.label}] semua model gagal sementara, ronde ${round + 1}/${RETRY_ROUND_DELAYS_MS.length} dalam ${RETRY_ROUND_DELAYS_MS[round] / 1000} dtk`
+      );
+      await new Promise<void>((resolve) => setTimeout(resolve, RETRY_ROUND_DELAYS_MS[round]));
+    }
+
+    for (const model of candidates) {
+      try {
+        const loops = opts.maxLoops ?? 2;
+        const text = source.fileUri
+          ? await callGeminiTranscribeFileUri(
+              key,
+              model,
+              opts.systemInstruction,
+              opts.textPrompt,
+              source.fileUri,
+              source.mimeType,
+              loops
+            )
+          : await callGeminiTranscribeInline(
+              key,
+              model,
+              opts.systemInstruction,
+              opts.textPrompt,
+              source.base64,
+              source.mimeType,
+              loops
+            );
+        state.preferred = model;
+        state.used.add(model);
+        return text;
+      } catch (err: unknown) {
+        const msg = errMsg(err);
+        lastErr = msg;
+        if (isAuthFailure(msg)) throw new FatalTranscribeError(AUTH_MESSAGE);
+
+        const status = errorStatus(msg);
+        console.warn(`[${opts.label}] ${model} gagal: ${shortError(msg)}`);
+
+        if (msg.includes("Respon transkripsi dari Gemini kosong")) {
+          // Dua model berbeda sama-sama kosong: anggap potongan ini memang tanpa ucapan.
+          empties++;
+          if (empties >= 2) return "";
+        } else if (status === 404 || status === 400 || (status === 429 && /limit:\s*0/.test(msg))) {
+          state.dead.add(model);
+        }
+      }
+    }
+  }
+
+  throw new Error(lastErr || "Semua model Gemini tidak tersedia.");
+}
+
+async function uploadChunk(key: string, chunk: AudioChunk, displayName: string): Promise<MediaSource> {
+  const mimeType = "audio/mp3";
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fileUri = await uploadBufferToGeminiFileApi(key, chunk.buffer, mimeType, displayName);
+      return { fileUri, base64: "", mimeType };
+    } catch (err: unknown) {
+      const msg = errMsg(err);
+      if (isAuthFailure(msg)) throw new FatalTranscribeError(AUTH_MESSAGE);
+      console.warn(`Upload ${displayName} gagal (percobaan ${attempt + 1}/2): ${shortError(msg)}`);
+    }
+  }
+  // Potongan 10 menit hanya beberapa MB, aman dikirim inline sebagai cadangan.
+  return { fileUri: "", base64: chunk.buffer.toString("base64"), mimeType };
+}
+
+/** Transkripsi tiap potongan secara berurutan; potongan yang gagal ditandai, bukan menggagalkan semuanya. */
+async function transcribeChunked(
+  key: string,
+  state: FailoverState,
+  chunks: AudioChunk[],
+  systemInstruction: string,
+  textPrompt: string,
+  baseName: string,
+  onProgress?: (update: ProgressUpdate) => void
+): Promise<{ text: string; warning: string }> {
+  const parts: string[] = [];
+  const failedRanges: string[] = [];
+  let lastFailure = "";
+  let priorTail = "";
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    const range = `${formatClock(chunk.startSec)}-${formatClock(chunk.startSec + chunk.durationSec)}`;
+    const label = `bagian ${i + 1}/${chunks.length} (${range})`;
+    const startPct = Math.round(38 + (i / chunks.length) * 56);
+    console.log(`Mentranskripsi ${label} dengan Gemini Flash...`);
+    onProgress?.({
+      percent: startPct,
+      message: `Mentranskripsi Bagian ${i + 1}/${chunks.length} (menit ${range}) dengan Gemini Flash...`,
+      ...(parts.length > 0 ? { partialTranscript: parts.join("\n\n") } : {}),
+    });
+
+    try {
+      const source = await uploadChunk(key, chunk, `${baseName}-part${i + 1}.mp3`);
+      const chunkPrompt =
+        `${textPrompt}\n\n` +
+        `Ini adalah BAGIAN ${i + 1} dari ${chunks.length} dari satu rekaman rapat panjang (menit ${range} pada rekaman asli). ` +
+        `Timestamp [MM:SS] HARUS dihitung dari awal bagian ini (00:00 = awal bagian ini).` +
+        (priorTail
+          ? `\n\nCuplikan akhir bagian sebelumnya, HANYA untuk menjaga konsistensi nama pembicara. JANGAN ditulis ulang:\n${priorTail}`
+          : "");
+
+      let text = await transcribeSource(key, state, source, {
+        systemInstruction,
+        textPrompt: chunkPrompt,
+        durationSec: chunk.durationSec,
+        maxLoops: 1,
+        label,
+      });
+
+      if (!text.trim()) {
+        console.log(`${label}: tidak ada ucapan terdeteksi.`);
+        continue;
+      }
+      if (!/\[\d{1,3}:\d{2}\]/.test(text)) {
+        text = formatFlatTextIntoTimestampedDialogue(text, chunk.durationSec);
+      }
+      text = shiftTimestamps(text, chunk.startSec);
+      parts.push(text);
+      priorTail = text.slice(-400);
+
+      const donePct = Math.round(38 + ((i + 1) / chunks.length) * 56);
+      console.log(`Selesai ${label} (${donePct}%)`);
+      onProgress?.({
+        percent: donePct,
+        message:
+          i + 1 < chunks.length
+            ? `Bagian ${i + 1}/${chunks.length} selesai • Lanjut Bagian ${i + 2}/${chunks.length}...`
+            : `Seluruh ${chunks.length} bagian selesai ditranskripsi! Menyusun hasil akhir...`,
+        partialTranscript: parts.join("\n\n"),
+      });
+    } catch (err: unknown) {
+      if (err instanceof FatalTranscribeError) throw err;
+      lastFailure = errMsg(err);
+      failedRanges.push(range);
+      console.error(`${label} GAGAL: ${shortError(lastFailure)}`);
+      parts.push(
+        `[${formatClock(chunk.startSec)}] (BAGIAN ${range} GAGAL DITRANSKRIPSI: ${shortError(lastFailure)}. Coba transkripsi ulang.)`
+      );
+    }
+  }
+
+  if (failedRanges.length === chunks.length) {
+    throw new Error(failureMessage(lastFailure));
+  }
+
+  return {
+    text: parts.join("\n\n"),
+    warning: failedRanges.length
+      ? `Transkrip belum lengkap: bagian menit ${failedRanges.join(", ")} gagal diproses karena model Gemini sibuk. Klik "Ulangi" untuk mencoba lagi.`
+      : "",
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
     let apiKeyInput = "";
@@ -662,26 +932,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Otomatis ekstrak audio track (MP3) dari video menggunakan ffmpeg
-    // Mengurangi ukuran berkas 80-95% dan memungkinkan pemakaian model spesialis gemini-3.5-transcribe
-    let mediaDurationSec = 0;
-    if (fileBuffer && (mediaType === "video" || mediaMimeType.startsWith("video/"))) {
-      try {
-        console.log(`Mengekstrak audio MP3 dari video ${fileName} (${(fileBuffer.byteLength / 1024 / 1024).toFixed(1)} MB)...`);
-        const extracted = await extractAudioFromVideoBuffer(fileBuffer, fileName);
-        fileBuffer = extracted.buffer;
-        mediaMimeType = extracted.mimeType;
-        mediaType = "audio";
-        fileName = extracted.fileName;
-        mediaDurationSec = extracted.durationSec;
-        mediaFileUri = "";
-        mediaBase64 = "";
-        console.log(`Audio MP3 berhasil diekstrak: ${(fileBuffer.byteLength / 1024 / 1024).toFixed(1)} MB (Durasi: ${mediaDurationSec} detik)`);
-      } catch (extractErr: any) {
-        console.warn("Ekstraksi audio ffmpeg tidak berhasil, melanjutkan dengan video asli:", extractErr.message);
-      }
-    }
-
     const key =
       apiKeyInput.trim() ||
       process.env.GEMINI_API_KEY ||
@@ -700,12 +950,63 @@ export async function POST(request: NextRequest) {
     }
 
     const activeProvider = detectProvider(key, providerInput);
+    const streamRequested = request.headers.get("x-stream-progress") === "1";
 
-    // Strict Verbatim Speech-to-Text System Instruction
-    const systemInstruction = `Anda adalah mesin Speech-to-Text (STT) & Transkripsi Verbatim profesional dengan tingkat akurasi sangat tinggi.
+    const executeTranscription = async (
+      onProgress?: (update: ProgressUpdate) => void
+    ): Promise<{
+      success: true;
+      transcript: string;
+      model: string;
+      warning?: string;
+    }> => {
+      let mediaDurationSec = 0;
+      let audioChunks: AudioChunk[] | null = null;
+
+      if (fileBuffer && activeProvider === "gemini") {
+        try {
+          const mb = (fileBuffer.byteLength / 1024 / 1024).toFixed(1);
+          console.log(`Memecah audio ${fileName} (${mb} MB) per ${CHUNK_SEC / 60} menit...`);
+          onProgress?.({
+            percent: 30,
+            message: `Mengekstrak & mengompresi audio dari ${fileName} (${mb} MB)...`,
+          });
+          const split = await splitAudioIntoChunks(fileBuffer, fileName);
+          audioChunks = split.chunks;
+          mediaDurationSec = split.totalDurationSec;
+          mediaType = "audio";
+          mediaMimeType = "audio/mp3";
+          mediaFileUri = "";
+          mediaBase64 = "";
+          fileBuffer = null;
+          console.log(
+            `Audio siap: ${audioChunks.length} potongan, total ${formatClock(mediaDurationSec)} (${Math.round(mediaDurationSec)} detik)`
+          );
+        } catch (splitErr: unknown) {
+          console.warn(
+            "ffmpeg tidak tersedia atau gagal, memproses berkas apa adanya (satu permintaan):",
+            errMsg(splitErr)
+          );
+        }
+      } else if (fileBuffer && (mediaType === "video" || mediaMimeType.startsWith("video/"))) {
+        try {
+          const extracted = await extractAudioFromVideoBuffer(fileBuffer, fileName);
+          fileBuffer = extracted.buffer;
+          mediaMimeType = extracted.mimeType;
+          mediaType = "audio";
+          fileName = extracted.fileName;
+          mediaDurationSec = extracted.durationSec;
+          mediaFileUri = "";
+          mediaBase64 = "";
+        } catch (extractErr: unknown) {
+          console.warn("Ekstraksi audio ffmpeg tidak berhasil, melanjutkan dengan video asli:", errMsg(extractErr));
+        }
+      }
+
+      const systemInstruction = `Anda adalah mesin Speech-to-Text (STT) & Transkripsi Verbatim profesional dengan tingkat akurasi sangat tinggi.
 Tugas Anda adalah mendengarkan secara teliti jalur suara (audio track) dari rekaman ${
-      mediaType === "video" ? "video" : "audio"
-    } yang dilampirkan dari detik pertama hingga detik terakhir, kemudian menuliskan TRANSKRIP KATA DEMI KATA (VERBATIM) persis seperti yang diucapkan di dalam rekaman tersebut.
+        mediaType === "video" ? "video" : "audio"
+      } yang dilampirkan dari detik pertama hingga detik terakhir, kemudian menuliskan TRANSKRIP KATA DEMI KATA (VERBATIM) persis seperti yang diucapkan di dalam rekaman tersebut.
 
 ATURAN WAJIB TRANSKRIPSI (HARUS DIIKUTI 100%):
 1. KATA DEMI KATA (VERBATIM): Tuliskan setiap kalimat, kata, sapaan, istilah, dan angka PERSIS seperti yang diucapkan oleh pembicara di dalam rekaman.
@@ -717,149 +1018,153 @@ ATURAN WAJIB TRANSKRIPSI (HARUS DIIKUTI 100%):
 5. TEKS VISUAL DI LAYAR (KHUSUS VIDEO): Jika ada teks penting yang tampil di layar video dan relevan dengan ucapan, Anda boleh menambahkannya secara singkat dengan label [Teks di Layar: ...], tetapi prioritas utama adalah seluruh kata-kata yang diucapkan secara lisan.
 6. Bahasa mengikuti bahasa yang diucapkan di dalam rekaman (Bahasa Indonesia maupun istilah bahasa asing yang diucapkan).`;
 
-    const textPrompt = `Transkripsikan seluruh kata-kata yang diucapkan di dalam rekaman ${
-      mediaType === "video" ? "video" : "audio"
-    } terlampir secara VERBATIM (kata demi kata persis sesuai ucapan asli di rekaman) lengkap dengan timestamp [MM:SS] SECARA PENUH DARI AWAL (00:00) HINGGA MENIT PALING AKHIR REKAMAN SELESAI (jangan berhenti di tengah rekaman, lanjutkan terus sampai selesai).
+      const textPrompt = `Transkripsikan seluruh kata-kata yang diucapkan di dalam rekaman ${
+        mediaType === "video" ? "video" : "audio"
+      } terlampir secara VERBATIM (kata demi kata persis sesuai ucapan asli di rekaman) lengkap dengan timestamp [MM:SS] SECARA PENUH DARI AWAL (00:00) HINGGA MENIT PALING AKHIR REKAMAN SELESAI (jangan berhenti di tengah rekaman, lanjutkan terus sampai selesai).
 ${contextNotes ? `\nKonteks tambahan (opsional): ${contextNotes}\n` : ""}
 Jangan merangkum dan jangan menambahkan teks pembuka/penutup di luar isi transkrip.`;
 
-    let transcriptText = "";
-    let chosenModel = "";
+      let transcriptText = "";
+      let chosenModel = "";
+      let warning = "";
 
-    if (activeProvider === "gemini") {
-      // Ensure media is uploaded to Gemini File API so Google's media engine decodes the full audio stream + video frames
-      let activeFileUri = mediaFileUri;
-      if (!activeFileUri && fileBuffer) {
-        try {
-          activeFileUri = await uploadBufferToGeminiFileApi(
+      if (activeProvider === "gemini") {
+        const state: FailoverState = {
+          models: await resolveGeminiModels(key),
+          dead: new Set<string>(),
+          preferred: null,
+          used: new Set<string>(),
+          specialistDead: true,
+        };
+
+        if (audioChunks) {
+          const baseName = fileName.replace(/\.[^/.]+$/, "") || "rekaman";
+          const result = await transcribeChunked(
             key,
-            fileBuffer,
-            mediaMimeType,
-            fileName
+            state,
+            audioChunks,
+            systemInstruction,
+            textPrompt,
+            baseName,
+            onProgress
           );
-        } catch (uploadErr: any) {
-          console.warn("Gemini File API upload warning, falling back to inline if small:", uploadErr.message);
-          if (!mediaBase64 && fileBuffer.byteLength <= 15 * 1024 * 1024) {
-            mediaBase64 = fileBuffer.toString("base64");
-          } else {
-            throw uploadErr;
+          transcriptText = result.text;
+          warning = result.warning;
+        } else {
+          const source: MediaSource = {
+            fileUri: mediaFileUri,
+            base64: mediaBase64,
+            mimeType: mediaMimeType,
+          };
+          if (!source.fileUri && fileBuffer) {
+            try {
+              onProgress?.({
+                percent: 45,
+                message: "Mengunggah berkas media ke Gemini Flash...",
+              });
+              source.fileUri = await uploadBufferToGeminiFileApi(key, fileBuffer, mediaMimeType, fileName);
+            } catch (uploadErr: unknown) {
+              const msg = errMsg(uploadErr);
+              if (isAuthFailure(msg)) throw new FatalTranscribeError(AUTH_MESSAGE);
+              console.warn("Gemini File API upload warning, falling back to inline if small:", msg);
+              if (!source.base64 && fileBuffer.byteLength <= 15 * 1024 * 1024) {
+                source.base64 = fileBuffer.toString("base64");
+              } else {
+                throw uploadErr;
+              }
+            }
           }
-        }
-      }
-
-      // 1. Jika berkas adalah AUDIO murni, gunakan model spesialis gemini-3.5-transcribe via Interactions API
-      // (Catatan: Google secara resmi membatasi gemini-3.5-transcribe hanya untuk format audio, bukan video)
-      const isAudioOnly = mediaType === "audio" || mediaMimeType.startsWith("audio/");
-      if (activeFileUri && isAudioOnly) {
-        try {
-          transcriptText = await callGeminiInteractionsApi(
-            key,
-            "gemini-3.5-transcribe",
-            activeFileUri,
-            mediaMimeType,
-            mediaDurationSec || 2400
-          );
-          chosenModel = "gemini-3.5-transcribe (Spesialis Speech-to-Text)";
-        } catch (interactionsErr: any) {
-          console.warn("gemini-3.5-transcribe Interactions API failed, beralih ke model multimodal:", interactionsErr.message);
-          if (
-            interactionsErr.message.includes("401") ||
-            interactionsErr.message.toLowerCase().includes("api key not valid")
-          ) {
-            throw new Error("API Key Gemini tidak valid. Periksa kembali API Key Anda di menu Setelan.");
+          if (!source.fileUri && !source.base64) {
+            throw new Error("Data berkas video/audio tidak ditemukan.");
           }
-        }
-      }
 
-      // 2. Untuk rekaman VIDEO (atau fallback audio), gunakan model multimodal via generateContent
-      // Mengutamakan gemini-2.0-flash yang sangat stabil, bebas 503 high demand, dan mendukung 65.536 tokens
-      if (!transcriptText) {
-        const geminiModels = [
-          "gemini-2.0-flash",
-          "gemini-2.0-flash-lite",
-          "gemini-1.5-flash",
-          "gemini-2.5-flash",
-          "gemini-1.5-flash-8b",
-          "gemini-1.5-pro",
-          "gemini-flash-latest",
-        ];
-
-        let lastErr = "";
-        for (const model of geminiModels) {
+          onProgress?.({
+            percent: 65,
+            message: "Gemini Flash sedang mentranskripsikan rekaman...",
+          });
           try {
-            if (activeFileUri) {
-              transcriptText = await callGeminiTranscribeFileUri(
-                key,
-                model,
-                systemInstruction,
-                textPrompt,
-                activeFileUri,
-                mediaMimeType
-              );
-            } else if (mediaBase64) {
-              transcriptText = await callGeminiTranscribeInline(
-                key,
-                model,
-                systemInstruction,
-                textPrompt,
-                mediaBase64,
-                mediaMimeType
-              );
-            } else {
-              throw new Error("Data berkas video/audio tidak ditemukan.");
-            }
-            chosenModel = `Gemini (${model})`;
-            break;
-          } catch (err: any) {
-            lastErr = err.message || String(err);
-            console.warn(`Gemini transcribe [${model}] failed:`, lastErr);
-            if (
-              lastErr.includes("401") ||
-              lastErr.toLowerCase().includes("api key not valid")
-            ) {
-              throw new Error("API Key Gemini tidak valid. Periksa kembali API Key Anda di menu Setelan.");
-            }
+            transcriptText = await transcribeSource(key, state, source, {
+              systemInstruction,
+              textPrompt,
+              durationSec: mediaDurationSec,
+              label: "berkas",
+            });
+          } catch (err: unknown) {
+            if (err instanceof FatalTranscribeError) throw err;
+            throw new Error(failureMessage(errMsg(err)));
           }
         }
 
-        if (!transcriptText) {
-          if (lastErr.includes("429") || lastErr.includes("RESOURCE_EXHAUSTED")) {
-            throw new Error(
-              "Kuota semua model Gemini pada API Key Anda sedang penuh (Rate Limit 429). Tunggu sekitar 1 menit lalu klik 'Ulangi', atau gunakan API Key baru."
-            );
-          }
-          throw new Error(
-            `Gagal mentranskripsikan media (${lastErr || "Semua model sibuk"}). Pastikan format berkas didukung.`
-          );
-        }
+        chosenModel = `Gemini (${[...state.used].join(", ") || "tidak diketahui"})`;
+      } else if (activeProvider === "openai" && fileBuffer) {
+        onProgress?.({
+          percent: 60,
+          message: "Mentranskripsikan audio dengan OpenAI Whisper...",
+        });
+        transcriptText = await callOpenAIWhisper(
+          key,
+          fileBuffer,
+          mediaMimeType,
+          fileName
+        );
+        chosenModel = "OpenAI Whisper-1";
+      } else {
+        throw new Error(
+          "Untuk transkripsi berkas video/audio, gunakan API Key Google Gemini (AIza...) atau OpenAI (sk-...) di menu Setelan."
+        );
       }
-    } else if (activeProvider === "openai" && fileBuffer) {
-      transcriptText = await callOpenAIWhisper(
-        key,
-        fileBuffer,
-        mediaMimeType,
-        fileName
-      );
-      chosenModel = "OpenAI Whisper-1";
-    } else {
-      throw new Error(
-        "Untuk transkripsi berkas video/audio, gunakan API Key Google Gemini (AIza...) atau OpenAI (sk-...) di menu Setelan."
-      );
+
+      if (transcriptText && !/\[\d{1,3}:\d{2}\]/.test(transcriptText)) {
+        transcriptText = formatFlatTextIntoTimestampedDialogue(
+          transcriptText,
+          mediaDurationSec || 2400
+        );
+      }
+
+      return {
+        success: true,
+        transcript: transcriptText,
+        model: chosenModel,
+        ...(warning ? { warning } : {}),
+      };
+    };
+
+    if (streamRequested) {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          const send = (payload: Record<string, unknown>) => {
+            controller.enqueue(encoder.encode(JSON.stringify(payload) + "\n"));
+          };
+          try {
+            const finalResult = await executeTranscription((update) => {
+              send({ type: "progress", ...update });
+            });
+            send({ type: "result", ...finalResult });
+          } catch (err: unknown) {
+            console.error("Notulen AI Transcribe stream error:", err);
+            send({
+              type: "error",
+              error: err instanceof Error ? err.message : "Terjadi kesalahan pada pemrosesan transkripsi.",
+            });
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/x-ndjson; charset=utf-8",
+          "Cache-Control": "no-cache, no-transform",
+          "X-Accel-Buffering": "no",
+        },
+      });
     }
 
-    // Pastikan hasil transkripsi selalu terurut rapi secara kronologis dengan timestamp [MM:SS]
-    if (transcriptText && !/\[\d{1,3}:\d{2}\]/.test(transcriptText)) {
-      transcriptText = formatFlatTextIntoTimestampedDialogue(
-        transcriptText,
-        mediaDurationSec || 2400
-      );
-    }
-
-    return Response.json({
-      success: true,
-      transcript: transcriptText,
-      model: chosenModel,
-    });
+    const result = await executeTranscription();
+    return Response.json(result);
   } catch (error: unknown) {
     console.error("Notulen AI Transcribe error:", error);
     const message =
