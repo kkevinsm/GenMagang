@@ -1458,38 +1458,51 @@
 /* Multimodal Mode Selector Tabs */
 .input-mode-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  background: rgba(19, 79, 92, 0.04);
-  padding: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  background: rgba(19, 79, 92, 0.05);
+  padding: 5px;
   border-radius: var(--radius-md);
   margin-bottom: 20px;
   border: 1px solid var(--border-subtle);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
   .input-mode-tabs {
     grid-template-columns: 1fr;
+    gap: 6px;
   }
 }
 
 .mode-tab-btn,
 .input-mode-tab {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 11px 16px;
+  gap: 6px;
+  padding: 10px 8px;
   border: 1px solid transparent;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: var(--font-sans);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   text-align: center;
+  white-space: nowrap;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mode-tab-btn span,
+.input-mode-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

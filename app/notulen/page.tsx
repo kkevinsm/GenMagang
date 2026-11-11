@@ -2222,7 +2222,7 @@ PENTING:
                           <line x1="16" y1="13" x2="8" y2="13" />
                           <line x1="16" y1="17" x2="8" y2="17" />
                         </svg>
-                        <span>1. Transkrip Teks</span>
+                        <span>Transkrip Teks</span>
                       </button>
 
                       <button
@@ -2236,7 +2236,7 @@ PENTING:
                           <line x1="12" y1="19" x2="12" y2="23" />
                           <line x1="8" y1="23" x2="16" y2="23" />
                         </svg>
-                        <span>2. Rekam Voice Note / Audio</span>
+                        <span>Voice Note / Audio</span>
                       </button>
 
                       <button
@@ -2248,7 +2248,7 @@ PENTING:
                           <polygon points="23 7 16 12 23 17 23 7" />
                           <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
                         </svg>
-                        <span>3. Video Rekaman Meeting</span>
+                        <span>Video Rekaman</span>
                       </button>
                     </div>
 
@@ -2668,48 +2668,19 @@ PENTING:
                       )}
                     </div>
 
-                    {/* STATE A: Sedang Proses Transkripsi / Unggah */}
+                    {/* STATE A: Menunggu Hasil Transkripsi (Loading bar hanya di card kiri unggah file) */}
                     {isTranscribing && (
-                      <div style={{ padding: '26px 18px', background: '#f8fafc', border: '1.5px dashed #93c5fd', borderRadius: '14px', textAlign: 'center', minHeight: '340px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ padding: '28px 18px', background: '#f8fafc', border: '1.5px dashed #cbd5e1', borderRadius: '14px', textAlign: 'center', minHeight: '340px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         <div className="spinner-circle" style={{ width: '36px', height: '36px', borderWidth: '3px', marginBottom: '14px' }} />
-                        <h4 style={{ fontWeight: 800, fontSize: '0.95rem', color: '#1e3a8a', margin: '0 0 6px 0' }}>
-                          {uploadProgress
-                            ? uploadProgress.percent <= 26
-                              ? `Mengunggah Berkas Media (${uploadProgress.percent}%)`
-                              : `Mentranskripsi dengan Gemini Flash (${uploadProgress.percent}%)`
-                            : "AI Mentranskripsikan Rekaman..."}
+                        <h4 style={{ fontWeight: 800, fontSize: '0.94rem', color: '#1e293b', margin: '0 0 6px 0' }}>
+                          AI Sedang Memproses Transkrip...
                         </h4>
-                        <p style={{ fontSize: '0.78rem', color: '#475569', maxWidth: '380px', margin: '0 0 16px 0' }}>
-                          {transcriptionProgress || "Gemini Flash sedang mendengarkan audio dan menyusun transkrip..."}
+                        <p style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: '340px', margin: 0, lineHeight: 1.5 }}>
+                          Pantau progres pada kartu di sebelah kiri. Teks dialog percakapan akan otomatis muncul di panel ini setelah selesai.
                         </p>
 
-                        {/* Progress Bar Real-time */}
-                        {uploadProgress && (
-                          <div style={{ width: '100%', maxWidth: '360px', background: '#ffffff', padding: '12px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.74rem', fontWeight: 700, color: '#1e40af', marginBottom: '6px' }}>
-                              <span>{uploadProgress.percent <= 26 ? "Progres Unggah" : "Progres Transkripsi AI"}</span>
-                              <span>
-                                {uploadProgress.percent <= 26
-                                  ? `${uploadProgress.percent}% (${uploadProgress.loadedMb.toFixed(1)} / ${uploadProgress.totalMb.toFixed(1)} MB)`
-                                  : `${uploadProgress.percent}% selesai`}
-                              </span>
-                            </div>
-                            <div style={{ width: '100%', height: '8px', background: '#e2e8f0', borderRadius: '9999px', overflow: 'hidden' }}>
-                              <div
-                                style={{
-                                  width: `${uploadProgress.percent}%`,
-                                  height: '100%',
-                                  background: 'linear-gradient(90deg, #2563eb, #06b6d4, #10b981)',
-                                  transition: 'width 250ms ease',
-                                  borderRadius: '9999px'
-                                }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
                         {transcriptionResult && (
-                          <div style={{ width: '100%', marginTop: '14px', textAlign: 'left', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '10px 12px', maxHeight: '160px', overflowY: 'auto', fontSize: '0.76rem', color: '#334155', whiteSpace: 'pre-wrap' }}>
+                          <div style={{ width: '100%', marginTop: '16px', textAlign: 'left', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '10px', padding: '10px 12px', maxHeight: '180px', overflowY: 'auto', fontSize: '0.76rem', color: '#334155', whiteSpace: 'pre-wrap' }}>
                             <div style={{ fontWeight: 700, color: '#059669', marginBottom: '4px', fontSize: '0.72rem' }}>
                               ✓ Pratinjau Bagian yang Sudah Selesai:
                             </div>

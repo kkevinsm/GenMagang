@@ -2140,32 +2140,44 @@ html, body {
    MULTIMODAL AI MEETING GENERATOR (TRANSCRIPT, VOICE NOTE, VIDEO RECORDING)
    ========================================================================== */
 .input-mode-tabs {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
   background: rgba(0, 0, 0, 0.04);
   padding: 4px;
   border-radius: var(--radius-md);
   margin-bottom: 14px;
   border: 1px solid var(--border-subtle);
-  overflow-x: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mode-tab-btn,
 .input-mode-tab {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 8px 16px;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 10px;
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   font-family: var(--font-sans);
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
+  white-space: nowrap;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mode-tab-btn span,
+.input-mode-tab span {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
