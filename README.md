@@ -56,7 +56,3 @@ Repositori ini siap langsung di-deploy ke Vercel:
 4. Klik **Deploy**. Selesai!
    Vercel akan otomatis menyajikan dashboard utama di `/`, GenMonev di `/monev`, dan GenNotulis di `/notulen`.
 
----
-
-## 📄 Lisensi
-MIT License © 2026 GenMagang by Kevin Simanjuntak
