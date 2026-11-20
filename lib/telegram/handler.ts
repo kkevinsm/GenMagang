@@ -49,7 +49,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const cb = update.callback_query;
     const chatId = cb.message?.chat.id || cb.from.id;
     const data = cb.data || "";
-    const user = getUser(chatId);
+    const user = await getUser(chatId);
 
     // Answer callback query immediately
     await telegram.answerCallbackQuery(cb.id);
@@ -57,7 +57,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     // Menu Action Buttons
     if (data === "MENU_HADIR") {
       user.step = "awaiting_hadir_input";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         "🟢 *Presensi: Hadir*\n\nSilakan kirimkan ringkasan kegiatan harian Anda (misal: _'Slicing UI dashboard dan testing API'_).\n\n_Atau klik tombol di bawah jika ingin melihat rekomendasi ide kegiatan sesuai posisimu:_",
@@ -74,7 +74,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (data === "MENU_IZIN") {
       user.step = "awaiting_izin_input";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         "🟡 *Presensi: Tidak Hadir Dengan Keterangan (Izin/Sakit)*\n\nSilakan kirimkan alasan atau keterangan ketidakhadiran Anda (misal: _'Sakit demam dan berobat ke klinik dokter'_).\n\nAI GenMonev akan menyusun narasi permohonan izin resmi minimal 100 karakter."
@@ -96,7 +96,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     if (data === "CANCEL_REPORT") {
       user.draftReport = null;
       user.step = "idle";
-      saveUser(user);
+      await saveUser(user);
       if (cb.message?.message_id) {
         return telegram.editMessageText(
           chatId,
@@ -114,7 +114,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     if (data.startsWith("SET_ROLE_")) {
       const roleId = data.replace("SET_ROLE_", "");
       user.role = roleId;
-      saveUser(user);
+      await saveUser(user);
       const roleInfo = ROLES[roleId] || ROLES.general;
 
       return telegram.sendMessage(
@@ -144,7 +144,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (data === "TOGGLE_REMINDER") {
       user.reminderEnabled = user.reminderEnabled === false ? true : false;
-      saveUser(user);
+      await saveUser(user);
       const isEnabled = user.reminderEnabled;
       const text = isEnabled
         ? "🔔 *Pengingat Harian (16:30 WIB) Diaktifkan!*\n\nAnda akan menerima notifikasi presensi otomatis setiap sore."
@@ -158,7 +158,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (data === "BTN_LOGIN") {
       user.step = "awaiting_login_email";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         "🔐 *Hubungkan Akun SIAPkerja Kemnaker*\n\nSilakan kirimkan *Email, No. HP, atau NIK* akun Kemnaker Anda:"
@@ -167,7 +167,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
     if (data === "BTN_SET_APIKEY") {
       user.step = "awaiting_gemini_key";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         "🔑 *Masukkan Gemini API Key Anda*\n\nDapatkan API Key gratis di [Google AI Studio](https://aistudio.google.com/app/apikey), lalu kirimkan key tersebut ke chat ini:"
@@ -191,7 +191,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   const rawText = (msg.text || "").trim();
   const lowerText = rawText.toLowerCase();
 
-  const user = getUser(chatId);
+  const user = await getUser(chatId);
   if (msg.from?.first_name) {
     user.name = [msg.from.first_name, msg.from.last_name].filter(Boolean).join(" ");
   }
@@ -218,7 +218,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
   if (lowerText === "/apikey" || lowerText === "/key") {
     user.step = "awaiting_gemini_key";
-    saveUser(user);
+    await saveUser(user);
     return telegram.sendMessage(
       chatId,
       "🔑 *Konfigurasi Google Gemini API Key*\n\nSilakan kirimkan API Key Gemini Anda ke chat ini:\n_(Dapatkan gratis di https://aistudio.google.com/app/apikey)_"
@@ -244,7 +244,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   // Command: /login
   if (lowerText === "/login") {
     user.step = "awaiting_login_email";
-    saveUser(user);
+    await saveUser(user);
     return telegram.sendMessage(
       chatId,
       "🔐 *Hubungkan Akun SIAPkerja Kemnaker*\n\nSilakan kirimkan *Email, No. HP, atau NIK* akun Kemnaker Anda:"
@@ -279,13 +279,13 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     user.token = loginRes.accessToken;
     user.name = (loginRes.user?.name as string) || user.name || "Peserta Magang";
     user.step = "idle";
-    saveUser(user);
+    await saveUser(user);
 
     // Cek apakah API key sudah ada
     const hasKey = Boolean(user.geminiApiKey || process.env.GEMINI_API_KEY);
     if (!hasKey) {
       user.step = "awaiting_gemini_key";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         `🎉 *Berhasil Terhubung ke Kemnaker!* ✅\n\nSelamat datang, *${user.name}*!\n\n👉 *Langkah 2 (Terakhir):* Silakan kirimkan **Gemini API Key** Anda ke chat ini:\n_(Dapatkan gratis di https://aistudio.google.com/app/apikey)_`,
@@ -321,14 +321,14 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const password = rawText;
     user.tempLoginEmail = undefined;
     user.step = "idle";
-    saveUser(user);
+    await saveUser(user);
 
     await telegram.sendChatAction(chatId, "typing");
     await telegram.sendMessage(chatId, "⏳ Sedang memverifikasi akun Anda ke server Kemnaker...");
 
     const loginRes = await loginKemnaker(email, password);
     if (!loginRes.success || !loginRes.accessToken) {
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         `❌ *Gagal Terhubung ke Kemnaker*\n\n${loginRes.error || "Email/NIK atau password salah."}\n\nSilakan coba lagi dengan mengetik \`/login\``
@@ -343,7 +343,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const hasKey = Boolean(user.geminiApiKey || process.env.GEMINI_API_KEY);
     if (!hasKey) {
       user.step = "awaiting_gemini_key";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         `🎉 *Berhasil Terhubung ke Kemnaker!* ✅\n\nSelamat datang, *${user.name}*!\n\n👉 *Langkah 2 (Terakhir):* Silakan kirimkan **Gemini API Key** Anda ke chat ini:\n_(Dapatkan gratis di https://aistudio.google.com/app/apikey)_`,
@@ -357,7 +357,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       );
     }
 
-    saveUser(user);
+    await saveUser(user);
     return telegram.sendMessage(
       chatId,
       `🎉 *Berhasil Terhubung!*\n\nSelamat datang, *${user.name}*!\nAkun SIAPkerja Kemnaker Anda telah aktif. 🚀\n\nSilakan pilih opsi presensi Anda di bawah ini:`,
@@ -381,7 +381,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   if (!user.username && (isEmailFormat || isPhoneOrNik || user.step === "awaiting_login_email") && !lowerText.startsWith("/")) {
     user.tempLoginEmail = rawText;
     user.step = "awaiting_login_password";
-    saveUser(user);
+    await saveUser(user);
     return telegram.sendMessage(
       chatId,
       `🔑 Email *${rawText}* diterima!\n\nSekarang, silakan masukkan *Password* akun SIAPkerja Kemnaker Anda:\n_(Password dienkripsi aman secara otomatis)_`
@@ -390,7 +390,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
   // Command: /logout
   if (lowerText === "/logout") {
-    deleteUser(chatId);
+    await deleteUser(chatId);
     return telegram.sendMessage(
       chatId,
       "🔒 Data akun Anda telah dihapus dari bot. Ketik `/login` kapan saja jika ingin menghubungkannya kembali."
@@ -443,7 +443,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   // Command: /reminder on / off
   if (lowerText === "/reminder on" || lowerText === "/reminder aktif") {
     user.reminderEnabled = true;
-    saveUser(user);
+    await saveUser(user);
     return telegram.sendMessage(
       chatId,
       "🔔 *Pengingat Harian Diaktifkan!*\n\nBot akan otomatis mengingatkan Anda untuk presensi setiap hari kerja pukul *16:30 WIB*."
@@ -452,7 +452,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
   if (lowerText === "/reminder off" || lowerText === "/reminder nonaktif") {
     user.reminderEnabled = false;
-    saveUser(user);
+    await saveUser(user);
     return telegram.sendMessage(
       chatId,
       "🔕 *Pengingat Harian Dinonaktifkan.*\n\nKetik `/reminder on` kapan saja untuk mengaktifkannya kembali."
@@ -474,7 +474,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const reasonInput = rawText.replace(/^[/!]izin\s*/i, "").trim();
     if (!reasonInput) {
       user.step = "awaiting_izin_input";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         "🟡 *Presensi: Tidak Hadir Dengan Keterangan*\n\nSilakan kirimkan alasan izin Anda (misal: _'Sakit demam dan disarankan istirahat dokter'_):"
@@ -488,7 +488,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
     const actInput = rawText.replace(/^[/!]hadir\s*/i, "").trim();
     if (!actInput) {
       user.step = "awaiting_hadir_input";
-      saveUser(user);
+      await saveUser(user);
       return telegram.sendMessage(
         chatId,
         "🟢 *Presensi: Hadir*\n\nSilakan kirimkan poin kegiatan Anda hari ini:"
@@ -500,7 +500,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
   // Step Handler: Menunggu input izin
   if (user.step === "awaiting_izin_input") {
     user.step = "idle";
-    saveUser(user);
+    await saveUser(user);
     return handleGenerateIzin(user, rawText);
   }
 
@@ -546,7 +546,7 @@ async function handleSaveApiKey(user: UserAccount, keyInput: string) {
   }
 
   user.geminiApiKey = encryptData(keyInput);
-  saveUser(user);
+  await saveUser(user);
 
   return telegram.sendMessage(
     user.chatId,
@@ -607,7 +607,7 @@ async function handleGenerateHadir(user: UserAccount, input: string) {
 
     user.draftReport = draft;
     user.step = "awaiting_confirm";
-    saveUser(user);
+    await saveUser(user);
 
     const message = `📋 *PREVIEW LAPORAN MONEV (${today})*
 Status: *1. Hadir (PRESENT)*
@@ -696,7 +696,7 @@ async function handleGenerateIzin(user: UserAccount, reasonInput: string) {
 
     user.draftReport = draft;
     user.step = "awaiting_confirm";
-    saveUser(user);
+    await saveUser(user);
 
     const message = `📋 *PREVIEW LAPORAN IZIN (${today})*
 Status: *2. Tidak Hadir Dengan Keterangan (ON_LEAVE)*
@@ -751,7 +751,7 @@ async function handlePrepareAbsent(user: UserAccount) {
 
   user.draftReport = draft;
   user.step = "awaiting_confirm";
-  saveUser(user);
+  await saveUser(user);
 
   const message = `⚠️ *KONFIRMASI PRESENSI (${today})*
 Status: *3. Tidak Hadir Tanpa Keterangan (ABSENT)*
@@ -854,7 +854,7 @@ async function handleConfirmSubmit(user: UserAccount, messageId?: number) {
   // Success! Clear draft
   user.draftReport = null;
   user.step = "idle";
-  saveUser(user);
+  await saveUser(user);
 
   return telegram.sendMessage(
     user.chatId,

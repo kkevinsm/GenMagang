@@ -1,12 +1,39 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { UserAccount } from "./types";
 
 const DATA_DIR = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), ".data");
 const STORE_FILE = path.join(DATA_DIR, "telegram_users.json");
+const KV_KEY_PREFIX = "user:";
 
-// In-memory cache for fast read/write
+interface KVNamespaceLike {
+  get<T = unknown>(key: string, type: "json"): Promise<T | null>;
+  put(key: string, value: string): Promise<void>;
+  delete(key: string): Promise<void>;
+  list(options?: { prefix?: string; cursor?: string }): Promise<{
+    keys: { name: string }[];
+    list_complete: boolean;
+    cursor?: string;
+  }>;
+}
+
+async function getKV(): Promise<KVNamespaceLike | null> {
+  try {
+    const ctx = await getCloudflareContext({ async: true });
+    const env = ctx?.env as Record<string, unknown> | undefined;
+    const kv = env?.TELEGRAM_USERS as KVNamespaceLike | undefined;
+    if (kv && typeof kv.get === "function") {
+      return kv;
+    }
+  } catch {
+    // Fallback ke file lokal saat berjalan di Node.js dev server (`next dev`)
+  }
+  return null;
+}
+
+// In-memory cache for local file fallback
 const memoryStore = new Map<number, UserAccount>();
 let isLoaded = false;
 
@@ -95,12 +122,7 @@ function persistToFile() {
   }
 }
 
-export function getUser(chatId: number): UserAccount {
-  loadFromFile();
-  const existing = memoryStore.get(chatId);
-  if (existing) {
-    return { ...existing };
-  }
+function createDefaultUser(chatId: number): UserAccount {
   return {
     chatId,
     step: "idle",
@@ -109,14 +131,40 @@ export function getUser(chatId: number): UserAccount {
   };
 }
 
-export function saveUser(user: UserAccount): void {
+export async function getUser(chatId: number): Promise<UserAccount> {
+  const kv = await getKV();
+  if (kv) {
+    const existing = await kv.get<UserAccount>(`${KV_KEY_PREFIX}${chatId}`, "json");
+    return existing ? { ...existing } : createDefaultUser(chatId);
+  }
+
   loadFromFile();
+  const existing = memoryStore.get(chatId);
+  return existing ? { ...existing } : createDefaultUser(chatId);
+}
+
+export async function saveUser(user: UserAccount): Promise<void> {
   user.updatedAt = new Date().toISOString();
+  const kv = await getKV();
+  if (kv) {
+    await kv.put(`${KV_KEY_PREFIX}${user.chatId}`, JSON.stringify(user));
+    return;
+  }
+
+  loadFromFile();
   memoryStore.set(user.chatId, { ...user });
   persistToFile();
 }
 
-export function deleteUser(chatId: number): boolean {
+export async function deleteUser(chatId: number): Promise<boolean> {
+  const kv = await getKV();
+  if (kv) {
+    const existing = await kv.get<UserAccount>(`${KV_KEY_PREFIX}${chatId}`, "json");
+    if (!existing) return false;
+    await kv.delete(`${KV_KEY_PREFIX}${chatId}`);
+    return true;
+  }
+
   loadFromFile();
   const deleted = memoryStore.delete(chatId);
   if (deleted) {
@@ -125,7 +173,24 @@ export function deleteUser(chatId: number): boolean {
   return deleted;
 }
 
-export function getAllUsers(): UserAccount[] {
+export async function getAllUsers(): Promise<UserAccount[]> {
+  const kv = await getKV();
+  if (kv) {
+    const users: UserAccount[] = [];
+    let cursor: string | undefined;
+    do {
+      const list = await kv.list({ prefix: KV_KEY_PREFIX, cursor });
+      const fetched = await Promise.all(
+        list.keys.map((k) => kv.get<UserAccount>(k.name, "json"))
+      );
+      for (const user of fetched) {
+        if (user) users.push(user);
+      }
+      cursor = list.list_complete ? undefined : list.cursor;
+    } while (cursor);
+    return users;
+  }
+
   loadFromFile();
   return Array.from(memoryStore.values());
 }

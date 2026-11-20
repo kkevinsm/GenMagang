@@ -897,6 +897,12 @@ export async function POST(request: NextRequest) {
     let mediaFileUri = "";
     let fileBuffer: Buffer | null = null;
     let mediaBase64 = "";
+    let chunkIndex = -1;
+    let chunkTotal = 0;
+    let chunkStartSec = 0;
+    let chunkDurationSec = 0;
+    let preferredModel = "";
+    let priorTail = "";
 
     const contentType = request.headers.get("content-type") || "";
 
@@ -909,6 +915,12 @@ export async function POST(request: NextRequest) {
       fileName = (formData.get("fileName") as string) || "recording.mp4";
       contextNotes = (formData.get("contextNotes") as string) || "";
       mediaFileUri = (formData.get("mediaFileUri") as string) || "";
+      chunkIndex = parseInt((formData.get("chunkIndex") as string) || "-1", 10);
+      chunkTotal = parseInt((formData.get("chunkTotal") as string) || "0", 10);
+      chunkStartSec = parseFloat((formData.get("chunkStartSec") as string) || "0") || 0;
+      chunkDurationSec = parseFloat((formData.get("chunkDurationSec") as string) || "0") || 0;
+      preferredModel = (formData.get("preferredModel") as string) || "";
+      priorTail = (formData.get("priorTail") as string) || "";
 
       const uploadedFile = formData.get("file") as File | null;
       if (uploadedFile) {
@@ -927,10 +939,18 @@ export async function POST(request: NextRequest) {
       contextNotes = body.contextNotes || "";
       mediaFileUri = body.mediaFileUri || "";
       mediaBase64 = body.mediaBase64 || "";
+      chunkIndex = Number.isFinite(body.chunkIndex) ? Number(body.chunkIndex) : -1;
+      chunkTotal = Number.isFinite(body.chunkTotal) ? Number(body.chunkTotal) : 0;
+      chunkStartSec = Number(body.chunkStartSec) || 0;
+      chunkDurationSec = Number(body.chunkDurationSec) || 0;
+      preferredModel = body.preferredModel || "";
+      priorTail = body.priorTail || "";
       if (mediaBase64) {
         fileBuffer = Buffer.from(mediaBase64, "base64");
       }
     }
+
+    const isClientChunk = chunkTotal > 0 && chunkIndex >= 0;
 
     const key =
       apiKeyInput.trim() ||
@@ -958,12 +978,13 @@ export async function POST(request: NextRequest) {
       success: true;
       transcript: string;
       model: string;
+      usedModel?: string;
       warning?: string;
     }> => {
-      let mediaDurationSec = 0;
+      let mediaDurationSec = isClientChunk ? chunkDurationSec || 600 : 0;
       let audioChunks: AudioChunk[] | null = null;
 
-      if (fileBuffer && activeProvider === "gemini") {
+      if (fileBuffer && activeProvider === "gemini" && !isClientChunk) {
         try {
           const mb = (fileBuffer.byteLength / 1024 / 1024).toFixed(1);
           console.log(`Memecah audio ${fileName} (${mb} MB) per ${CHUNK_SEC / 60} menit...`);
@@ -1028,11 +1049,13 @@ Jangan merangkum dan jangan menambahkan teks pembuka/penutup di luar isi transkr
       let chosenModel = "";
       let warning = "";
 
+      let usedModel = "";
+
       if (activeProvider === "gemini") {
         const state: FailoverState = {
           models: await resolveGeminiModels(key),
           dead: new Set<string>(),
-          preferred: null,
+          preferred: preferredModel || null,
           used: new Set<string>(),
           specialistDead: true,
         };
@@ -1078,16 +1101,31 @@ Jangan merangkum dan jangan menambahkan teks pembuka/penutup di luar isi transkr
             throw new Error("Data berkas video/audio tidak ditemukan.");
           }
 
+          const range = isClientChunk
+            ? `${formatClock(chunkStartSec)}-${formatClock(chunkStartSec + mediaDurationSec)}`
+            : "";
+          const effectivePrompt = isClientChunk
+            ? `${textPrompt}\n\n` +
+              `Ini adalah BAGIAN ${chunkIndex + 1} dari ${chunkTotal} dari satu rekaman rapat panjang (menit ${range} pada rekaman asli). ` +
+              `Timestamp [MM:SS] HARUS dihitung dari awal bagian ini (00:00 = awal bagian ini).` +
+              (priorTail
+                ? `\n\nCuplikan akhir bagian sebelumnya, HANYA untuk menjaga konsistensi nama pembicara. JANGAN ditulis ulang:\n${priorTail}`
+                : "")
+            : textPrompt;
+
           onProgress?.({
             percent: 65,
-            message: "Gemini Flash sedang mentranskripsikan rekaman...",
+            message: isClientChunk
+              ? `Mentranskripsi Bagian ${chunkIndex + 1}/${chunkTotal} (${range}) dengan Gemini Flash...`
+              : "Gemini Flash sedang mentranskripsikan rekaman...",
           });
           try {
             transcriptText = await transcribeSource(key, state, source, {
               systemInstruction,
-              textPrompt,
+              textPrompt: effectivePrompt,
               durationSec: mediaDurationSec,
-              label: "berkas",
+              maxLoops: isClientChunk ? 1 : 2,
+              label: isClientChunk ? `bagian ${chunkIndex + 1}/${chunkTotal} (${range})` : "berkas",
             });
           } catch (err: unknown) {
             if (err instanceof FatalTranscribeError) throw err;
@@ -1095,6 +1133,7 @@ Jangan merangkum dan jangan menambahkan teks pembuka/penutup di luar isi transkr
           }
         }
 
+        usedModel = state.preferred || [...state.used][0] || "";
         chosenModel = `Gemini (${[...state.used].join(", ") || "tidak diketahui"})`;
       } else if (activeProvider === "openai" && fileBuffer) {
         onProgress?.({
@@ -1114,17 +1153,21 @@ Jangan merangkum dan jangan menambahkan teks pembuka/penutup di luar isi transkr
         );
       }
 
-      if (transcriptText && !/\[\d{1,3}:\d{2}\]/.test(transcriptText)) {
+      if (transcriptText.trim() && !/\[\d{1,3}:\d{2}\]/.test(transcriptText)) {
         transcriptText = formatFlatTextIntoTimestampedDialogue(
           transcriptText,
           mediaDurationSec || 2400
         );
+      }
+      if (isClientChunk && chunkStartSec > 0 && transcriptText.trim()) {
+        transcriptText = shiftTimestamps(transcriptText, chunkStartSec);
       }
 
       return {
         success: true,
         transcript: transcriptText,
         model: chosenModel,
+        ...(usedModel ? { usedModel } : {}),
         ...(warning ? { warning } : {}),
       };
     };

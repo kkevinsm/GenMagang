@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ error: "chatId wajib disertakan." }, { status: 400 });
   }
 
-  const user = getUser(chatId);
+  const user = await getUser(chatId);
   const hasAccount = Boolean(user.username && user.password);
   const hasGeminiKey = Boolean(user.geminiApiKey || process.env.GEMINI_API_KEY);
 
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "chatId wajib disertakan." }, { status: 400 });
     }
 
-    const user = getUser(Number(chatId));
+    const user = await getUser(Number(chatId));
 
     // Action: Set / Update Gemini API Key dari Editor
     if (action === "set_apikey") {
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
       }
 
       user.geminiApiKey = encryptData(keyToSet);
-      saveUser(user);
+      await saveUser(user);
       return Response.json({ success: true, message: "Gemini API Key berhasil disimpan!" });
     }
 
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
       };
 
       user.draftReport = updatedDraft;
-      saveUser(user);
+      await saveUser(user);
 
       return Response.json({
         success: true,
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         ...draft,
         createdAt: user.draftReport?.createdAt || Date.now(),
       };
-      saveUser(user);
+      await saveUser(user);
       return Response.json({ success: true, message: "Draft berhasil disimpan." });
     }
 
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       // Clear draft on success
       user.draftReport = null;
       user.step = "idle";
-      saveUser(user);
+      await saveUser(user);
 
       return Response.json({
         success: true,

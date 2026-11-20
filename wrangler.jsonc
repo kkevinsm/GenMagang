@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "genmagang",
-  "main": ".open-next/worker.js",
+  "main": "cloudflare-worker.mjs",
   "compatibility_date": "2026-11-10",
   "compatibility_flags": [
     "nodejs_compat"
@@ -15,10 +15,23 @@
       "30 9 * * 1-5"
     ]
   },
-  "r2_buckets": [
+  "kv_namespaces": [
     {
-      "binding": "KIZUNA_STORAGE",
-      "bucket_name": "kizuna-storage"
+      "binding": "TELEGRAM_USERS",
+      "id": "d43494c059144e459604daf203ca4cad"
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_APP_URL": "https://genmagang.web.id"
+  },
+  "routes": [
+    {
+      "pattern": "genmagang.web.id",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.genmagang.web.id",
+      "custom_domain": true
     }
   ]
 }

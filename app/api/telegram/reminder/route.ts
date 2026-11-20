@@ -36,7 +36,7 @@ async function handleProcess(request: NextRequest) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const users = getAllUsers();
+  const users = await getAllUsers();
   const now = Date.now();
 
   let reminderSentCount = 0;
@@ -76,7 +76,7 @@ async function handleProcess(request: NextRequest) {
         if (sent) {
           user.draftReport.safeguardNudgeSent = true;
           user.lastSafeguardNudge = now;
-          saveUser(user);
+          await saveUser(user);
           safeguardSentCount++;
         }
         continue;

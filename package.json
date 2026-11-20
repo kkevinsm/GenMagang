@@ -12,6 +12,7 @@
     "cloudflare:deploy": "opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@mdi/font": "^7.4.47",
     "@mdi/js": "^7.4.47",
     "@mdi/react": "^1.6.1",

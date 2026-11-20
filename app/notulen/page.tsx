@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import "../notulen.css";
+import { extractAudioChunksInBrowser, type ClientAudioChunk } from "@/lib/client-audio";
 
 // --- Types & Interfaces ---
 export interface Task {
@@ -166,7 +167,12 @@ export default function NotulenPage() {
   // Transcription & Upload Progress State
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptionProgress, setTranscriptionProgress] = useState<string>("");
-  const [uploadProgress, setUploadProgress] = useState<{ percent: number; loadedMb: number; totalMb: number } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{
+    percent: number;
+    loadedMb: number;
+    totalMb: number;
+    phase?: "extracting" | "uploading" | "transcribing";
+  } | null>(null);
   const [transcriptionResult, setTranscriptionResult] = useState<string>("");
   const [transcriptionModel, setTranscriptionModel] = useState<string>("");
 
@@ -618,8 +624,20 @@ export default function NotulenPage() {
 
     setIsTranscribing(true);
     let currentPct = 5;
-    setUploadProgress({ percent: currentPct, loadedMb: (totalMb * currentPct) / 100, totalMb: Math.max(0.01, totalMb) });
-    setTranscriptionProgress(`Mempersiapkan berkas media (${totalMb.toFixed(1)} MB)...`);
+    const isVideoFileInit =
+      attachment?.type === "video" || (rawFile ? rawFile.type.startsWith("video/") : false);
+    const willExtractLocally = Boolean(rawFile) && (totalBytes > 3.5 * 1024 * 1024 || isVideoFileInit);
+    setUploadProgress({
+      percent: currentPct,
+      loadedMb: (totalMb * currentPct) / 100,
+      totalMb: Math.max(0.01, totalMb),
+      phase: willExtractLocally ? "extracting" : "uploading",
+    });
+    setTranscriptionProgress(
+      willExtractLocally
+        ? `Menyiapkan ekstraksi audio di browser (${totalMb.toFixed(1)} MB)...`
+        : `Mempersiapkan berkas media (${totalMb.toFixed(1)} MB)...`
+    );
 
     let tickerInterval: any = null;
 
@@ -631,11 +649,132 @@ export default function NotulenPage() {
         partialTranscript?: string;
         transcript?: string;
         model?: string;
+        usedModel?: string;
         error?: string;
         warning?: string;
       }
-      let resData: TranscribeResponse | null = null;
 
+      const VERCEL_SAFE_UPLOAD_BYTES = 3.5 * 1024 * 1024;
+      const isVideoFile =
+        attachment?.type === "video" || (rawFile ? rawFile.type.startsWith("video/") : false);
+      const needsClientSplit = Boolean(rawFile) && (totalBytes > VERCEL_SAFE_UPLOAD_BYTES || isVideoFile);
+
+      if (needsClientSplit && rawFile) {
+        let clientChunks: ClientAudioChunk[] | null = null;
+        try {
+          const extracted = await extractAudioChunksInBrowser(rawFile, (pct, msg) => {
+            currentPct = Math.max(currentPct, pct);
+            setUploadProgress({
+              percent: currentPct,
+              loadedMb: (totalMb * currentPct) / 100,
+              totalMb: Math.max(0.01, totalMb),
+              phase: "extracting",
+            });
+            setTranscriptionProgress(msg);
+          });
+          if (extracted.chunks.length > 0 && extracted.chunks.every((c) => c.blob.size <= 4 * 1024 * 1024)) {
+            clientChunks = extracted.chunks;
+          }
+        } catch (extractErr: unknown) {
+          console.warn("Ekstraksi audio di browser gagal:", extractErr);
+          if (totalBytes > VERCEL_SAFE_UPLOAD_BYTES) {
+            const reason = extractErr instanceof Error ? extractErr.message : String(extractErr);
+            throw new Error(
+              `Browser gagal mengekstrak audio dari berkas (${totalMb.toFixed(1)} MB): ${reason}. Coba konversi ke MP3 atau gunakan MP4/WebM standar.`
+            );
+          }
+        }
+
+        if (clientChunks) {
+          const baseName = (attachment?.fileName || rawFile.name || "rekaman").replace(/\.[^/.]+$/, "");
+          const parts: string[] = [];
+          const failedRanges: string[] = [];
+          let priorTail = "";
+          let stickyModel = "";
+          let lastModelLabel = providerInfo.name;
+          let lastErrorMsg = "";
+          const initialContext = transcriptionResult ? "" : rawNotesInput.trim();
+
+          for (let i = 0; i < clientChunks.length; i++) {
+            const chunk = clientChunks[i];
+            const s0 = Math.round(chunk.startSec);
+            const s1 = Math.round(chunk.startSec + chunk.durationSec);
+            const startLabel = `${String(Math.floor(s0 / 60)).padStart(2, "0")}:${String(s0 % 60).padStart(2, "0")}`;
+            const endLabel = `${String(Math.floor(s1 / 60)).padStart(2, "0")}:${String(s1 % 60).padStart(2, "0")}`;
+            const range = `${startLabel}-${endLabel}`;
+            const chunkMb = (chunk.blob.size / (1024 * 1024)).toFixed(1);
+
+            const startPct = Math.max(currentPct, Math.round(25 + (i / clientChunks.length) * 70));
+            currentPct = startPct;
+            setUploadProgress({ percent: startPct, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb), phase: "transcribing" });
+            setTranscriptionProgress(
+              `Mengunggah & mentranskripsi Bagian ${i + 1}/${clientChunks.length} (menit ${range} • ${chunkMb} MB)...`
+            );
+
+            const formData = new FormData();
+            formData.append("file", chunk.blob, `${baseName}-part${i + 1}.mp3`);
+            formData.append("apiKey", resolvedKey);
+            formData.append("mediaType", "audio");
+            formData.append("mediaMimeType", "audio/mp3");
+            formData.append("fileName", `${baseName}-part${i + 1}.mp3`);
+            formData.append("contextNotes", initialContext);
+            formData.append("chunkIndex", String(i));
+            formData.append("chunkTotal", String(clientChunks.length));
+            formData.append("chunkStartSec", String(chunk.startSec));
+            formData.append("chunkDurationSec", String(chunk.durationSec));
+            if (stickyModel) formData.append("preferredModel", stickyModel);
+            if (priorTail) formData.append("priorTail", priorTail);
+
+            const res = await fetch("/api/notulen/transcribe", {
+              method: "POST",
+              body: formData,
+            });
+            const parsed = (await res.json().catch(() => ({}))) as TranscribeResponse;
+
+            if (!res.ok || parsed.error) {
+              const errText = parsed.error || `Gagal mentranskripsi bagian ${range} [${res.status}]`;
+              if (errText.includes("API Key") || res.status === 401) {
+                throw new Error(errText);
+              }
+              lastErrorMsg = errText;
+              failedRanges.push(range);
+              parts.push(`[${startLabel}] (BAGIAN ${range} GAGAL DITRANSKRIPSI: ${errText})`);
+              continue;
+            }
+
+            if (parsed.usedModel) stickyModel = parsed.usedModel;
+            if (parsed.model) lastModelLabel = parsed.model;
+            if (parsed.transcript && parsed.transcript.trim()) {
+              parts.push(parsed.transcript);
+              priorTail = parsed.transcript.slice(-400);
+              const liveJoined = parts.join("\n\n");
+              setTranscriptionResult(liveJoined);
+              setRawNotesInput(liveJoined);
+            }
+
+            const donePct = Math.round(25 + ((i + 1) / clientChunks.length) * 75);
+            currentPct = donePct;
+            setUploadProgress({ percent: donePct, loadedMb: totalMb, totalMb: Math.max(0.01, totalMb), phase: "transcribing" });
+          }
+
+          if (failedRanges.length === clientChunks.length) {
+            throw new Error(lastErrorMsg || "Seluruh bagian media gagal ditranskripsi.");
+          }
+
+          const finalTranscript = parts.join("\n\n");
+          setTranscriptionResult(finalTranscript);
+          setTranscriptionModel(lastModelLabel);
+          setRawNotesInput(finalTranscript);
+          showToast(
+            failedRanges.length > 0
+              ? `Transkrip belum lengkap: bagian menit ${failedRanges.join(", ")} gagal diproses.`
+              : "Transkripsi kata demi kata selesai! Silakan tinjau di panel kanan."
+          );
+          return;
+        }
+      }
+
+      let resData: TranscribeResponse | null = null;
       const { promise, resolve, reject } = Promise.withResolvers<TranscribeResponse>();
       const xhr = new XMLHttpRequest();
       xhr.open("POST", "/api/notulen/transcribe");
@@ -2339,14 +2478,18 @@ PENTING:
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                   <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534' }}>
                                     {uploadProgress
-                                      ? uploadProgress.percent <= 26
+                                      ? uploadProgress.phase === "extracting"
+                                        ? `Memproses Audio di Browser (${uploadProgress.percent}%)`
+                                        : uploadProgress.percent <= 26 && uploadProgress.phase === "uploading"
                                         ? `Mengunggah Audio (${uploadProgress.percent}%)`
-                                        : `Transkripsi Gemini Flash (${uploadProgress.percent}%)`
+                                        : `Mengunggah & Transkripsi AI (${uploadProgress.percent}%)`
                                       : 'AI Sedang Mentranskripsi...'}
                                   </span>
                                   {uploadProgress && (
                                     <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#15803d' }}>
-                                      {uploadProgress.percent <= 26
+                                      {uploadProgress.phase === "extracting"
+                                        ? 'Ekstraksi Lokal'
+                                        : uploadProgress.percent <= 26 && uploadProgress.phase === "uploading"
                                         ? `${uploadProgress.loadedMb.toFixed(1)} / ${uploadProgress.totalMb.toFixed(1)} MB`
                                         : `${uploadProgress.percent}% selesai`}
                                     </span>
@@ -2480,15 +2623,19 @@ PENTING:
                                     <div className="spinner-circle" style={{ width: '14px', height: '14px', borderWidth: '2px' }} />
                                     <strong style={{ fontSize: '0.8rem', color: '#1e40af' }}>
                                       {uploadProgress
-                                        ? uploadProgress.percent <= 26
+                                        ? uploadProgress.phase === "extracting"
+                                          ? `Mengekstrak Audio di Browser (${uploadProgress.percent}%)`
+                                          : uploadProgress.percent <= 26 && uploadProgress.phase === "uploading"
                                           ? `Mengunggah Video (${uploadProgress.percent}%)`
-                                          : `Transkripsi Gemini Flash (${uploadProgress.percent}%)`
+                                          : `Mengunggah & Transkripsi AI (${uploadProgress.percent}%)`
                                         : 'AI Sedang Mentranskripsi Video...'}
                                     </strong>
                                   </div>
                                   {uploadProgress && (
                                     <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#2563eb' }}>
-                                      {uploadProgress.percent <= 26
+                                      {uploadProgress.phase === "extracting"
+                                        ? 'Ekstraksi Lokal'
+                                        : uploadProgress.percent <= 26 && uploadProgress.phase === "uploading"
                                         ? `${uploadProgress.loadedMb.toFixed(1)} / ${uploadProgress.totalMb.toFixed(1)} MB`
                                         : `${uploadProgress.percent}% selesai`}
                                     </span>
