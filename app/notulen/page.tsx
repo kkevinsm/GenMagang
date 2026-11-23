@@ -198,6 +198,7 @@ export default function NotulenPage() {
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const importJsonInputRef = useRef<HTMLInputElement>(null);
 
   const showToast = useCallback((msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -647,6 +648,78 @@ export default function NotulenPage() {
     a.click();
     URL.revokeObjectURL(url);
     showToast("Cadangan file JSON berhasil diunduh");
+  };
+
+  const handleTriggerImportJson = () => {
+    importJsonInputRef.current?.click();
+  };
+
+  const handleImportJsonFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as {
+        folders?: unknown;
+        meetings?: unknown;
+      };
+
+      if (!parsed || typeof parsed !== "object" || (!Array.isArray(parsed.folders) && !Array.isArray(parsed.meetings))) {
+        showToast("Format file JSON tidak valid. Gunakan file cadangan GenNotulis.");
+        return;
+      }
+
+      const importedFolders: Folder[] = Array.isArray(parsed.folders)
+        ? parsed.folders
+            .filter((f): f is Folder => Boolean(f && typeof f === "object" && typeof (f as Folder).id === "string" && typeof (f as Folder).name === "string"))
+            .map((f) => ({
+              id: f.id,
+              name: f.name,
+              gradient: typeof f.gradient === "string" && f.gradient ? f.gradient : "grad-sage",
+            }))
+        : [];
+
+      const importedMeetings: Meeting[] = Array.isArray(parsed.meetings)
+        ? parsed.meetings.filter((m): m is Meeting => Boolean(m && typeof m === "object" && typeof (m as Meeting).id === "string" && typeof (m as Meeting).title === "string"))
+        : [];
+
+      if (importedFolders.length === 0 && importedMeetings.length === 0) {
+        showToast("File JSON tidak berisi data folder atau notulensi yang valid.");
+        return;
+      }
+
+      const applyImport = () => {
+        const folderMap = new Map<string, Folder>();
+        for (const f of folders) folderMap.set(f.id, f);
+        for (const f of importedFolders) folderMap.set(f.id, f);
+
+        const meetingMap = new Map<string, Meeting>();
+        for (const m of meetings) meetingMap.set(m.id, m);
+        for (const m of importedMeetings) meetingMap.set(m.id, m);
+
+        saveFolders(Array.from(folderMap.values()));
+        saveMeetings(Array.from(meetingMap.values()));
+        showToast(`Berhasil mengimpor ${importedMeetings.length} notulensi & ${importedFolders.length} folder`);
+      };
+
+      if (meetings.length === 0 && folders.length === 0) {
+        applyImport();
+      } else {
+        setConfirmDialog({
+          open: true,
+          title: "Impor Cadangan JSON?",
+          message: `File berisi ${importedMeetings.length} notulensi dan ${importedFolders.length} folder. Data baru akan digabungkan ke sesi saat ini (data dengan ID yang sama akan diperbarui).`,
+          onConfirm: () => {
+            applyImport();
+            setConfirmDialog((prev) => ({ ...prev, open: false }));
+          },
+        });
+      }
+    } catch {
+      showToast("Gagal membaca file JSON. Pastikan file tidak rusak.");
+    }
   };
 
   // --- AUDIO / VOICE NOTE RECORDING & LIVE SPEECH-TO-TEXT ---
@@ -1732,7 +1805,22 @@ PENTING:
               </svg>
               <span>GenNotulis — Workspace Rapat</span>
             </div>
-            <div className="window-actions">
+            <div className="window-actions" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <input
+                ref={importJsonInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleImportJsonFile}
+                style={{ display: 'none' }}
+              />
+              <button className="btn-ghost-sm" onClick={handleTriggerImportJson} title="Pulihkan / Impor Data dari File JSON">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+                <span>Impor JSON</span>
+              </button>
               <button className="btn-ghost-sm" onClick={handleExportAllJson} title="Backup Semua Data ke File JSON">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -3234,10 +3322,10 @@ PENTING:
                       </svg>
                     </div>
                     <div className="settings-card-content">
-                      <h3>Cadangkan & Reset Data</h3>
-                      <p>Seluruh notulensi, folder proyek, dan status action items tersimpan di browser Anda. Anda dapat mengunduh salinan cadangan JSON kapan saja.</p>
+                      <h3>Cadangkan &amp; Reset Data</h3>
+                      <p>Seluruh notulensi, folder proyek, dan status action items tersimpan di browser Anda. Anda dapat mengunduh cadangan JSON atau mengimpornya kembali untuk melanjutkan sesi sebelumnya.</p>
 
-                      <div className="backup-action-row" style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+                      <div className="backup-action-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
                         <button className="btn-secondary btn-sm" onClick={handleExportAllJson}>
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -3245,6 +3333,15 @@ PENTING:
                             <line x1="12" y1="15" x2="12" y2="3" />
                           </svg>
                           <span>Unduh Cadangan JSON</span>
+                        </button>
+
+                        <button className="btn-secondary btn-sm" onClick={handleTriggerImportJson}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="17 8 12 3 7 8" />
+                            <line x1="12" y1="3" x2="12" y2="15" />
+                          </svg>
+                          <span>Impor Cadangan JSON</span>
                         </button>
 
                         <button
