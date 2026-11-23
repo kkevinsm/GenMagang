@@ -877,14 +877,14 @@ ${report.alasan_tidak_hadir || ""}`;
                 type="button"
                 onClick={handleGenerate}
                 disabled={loading || !aktivitas.trim()}
-                className={`w-full px-4 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 cursor-pointer flex items-center justify-center gap-2 ${
+                className={`w-full px-5 py-3.5 rounded-full font-bold text-sm transition-[filter,box-shadow,background-color,border-color] duration-200 flex items-center justify-center gap-2 ${
                   loading
-                    ? "bg-surface-200 text-surface-400 cursor-wait"
+                    ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-wait"
                     : !aktivitas.trim()
-                    ? "bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200"
+                    ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
                     : status === "Tidak Hadir Dengan Keterangan"
-                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300 hover:-translate-y-0.5 active:translate-y-0"
-                    : "bg-gradient-to-r from-emerald-600 via-teal-600 to-primary-700 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:translate-y-0"
+                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-[0_4px_14px_rgba(245,158,11,0.28)] hover:brightness-105 hover:shadow-[0_6px_20px_rgba(245,158,11,0.35)] active:brightness-95 cursor-pointer"
+                    : "bg-gradient-to-br from-[#134f5c] to-[#10b981] text-white shadow-[0_4px_14px_rgba(19,79,92,0.25)] hover:brightness-105 hover:shadow-[0_6px_20px_rgba(19,79,92,0.35)] active:brightness-95 cursor-pointer"
                 }`}
               >
                 {loading ? (
@@ -952,7 +952,7 @@ ${report.alasan_tidak_hadir || ""}`;
                     <button
                       type="button"
                       onClick={handleCopyAll}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white text-surface-700 border border-surface-200 hover:bg-surface-50 transition-all cursor-pointer shadow-xs"
+                      className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-colors cursor-pointer shadow-2xs"
                     >
                       {copyAllDone ? (
                         <>
@@ -1127,7 +1127,7 @@ ${report.alasan_tidak_hadir || ""}`;
                       <button
                         type="button"
                         onClick={() => handleApplyPreset(QUICK_PRESETS[0].text)}
-                        className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors cursor-pointer shrink-0"
+                        className="px-4 py-1.5 rounded-full bg-gradient-to-br from-[#134f5c] to-[#10b981] text-white text-xs font-bold shadow-sm hover:brightness-105 active:brightness-95 transition-[filter] cursor-pointer shrink-0"
                       >
                         Isi Contoh Frontend Dev
                       </button>
@@ -1186,7 +1186,7 @@ ${report.alasan_tidak_hadir || ""}`;
                     <button
                       type="button"
                       onClick={() => setShowKemnakerModal(true)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-surface-100 text-surface-700 hover:bg-surface-200 border border-surface-200 transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white text-slate-700 hover:bg-slate-50 border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer shadow-2xs"
                     >
                       <i className="mdi mdi-login text-sm" />
                       <span>Hubungkan Akun</span>
@@ -1279,14 +1279,14 @@ ${report.alasan_tidak_hadir || ""}`;
                     (Boolean(kemnakerToken) &&
                       (!isConfirmed || (status !== "Tidak Hadir Tanpa Keterangan" && !report)))
                   }
-                  className={`w-full px-4 py-3.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center cursor-pointer ${
+                  className={`w-full px-5 py-3.5 rounded-full font-bold text-sm transition-[filter,box-shadow,background-color,border-color] duration-200 flex items-center justify-center ${
                     !kemnakerToken
-                      ? "bg-surface-900 hover:bg-black text-white shadow-md"
+                      ? "bg-slate-900 hover:bg-slate-800 text-white shadow-md cursor-pointer"
                       : submitLoading
-                      ? "bg-surface-200 text-surface-400 cursor-wait"
+                      ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-wait"
                       : !isConfirmed || (status !== "Tidak Hadir Tanpa Keterangan" && !report)
-                      ? "bg-surface-100 text-surface-400 cursor-not-allowed border border-surface-200"
-                      : "bg-gradient-to-r from-emerald-600 to-primary-600 hover:from-emerald-700 hover:to-primary-700 text-white shadow-lg shadow-primary-200/50"
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                      : "bg-gradient-to-br from-[#134f5c] to-[#10b981] text-white shadow-[0_4px_14px_rgba(19,79,92,0.25)] hover:brightness-105 hover:shadow-[0_6px_20px_rgba(19,79,92,0.35)] active:brightness-95 cursor-pointer"
                   }`}
                 >
                   {submitLoading ? (
@@ -1489,7 +1489,7 @@ ${report.alasan_tidak_hadir || ""}`;
                     localStorage.removeItem("monev_api_key");
                     setShowApiKeyModal(false);
                   }}
-                  className="px-4 py-2.5 rounded-xl border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 rounded-full border border-red-200 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                 >
                   Hapus Key
                 </button>
@@ -1500,14 +1500,14 @@ ${report.alasan_tidak_hadir || ""}`;
                   setShowApiKeyModal(false);
                   setApiKeyError("");
                 }}
-                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors cursor-pointer"
+                className="flex-1 py-2.5 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSaveApiKey}
-                className="flex-1 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-black transition-colors cursor-pointer shadow-md"
+                className="flex-1 py-2.5 rounded-full bg-gradient-to-br from-[#134f5c] to-[#10b981] text-white text-sm font-bold hover:brightness-105 active:brightness-95 transition-[filter,box-shadow] cursor-pointer shadow-[0_4px_14px_rgba(19,79,92,0.25)]"
               >
                 Simpan Key
               </button>
@@ -1620,14 +1620,14 @@ ${report.alasan_tidak_hadir || ""}`;
                     setKemnakerLoginError("");
                   }}
                   disabled={kemnakerLoginLoading}
-                  className="flex-1 py-2.5 rounded-xl border border-surface-200 text-sm font-medium text-surface-600 hover:bg-surface-50 transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={kemnakerLoginLoading}
-                  className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-bold hover:bg-primary-700 active:scale-[0.98] transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-full bg-gradient-to-br from-[#134f5c] to-[#10b981] text-white text-sm font-bold hover:brightness-105 active:brightness-95 transition-[filter,box-shadow] cursor-pointer flex items-center justify-center gap-2 shadow-[0_4px_14px_rgba(19,79,92,0.25)] disabled:opacity-50"
                 >
                   {kemnakerLoginLoading ? (
                     <>
