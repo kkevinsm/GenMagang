@@ -199,6 +199,13 @@ export default function NotulenPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const importJsonInputRef = useRef<HTMLInputElement>(null);
+  const navLinksRef = useRef<HTMLDivElement>(null);
+  const navItemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [navPillStyle, setNavPillStyle] = useState<{ left: number; width: number; ready: boolean }>({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
 
   const showToast = useCallback((msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -432,6 +439,35 @@ export default function NotulenPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Sliding navbar pill indicator position
+  useEffect(() => {
+    const updateNavPill = () => {
+      const target = activeTab !== "detail" ? navItemRefs.current[activeTab] : null;
+      if (!target) {
+        setNavPillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+        return;
+      }
+      setNavPillStyle({
+        left: target.offsetLeft,
+        width: target.offsetWidth,
+        ready: true,
+      });
+    };
+
+    updateNavPill();
+    window.addEventListener("resize", updateNavPill);
+    const observer = typeof ResizeObserver !== "undefined" && navLinksRef.current
+      ? new ResizeObserver(updateNavPill)
+      : null;
+    if (observer && navLinksRef.current) {
+      observer.observe(navLinksRef.current);
+    }
+    return () => {
+      window.removeEventListener("resize", updateNavPill);
+      observer?.disconnect();
+    };
+  }, [activeTab, stats.pendingCount]);
 
   // --- FOLDER ACTIONS ---
   const handleOpenAddFolder = () => {
@@ -1655,8 +1691,18 @@ PENTING:
               </div>
             </Link>
 
-            <div className="nav-links">
+            <div className="nav-links" ref={navLinksRef}>
+              <span
+                className="nav-active-pill"
+                aria-hidden="true"
+                style={{
+                  width: navPillStyle.width,
+                  transform: `translateX(${navPillStyle.left}px)`,
+                  opacity: navPillStyle.ready ? 1 : 0,
+                }}
+              />
               <button
+                ref={(el) => { navItemRefs.current.archive = el; }}
                 className={`nav-item ${activeTab === "archive" ? "active" : ""}`}
                 onClick={() => { setActiveTab("archive"); setCurrentMeetingId(null); }}
               >
@@ -1670,6 +1716,7 @@ PENTING:
               </button>
 
               <button
+                ref={(el) => { navItemRefs.current.actions = el; }}
                 className={`nav-item ${activeTab === "actions" ? "active" : ""}`}
                 onClick={() => { setActiveTab("actions"); setCurrentMeetingId(null); }}
               >
@@ -1682,6 +1729,7 @@ PENTING:
               </button>
 
               <button
+                ref={(el) => { navItemRefs.current.generator = el; }}
                 className={`nav-item ${activeTab === "generator" ? "active" : ""}`}
                 onClick={() => { setActiveTab("generator"); setCurrentMeetingId(null); }}
               >
@@ -1692,6 +1740,7 @@ PENTING:
               </button>
 
               <button
+                ref={(el) => { navItemRefs.current.settings = el; }}
                 className={`nav-item ${activeTab === "settings" ? "active" : ""}`}
                 onClick={() => { setActiveTab("settings"); setCurrentMeetingId(null); }}
               >
