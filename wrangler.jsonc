@@ -22,7 +22,8 @@
     }
   ],
   "vars": {
-    "NEXT_PUBLIC_APP_URL": "https://genmagang.web.id"
+    "NEXT_PUBLIC_APP_URL": "https://genmagang.web.id",
+    "KEMNAKER_PROXY_BASE_URL": "https://api.mobogen.online"
   },
   "routes": [
     {

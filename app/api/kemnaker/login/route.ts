@@ -45,26 +45,37 @@ export async function POST(request: NextRequest) {
     let upstreamRes: Response | null = null;
     let data: any = null;
 
-    try {
-      upstreamRes = await fetch(`${PRIMARY_PROXY_BASE}/api/kemnaker/login`, {
+    const tryProxy = async (baseUrl: string) => {
+      const res = await fetch(`${baseUrl}/api/kemnaker/login`, {
         method: "POST",
         headers: upstreamHeaders,
         body: payloadStr,
       });
-      data = await upstreamRes.json().catch(() => null);
+      const parsed = await res.json().catch(() => null);
+      return { res, parsed };
+    };
+
+    try {
+      const primary = await tryProxy(PRIMARY_PROXY_BASE);
+      upstreamRes = primary.res;
+      data = primary.parsed;
     } catch (primaryErr) {
-      console.warn("Primary proxy unreachable, trying fallback proxy...", primaryErr);
-      if (PRIMARY_PROXY_BASE !== FALLBACK_PROXY_BASE) {
-        try {
-          upstreamRes = await fetch(`${FALLBACK_PROXY_BASE}/api/kemnaker/login`, {
-            method: "POST",
-            headers: upstreamHeaders,
-            body: payloadStr,
-          });
-          data = await upstreamRes.json().catch(() => null);
-        } catch (fallbackErr) {
-          console.error("Fallback proxy also failed:", fallbackErr);
-        }
+      console.warn("Primary proxy unreachable:", primaryErr);
+    }
+
+    if (
+      PRIMARY_PROXY_BASE !== FALLBACK_PROXY_BASE &&
+      (!upstreamRes || upstreamRes.status >= 500 || !data)
+    ) {
+      console.warn(
+        `Primary proxy failed (HTTP ${upstreamRes?.status || "ERR"}), trying fallback proxy...`
+      );
+      try {
+        const fallback = await tryProxy(FALLBACK_PROXY_BASE);
+        upstreamRes = fallback.res;
+        data = fallback.parsed;
+      } catch (fallbackErr) {
+        console.error("Fallback proxy also failed:", fallbackErr);
       }
     }
 
