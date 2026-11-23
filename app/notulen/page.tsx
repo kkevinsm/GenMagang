@@ -76,6 +76,71 @@ const LEGACY_STORAGE_KEY_API_KEY = "notugen_gemini_api_key";
 const STORAGE_KEY_MODEL = "gennotulis_gemini_model";
 const LEGACY_STORAGE_KEY_MODEL = "notugen_gemini_model";
 
+function ModalDialog({
+  open,
+  onClose,
+  labelledBy,
+  ariaLabel,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  labelledBy?: string;
+  ariaLabel?: string;
+  children: React.ReactNode;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const pressedOutsideRef = useRef(false);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (open) {
+      if (!dialog.open) {
+        dialog.showModal();
+        const target = dialog.querySelector<HTMLElement>("[data-autofocus], [autofocus]");
+        if (target) target.focus();
+      }
+    } else if (dialog.open) {
+      dialog.close();
+    }
+  }, [open]);
+
+  const isOutsideDialog = (e: React.PointerEvent<HTMLDialogElement>, dialog: HTMLDialogElement) => {
+    const r = dialog.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="modal-dialog"
+      aria-labelledby={labelledBy}
+      aria-label={ariaLabel}
+      {...({ closedby: "any" } as Record<string, string>)}
+      onClose={onClose}
+      onPointerDown={(e) => {
+        if ("closedBy" in HTMLDialogElement.prototype) return;
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        pressedOutsideRef.current = isOutsideDialog(e, dialog);
+      }}
+      onPointerUp={(e) => {
+        if ("closedBy" in HTMLDialogElement.prototype) return;
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+        if (pressedOutsideRef.current && isOutsideDialog(e, dialog)) {
+          dialog.close();
+        }
+        pressedOutsideRef.current = false;
+      }}
+    >
+      {open ? children : null}
+    </dialog>
+  );
+}
+
 export default function NotulenPage() {
   // Navigation / Tabs
   const [activeTab, setActiveTab] = useState<"archive" | "actions" | "generator" | "settings" | "detail">("archive");
@@ -361,10 +426,6 @@ export default function NotulenPage() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
         e.preventDefault();
         setIsQuickSearchOpen(prev => !prev);
-      } else if (e.key === 'Escape') {
-        setIsQuickSearchOpen(false);
-        setIsFolderModalOpen(false);
-        setConfirmDialog(prev => ({ ...prev, open: false }));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -3243,280 +3304,303 @@ PENTING:
       </footer>
 
       {/* --- MODAL 1: TAMBAH / EDIT FOLDER --- */}
-      {isFolderModalOpen && (
-        <div className="modal-dialog" style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-folder-box">
-            <div className="modal-folder-header">
-              <h3>{folderModalMode === "add" ? "Tambah Folder Proyek Baru" : "Ganti Nama Folder"}</h3>
-              <button className="btn-ghost-sm" onClick={() => setIsFolderModalOpen(false)}>✕</button>
+      <ModalDialog
+        open={isFolderModalOpen}
+        onClose={() => setIsFolderModalOpen(false)}
+        labelledBy="folderModalTitle"
+      >
+        <div className="modal-folder-box">
+          <div className="modal-folder-header">
+            <h3 id="folderModalTitle">{folderModalMode === "add" ? "Tambah Folder Proyek Baru" : "Ganti Nama Folder"}</h3>
+            <button
+              type="button"
+              className="btn-ghost-sm"
+              aria-label="Tutup dialog"
+              onClick={() => setIsFolderModalOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveFolder} className="modal-folder-form">
+            <div className="form-group">
+              <label htmlFor="folderNameInput">Nama Folder / Modul Proyek:</label>
+              <input
+                id="folderNameInput"
+                type="text"
+                value={folderNameInput}
+                onChange={(e) => setFolderNameInput(e.target.value)}
+                placeholder="Misal: Mobile Banking, Enterprise Data, Security"
+                required
+                autoFocus
+                data-autofocus
+              />
             </div>
 
-            <form onSubmit={handleSaveFolder} className="modal-folder-form">
-              <div className="form-group">
-                <label>Nama Folder / Modul Proyek:</label>
-                <input
-                  type="text"
-                  value={folderNameInput}
-                  onChange={(e) => setFolderNameInput(e.target.value)}
-                  placeholder="Misal: Mobile Banking, Enterprise Data, Security"
-                  required
-                  autoFocus
-                />
+            <div className="form-group">
+              <label>Pilih Warna Tab Folder:</label>
+              <div className="color-picker-grid">
+                {[
+                  { val: "grad-sage", title: "Sage Green" },
+                  { val: "grad-purple", title: "Lavender Purple" },
+                  { val: "grad-amber", title: "Warm Amber" },
+                  { val: "grad-clay", title: "Rose Clay" },
+                  { val: "grad-blue", title: "Sky Blue" },
+                  { val: "grad-teal", title: "Mint Teal" },
+                  { val: "grad-coral", title: "Warm Coral" },
+                ].map(c => (
+                  <label key={c.val} className="color-option">
+                    <input
+                      type="radio"
+                      name="folderGradient"
+                      value={c.val}
+                      checked={folderGradientInput === c.val}
+                      onChange={(e) => setFolderGradientInput(e.target.value)}
+                    />
+                    <span className={`color-preview ${c.val}`} title={c.title} />
+                  </label>
+                ))}
               </div>
+            </div>
 
-              <div className="form-group">
-                <label>Pilih Warna Tab Folder:</label>
-                <div className="color-picker-grid">
-                  {[
-                    { val: "grad-sage", title: "Sage Green" },
-                    { val: "grad-purple", title: "Lavender Purple" },
-                    { val: "grad-amber", title: "Warm Amber" },
-                    { val: "grad-clay", title: "Rose Clay" },
-                    { val: "grad-blue", title: "Sky Blue" },
-                    { val: "grad-teal", title: "Mint Teal" },
-                    { val: "grad-coral", title: "Warm Coral" },
-                  ].map(c => (
-                    <label key={c.val} className="color-option">
-                      <input
-                        type="radio"
-                        name="folderGradient"
-                        value={c.val}
-                        checked={folderGradientInput === c.val}
-                        onChange={(e) => setFolderGradientInput(e.target.value)}
-                      />
-                      <span className={`color-preview ${c.val}`} title={c.title} />
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="modal-folder-actions">
-                <button type="button" className="btn-secondary btn-sm" onClick={() => setIsFolderModalOpen(false)}>Batal</button>
-                <button type="submit" className="btn-primary btn-sm">Simpan Folder</button>
-              </div>
-            </form>
-          </div>
+            <div className="modal-folder-actions">
+              <button type="button" className="btn-secondary btn-sm" onClick={() => setIsFolderModalOpen(false)}>Batal</button>
+              <button type="submit" className="btn-primary btn-sm">Simpan Folder</button>
+            </div>
+          </form>
         </div>
-      )}
+      </ModalDialog>
 
       {/* --- MODAL 2: KONFIRMASI HAPUS MODERN --- */}
-      {confirmDialog.open && (
-        <div className="modal-dialog" style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="modal-confirm-box">
-            <div className="confirm-icon-wrap">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
-              </svg>
-            </div>
-            <div className="confirm-body">
-              <h3>{confirmDialog.title}</h3>
-              <p>{confirmDialog.message}</p>
-            </div>
-            <div className="confirm-actions">
-              <button type="button" className="btn-secondary btn-sm" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>Batal</button>
-              <button type="button" className="btn-danger btn-sm" onClick={confirmDialog.onConfirm}>Ya, Lanjutkan</button>
-            </div>
+      <ModalDialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+        labelledBy="confirmDialogTitle"
+      >
+        <div className="modal-confirm-box">
+          <div className="confirm-icon-wrap">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              <line x1="10" y1="11" x2="10" y2="17" />
+              <line x1="14" y1="11" x2="14" y2="17" />
+            </svg>
+          </div>
+          <div className="confirm-body">
+            <h3 id="confirmDialogTitle">{confirmDialog.title}</h3>
+            <p>{confirmDialog.message}</p>
+          </div>
+          <div className="confirm-actions">
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              autoFocus
+              data-autofocus
+              onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+            >
+              Batal
+            </button>
+            <button type="button" className="btn-danger btn-sm" onClick={confirmDialog.onConfirm}>Ya, Lanjutkan</button>
           </div>
         </div>
-      )}
+      </ModalDialog>
 
       {/* --- MODAL 3: QUICK SEARCH (COMMAND + K) --- */}
-      {isQuickSearchOpen && (
-        <div
-          className="modal-dialog"
-          style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setIsQuickSearchOpen(false)}
-        >
-          <div className="modal-search-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-input-row">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-              <input
-                type="text"
-                value={quickSearchQuery}
-                onChange={(e) => setQuickSearchQuery(e.target.value)}
-                placeholder="Cari apa saja di semua notulensi rapat..."
-                autoFocus
-              />
-              <kbd className="kbd-pill-sm">ESC</kbd>
-            </div>
+      <ModalDialog
+        open={isQuickSearchOpen}
+        onClose={() => setIsQuickSearchOpen(false)}
+        ariaLabel="Cari notulensi rapat"
+      >
+        <div className="modal-search-box">
+          <div className="modal-input-row">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              value={quickSearchQuery}
+              onChange={(e) => setQuickSearchQuery(e.target.value)}
+              placeholder="Cari apa saja di semua notulensi rapat..."
+              autoFocus
+              data-autofocus
+            />
+            <kbd className="kbd-pill-sm">ESC</kbd>
+            <button
+              type="button"
+              className="btn-ghost-sm"
+              aria-label="Tutup pencarian"
+              onClick={() => setIsQuickSearchOpen(false)}
+            >
+              ✕
+            </button>
+          </div>
 
-            <div className="modal-results-list">
-              {quickSearchQuery.trim() ? (
-                quickSearchResults.length > 0 ? (
-                  quickSearchResults.map(m => (
-                    <div
-                      key={m.id}
-                      className="search-hit-item"
-                      onClick={() => {
-                        handleOpenMeetingDetail(m.id);
-                        setIsQuickSearchOpen(false);
-                      }}
-                      style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span className="badge-tag badge-fscm" style={{ fontSize: '0.65rem' }}>{m.category}</span>
-                        <strong style={{ fontSize: '0.88rem' }}>{m.title.split('\n')[0]}</strong>
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
-                        {m.date} • {m.location}
-                      </div>
+          <div className="modal-results-list">
+            {quickSearchQuery.trim() ? (
+              quickSearchResults.length > 0 ? (
+                quickSearchResults.map(m => (
+                  <div
+                    key={m.id}
+                    className="search-hit-item"
+                    onClick={() => {
+                      handleOpenMeetingDetail(m.id);
+                      setIsQuickSearchOpen(false);
+                    }}
+                    style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span className="badge-tag badge-fscm" style={{ fontSize: '0.65rem' }}>{m.category}</span>
+                      <strong style={{ fontSize: '0.88rem' }}>{m.title.split('\n')[0]}</strong>
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
-                    Tidak ditemukan notulensi yang cocok dengan kata kunci &quot;{quickSearchQuery}&quot;
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>
+                      {m.date} • {m.location}
+                    </div>
                   </div>
-                )
+                ))
               ) : (
                 <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
-                  Ketik kata kunci untuk mencari notulensi rapat berdasarkan judul, agenda, atau keputusan...
+                  Tidak ditemukan notulensi yang cocok dengan kata kunci &quot;{quickSearchQuery}&quot;
                 </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL 4: KOP SURAT & LOGO KORPORAT --- */}
-      {isLogoModalOpen && (
-        <div
-          className="modal-dialog"
-          style={{ display: 'flex', position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
-          onClick={() => setIsLogoModalOpen(false)}
-        >
-          <div
-            className="modal-folder-box"
-            style={{ maxWidth: '520px', width: '100%', borderRadius: '24px', background: '#ffffff', padding: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)', border: '1px solid rgba(226, 232, 240, 0.8)' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className="mdi mdi-domain text-xl" />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Identitas &amp; Logo Korporat</h3>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Atur kop surat notulen untuk segala jenis perusahaan atau industri tempat magang Anda</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                className="btn-ghost-sm"
-                onClick={() => setIsLogoModalOpen(false)}
-                style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', color: '#94a3b8' }}
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Mode: Tampilkan Logo vs Tanpa Logo */}
-            <div style={{ marginBottom: '18px', padding: '12px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <i className={`mdi ${showCorpLogo ? "mdi-eye-check-outline text-emerald-600" : "mdi-eye-off-outline text-slate-400"} text-xl`} />
-                  <div>
-                    <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>
-                      {showCorpLogo ? "Tampilkan Logo / Kop Surat" : "Mode Tanpa Logo (Dokumen Polos)"}
-                    </strong>
-                    <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
-                      {showCorpLogo ? "Kop surat akan dicetak di bagian atas notulen resmi" : "Dokumen bersih tanpa gambar logo atau kop perusahaan"}
-                    </span>
-                  </div>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={showCorpLogo}
-                  onChange={(e) => handleToggleShowLogo(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-              </label>
-            </div>
-
-            {showCorpLogo && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* Logo Upload & Preview Box */}
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
-                    Logo Perusahaan / Instansi:
-                  </label>
-                  
-                  {corpLogo ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '12px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px' }}>
-                      <div style={{ padding: '6px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '90px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={corpLogo} alt="Logo" style={{ maxHeight: '42px', maxWidth: '85px', objectFit: 'contain' }} />
-                      </div>
-                      <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <label className="btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
-                          <span>Ganti Logo</span>
-                          <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
-                        </label>
-                        <button type="button" className="btn-danger-ghost btn-sm" onClick={handleRemoveLogo}>
-                          Hapus
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '18px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px', cursor: 'pointer', transition: 'all 150ms' }}>
-                      <i className="mdi mdi-cloud-upload-outline text-2xl text-blue-600" />
-                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>Klik untuk Unggah Logo</span>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Format PNG, JPG, SVG, atau WebP (Maks. 2MB)</span>
-                      <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
-                    </label>
-                  )}
-                </div>
-
-                {/* Nama Perusahaan */}
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
-                    Nama Perusahaan / Organisasi (Alternatif Teks):
-                  </label>
-                  <input
-                    type="text"
-                    value={corpName}
-                    onChange={(e) => handleSaveCorpDetails(e.target.value, corpTagline)}
-                    placeholder="Misal: PT Astra International, Telkom, Kementerian, Startup..."
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
-                  />
-                  <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
-                    Ditampilkan jika logo gambar belum diunggah.
-                  </span>
-                </div>
-
-                {/* Tagline Kop Surat */}
-                <div>
-                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
-                    Sub-judul / Tagline Kop Dokumen:
-                  </label>
-                  <input
-                    type="text"
-                    value={corpTagline}
-                    onChange={(e) => handleSaveCorpDetails(corpName, e.target.value)}
-                    placeholder="Misal: Corporate Meeting Minutes, Risalah Rapat Direksi..."
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
-                  />
-                </div>
+              )
+            ) : (
+              <div style={{ padding: '24px', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                Ketik kata kunci untuk mencari notulensi rapat berdasarkan judul, agenda, atau keputusan...
               </div>
             )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
-              <button
-                type="button"
-                className="btn-primary btn-sm"
-                onClick={() => setIsLogoModalOpen(false)}
-                style={{ padding: '8px 22px', borderRadius: '9999px', fontWeight: 700 }}
-              >
-                Selesai &amp; Terapkan
-              </button>
-            </div>
           </div>
         </div>
-      )}
+      </ModalDialog>
+
+      {/* --- MODAL 4: KOP SURAT & LOGO KORPORAT --- */}
+      <ModalDialog
+        open={isLogoModalOpen}
+        onClose={() => setIsLogoModalOpen(false)}
+        labelledBy="logoModalTitle"
+      >
+        <div className="modal-folder-box">
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '16px', paddingBottom: '12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div style={{ width: '36px', height: '36px', flexShrink: 0, borderRadius: '10px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <i className="mdi mdi-domain text-xl" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h3 id="logoModalTitle" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0f172a', margin: 0 }}>Identitas &amp; Logo Korporat</h3>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Atur kop surat notulen untuk segala jenis perusahaan atau industri tempat magang Anda</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn-ghost-sm"
+              aria-label="Tutup dialog"
+              onClick={() => setIsLogoModalOpen(false)}
+              style={{ cursor: 'pointer', border: 'none', background: 'transparent', fontSize: '1.2rem', color: '#94a3b8', flexShrink: 0 }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Mode: Tampilkan Logo vs Tanpa Logo */}
+          <div style={{ marginBottom: '18px', padding: '12px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #e2e8f0' }}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <i className={`mdi ${showCorpLogo ? "mdi-eye-check-outline text-emerald-600" : "mdi-eye-off-outline text-slate-400"} text-xl`} />
+                <div style={{ minWidth: 0 }}>
+                  <strong style={{ fontSize: '0.85rem', color: '#0f172a', display: 'block' }}>
+                    {showCorpLogo ? "Tampilkan Logo / Kop Surat" : "Mode Tanpa Logo (Dokumen Polos)"}
+                  </strong>
+                  <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+                    {showCorpLogo ? "Kop surat akan dicetak di bagian atas notulen resmi" : "Dokumen bersih tanpa gambar logo atau kop perusahaan"}
+                  </span>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={showCorpLogo}
+                onChange={(e) => handleToggleShowLogo(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer', flexShrink: 0 }}
+              />
+            </label>
+          </div>
+
+          {showCorpLogo && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Logo Upload & Preview Box */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '6px' }}>
+                  Logo Perusahaan / Instansi:
+                </label>
+
+                {corpLogo ? (
+                  <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '14px', padding: '12px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px' }}>
+                    <div style={{ padding: '6px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '90px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <img src={corpLogo} alt="Logo" style={{ maxHeight: '42px', maxWidth: '85px', objectFit: 'contain' }} />
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                      <label className="btn-secondary btn-sm" style={{ cursor: 'pointer', margin: 0 }}>
+                        <span>Ganti Logo</span>
+                        <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                      </label>
+                      <button type="button" className="btn-danger-ghost btn-sm" onClick={handleRemoveLogo}>
+                        Hapus
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '18px', background: '#ffffff', border: '1.5px dashed #cbd5e1', borderRadius: '14px', cursor: 'pointer', transition: 'all 150ms', textAlign: 'center' }}>
+                    <i className="mdi mdi-cloud-upload-outline text-2xl text-blue-600" />
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b' }}>Klik untuk Unggah Logo</span>
+                    <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Format PNG, JPG, SVG, atau WebP (Maks. 2MB)</span>
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} style={{ display: 'none' }} />
+                  </label>
+                )}
+              </div>
+
+              {/* Nama Perusahaan */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+                  Nama Perusahaan / Organisasi (Alternatif Teks):
+                </label>
+                <input
+                  type="text"
+                  value={corpName}
+                  onChange={(e) => handleSaveCorpDetails(e.target.value, corpTagline)}
+                  placeholder="Misal: PT Astra International, Telkom, Kementerian, Startup..."
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                />
+                <span style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '2px', display: 'block' }}>
+                  Ditampilkan jika logo gambar belum diunggah.
+                </span>
+              </div>
+
+              {/* Tagline Kop Surat */}
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '4px' }}>
+                  Sub-judul / Tagline Kop Dokumen:
+                </label>
+                <input
+                  type="text"
+                  value={corpTagline}
+                  onChange={(e) => handleSaveCorpDetails(corpName, e.target.value)}
+                  placeholder="Misal: Corporate Meeting Minutes, Risalah Rapat Direksi..."
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.9rem' }}
+                />
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', paddingTop: '14px', borderTop: '1px solid #f1f5f9' }}>
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              onClick={() => setIsLogoModalOpen(false)}
+              style={{ padding: '8px 22px', borderRadius: '9999px', fontWeight: 700 }}
+            >
+              Selesai &amp; Terapkan
+            </button>
+          </div>
+        </div>
+      </ModalDialog>
 
       {/* Toast Hub */}
       {toastMessage && (

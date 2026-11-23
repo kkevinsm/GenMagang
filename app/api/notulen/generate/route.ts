@@ -291,6 +291,7 @@ Keluarkan output HANYA dalam format JSON valid sesuai skema yang diminta, tanpa 
         provider,
         systemInstruction,
         userPrompt,
+        timeoutMs: 90000,
       });
       responseText = aiResponse.text;
       chosenModel = `${AI_PROVIDERS[aiResponse.provider]?.badge || aiResponse.provider}: ${aiResponse.model}`;

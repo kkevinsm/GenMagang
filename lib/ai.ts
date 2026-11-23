@@ -313,12 +313,14 @@ export async function generateWithAI({
   systemInstruction,
   userPrompt,
   preferredModel,
+  timeoutMs = 60000,
 }: {
   apiKey: string;
   provider?: string;
   systemInstruction: string;
   userPrompt: string;
   preferredModel?: string;
+  timeoutMs?: number;
 }): Promise<{
   text: string;
   model: string;
@@ -350,7 +352,7 @@ export async function generateWithAI({
         model,
         systemInstruction,
         userPrompt,
-        18000,
+        timeoutMs,
         true
       );
     } else if (activeProvider === "xai") {
@@ -360,13 +362,13 @@ export async function generateWithAI({
         model,
         systemInstruction,
         userPrompt,
-        18000,
+        timeoutMs,
         false
       );
     } else if (activeProvider === "anthropic") {
-      result = await callAnthropic(apiKey, model, systemInstruction, userPrompt, 18000);
+      result = await callAnthropic(apiKey, model, systemInstruction, userPrompt, timeoutMs);
     } else {
-      result = await callGemini(apiKey, model, systemInstruction, userPrompt, 14000);
+      result = await callGemini(apiKey, model, systemInstruction, userPrompt, timeoutMs);
     }
 
     if (result.text) {
