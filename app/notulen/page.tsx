@@ -1830,22 +1830,7 @@ PENTING:
             <div className="nav-actions">
               <Link
                 href="/monev"
-                className="btn-ghost-sm"
-                style={{
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontWeight: 700,
-                  fontSize: "0.75rem",
-                  color: "#059669",
-                  background: "rgba(255, 255, 255, 0.85)",
-                  border: "1px solid rgba(226, 232, 240, 0.8)",
-                  padding: "6px 14px",
-                  borderRadius: "9999px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                  transition: "all 150ms"
-                }}
+                className="btn-ghost-sm monev-nav-btn"
                 title="Buka Asisten Laporan Monev Kemnaker"
               >
                 <i className="mdi mdi-calendar-check-outline text-emerald-600" />
