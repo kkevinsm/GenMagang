@@ -43,7 +43,7 @@ export default function GenMagangLanding() {
             </Link>
 
             {/* Status Badge Tag */}
-            <div className="md:flex items-center ml-1">
+            <div className="hidden md:flex items-center ml-1">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/80 text-emerald-800 border border-emerald-200/70 text-xs font-semibold shadow-xs">
                 <i className="mdi mdi-check-decagram text-emerald-500 text-sm" />
                 Platform Asisten Magang #1
@@ -132,7 +132,7 @@ export default function GenMagangLanding() {
             {/* Top Bar: Module Switcher Tabs & Direct Link */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/50 pb-5">
               {/* Segmented Control with Smooth Sliding Pill Animation */}
-              <div className="relative grid grid-cols-2 p-1.5 rounded-2xl bg-slate-200/40 backdrop-blur-md border border-white/60 w-full sm:w-auto min-w-[320px] select-none shadow-inner">
+              <div className="relative grid grid-cols-2 p-1.5 rounded-2xl bg-slate-200/40 backdrop-blur-md border border-white/60 w-full sm:w-auto sm:min-w-[320px] select-none shadow-inner">
                 {/* Sliding indicator pill */}
                 <div
                   className="absolute top-1.5 bottom-1.5 rounded-xl bg-white/95 shadow-sm border border-white/90 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] pointer-events-none"

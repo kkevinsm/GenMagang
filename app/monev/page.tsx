@@ -1143,7 +1143,7 @@ ${report.alasan_tidak_hadir || ""}`;
             <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-4">
               
               {/* Header section */}
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <div className="w-9 h-9 rounded-xl bg-accent-50 text-accent-600 flex items-center justify-center shrink-0 border border-accent-100">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1354,7 +1354,7 @@ ${report.alasan_tidak_hadir || ""}`;
             }
           }}
         >
-          <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-6 sm:p-7 animate-scale-in">
+          <div className="w-full max-w-lg max-h-[90dvh] overflow-y-auto bg-white rounded-3xl shadow-2xl border border-slate-200/80 p-5 sm:p-7 animate-scale-in">
             {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
@@ -1526,7 +1526,7 @@ ${report.alasan_tidak_hadir || ""}`;
             }
           }}
         >
-          <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-surface-200 p-6 animate-scale-in">
+          <div className="w-full max-w-md max-h-[90dvh] overflow-y-auto bg-white rounded-2xl shadow-2xl border border-surface-200 p-5 sm:p-6 animate-scale-in">
             {/* Modal Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">

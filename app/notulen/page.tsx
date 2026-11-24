@@ -1821,8 +1821,8 @@ PENTING:
                 title="Buka Asisten Laporan Monev Kemnaker"
               >
                 <i className="mdi mdi-calendar-check-outline text-emerald-600" />
-                <span>Buka GenMonev</span>
-                <i className="mdi mdi-arrow-right text-xs" />
+                <span className="monev-nav-label">Buka GenMonev</span>
+                <i className="mdi mdi-arrow-right text-xs monev-nav-label" />
               </Link>
 
               <button

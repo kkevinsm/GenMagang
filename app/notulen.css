@@ -837,7 +837,7 @@
    ========================================================================== */
 .meetings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 18px;
 }
 
@@ -2609,6 +2609,126 @@
 
   .modal-input-row .kbd-pill-sm {
     display: none;
+  }
+
+  .monev-nav-label {
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  .nav-actions .btn-primary.btn-pill {
+    padding: 7px 11px;
+  }
+
+  .nav-actions .btn-primary.btn-pill span {
+    display: none;
+  }
+
+  .window-header {
+    padding: 10px 14px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .window-actions {
+    flex-wrap: wrap;
+  }
+
+  .window-body {
+    padding: 18px 14px;
+  }
+
+  .panel-header-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .panel-title {
+    font-size: 1.3rem;
+  }
+
+  .filter-controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .search-input-wrap,
+  .search-input-wrap input,
+  .filter-controls .custom-select {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+
+  .status-tab-group {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .status-tab-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .action-hub-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .detail-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .toolbar-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .official-paper-wrapper {
+    padding: 10px;
+  }
+
+  .official-document {
+    padding: 18px 14px;
+    font-size: 13px;
+  }
+
+  .doc-running-header {
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .corporate-metadata-table {
+    display: block;
+    overflow-x: auto;
+    width: 100%;
+  }
+
+  .settings-card {
+    flex-direction: column;
+    padding: 18px 16px;
+    gap: 12px;
+  }
+
+  .input-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .folder-shelf {
+    grid-template-columns: 1fr;
   }
 }
 
