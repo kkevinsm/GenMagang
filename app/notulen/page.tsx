@@ -75,6 +75,7 @@ const STORAGE_KEY_API_KEY = "gennotulis_gemini_api_key";
 const LEGACY_STORAGE_KEY_API_KEY = "notugen_gemini_api_key";
 const STORAGE_KEY_MODEL = "gennotulis_gemini_model";
 const LEGACY_STORAGE_KEY_MODEL = "notugen_gemini_model";
+const STORAGE_KEY_GENERATOR_DRAFT = "gennotulis_generator_draft";
 
 function ModalDialog({
   open,
@@ -241,6 +242,7 @@ export default function NotulenPage() {
   const [genCategory, setGenCategory] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<string>("");
+  const generatorDraftRestoredRef = useRef(false);
   
   // Audio/Voice recording
   const [isRecording, setIsRecording] = useState(false);
@@ -312,6 +314,33 @@ export default function NotulenPage() {
     const storedKey = localStorage.getItem(STORAGE_KEY_API_KEY) || localStorage.getItem("monev_api_key") || localStorage.getItem(LEGACY_STORAGE_KEY_API_KEY) || "";
     setApiKey(storedKey);
     setTempApiKey(storedKey);
+
+    // 3b. Auto-saved AI Generator Draft
+    try {
+      const savedGenDraft = localStorage.getItem(STORAGE_KEY_GENERATOR_DRAFT);
+      if (savedGenDraft) {
+        const parsed = JSON.parse(savedGenDraft) as {
+          rawNotesInput?: string;
+          genCustomTitle?: string;
+          genCategory?: string;
+        };
+        if (parsed && typeof parsed === "object") {
+          if (typeof parsed.rawNotesInput === "string" && parsed.rawNotesInput.trim()) {
+            setRawNotesInput(parsed.rawNotesInput);
+          }
+          if (typeof parsed.genCustomTitle === "string" && parsed.genCustomTitle.trim()) {
+            setGenCustomTitle(parsed.genCustomTitle);
+          }
+          if (typeof parsed.genCategory === "string" && parsed.genCategory.trim()) {
+            setGenCategory(parsed.genCategory);
+          }
+        }
+      }
+    } catch {
+      // ignore invalid draft JSON
+    } finally {
+      generatorDraftRestoredRef.current = true;
+    }
 
     const storedModel = localStorage.getItem(STORAGE_KEY_MODEL) || localStorage.getItem(LEGACY_STORAGE_KEY_MODEL) || "gemini-2.5-flash";
     setSelectedModel(storedModel);
@@ -543,6 +572,31 @@ export default function NotulenPage() {
       observer?.disconnect();
     };
   }, [activeTab, generatorMode]);
+
+  // Debounced auto-save for AI Generator draft
+  useEffect(() => {
+    if (!generatorDraftRestoredRef.current) return;
+    const timer = setTimeout(() => {
+      try {
+        if (!rawNotesInput.trim() && !genCustomTitle.trim()) {
+          localStorage.removeItem(STORAGE_KEY_GENERATOR_DRAFT);
+        } else {
+          localStorage.setItem(
+            STORAGE_KEY_GENERATOR_DRAFT,
+            JSON.stringify({
+              rawNotesInput,
+              genCustomTitle,
+              genCategory,
+              updatedAt: Date.now(),
+            })
+          );
+        }
+      } catch {
+        // ignore quota errors
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [rawNotesInput, genCustomTitle, genCategory]);
 
   // --- FOLDER ACTIONS ---
   const handleOpenAddFolder = () => {
@@ -1438,6 +1492,11 @@ export default function NotulenPage() {
       // Reset form
       setRawNotesInput("");
       setGenCustomTitle("");
+      try {
+        localStorage.removeItem(STORAGE_KEY_GENERATOR_DRAFT);
+      } catch {
+        // ignore storage errors
+      }
       setMediaAttachment(null);
       mediaFileRef.current = null;
       uploadedFileUriRef.current = null;

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Status =
@@ -36,6 +36,7 @@ interface MonevHistoryItem {
 }
 
 const MONEV_HISTORY_STORAGE_KEY = "genmonev_submit_history";
+const MONEV_DRAFT_STORAGE_KEY = "genmonev_draft_input";
 
 const STATUS_MAP: Record<Status, "PRESENT" | "ON_LEAVE" | "ABSENT"> = {
   Hadir: "PRESENT",
@@ -247,6 +248,7 @@ export default function GenMonevDashboard() {
   const [submitResult, setSubmitResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [submitHistory, setSubmitHistory] = useState<MonevHistoryItem[]>([]);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const draftRestoredRef = useRef(false);
 
   // Load saved data from localStorage
   useEffect(() => {
@@ -254,6 +256,29 @@ export default function GenMonevDashboard() {
     if (savedApiKey) {
       setApiKey(savedApiKey);
       setApiKeyInput(savedApiKey);
+    }
+
+    try {
+      const savedDraft = localStorage.getItem(MONEV_DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft) as { aktivitas?: string; status?: Status };
+        if (parsed && typeof parsed === "object") {
+          if (typeof parsed.aktivitas === "string" && parsed.aktivitas.trim()) {
+            setAktivitas(parsed.aktivitas);
+          }
+          if (
+            parsed.status === "Hadir" ||
+            parsed.status === "Tidak Hadir Dengan Keterangan" ||
+            parsed.status === "Tidak Hadir Tanpa Keterangan"
+          ) {
+            setStatus(parsed.status);
+          }
+        }
+      }
+    } catch {
+      // ignore invalid draft JSON
+    } finally {
+      draftRestoredRef.current = true;
     }
 
     try {
@@ -584,6 +609,12 @@ export default function GenMonevDashboard() {
         return updated;
       });
 
+      try {
+        localStorage.removeItem(MONEV_DRAFT_STORAGE_KEY);
+      } catch {
+        // ignore storage errors
+      }
+
       setSubmitResult({
         ok: true,
         msg: `Laporan kehadiran "${status}" berhasil tercatat di Monev Kemnaker untuk tanggal ${wibDate}.`,
@@ -663,6 +694,26 @@ ${report.alasan_tidak_hadir || ""}`;
       : status === "Tidak Hadir Dengan Keterangan"
       ? Boolean(report && (report.alasan_tidak_hadir || "").length >= 100)
       : true;
+
+  // Debounced auto-save for draft input
+  useEffect(() => {
+    if (!draftRestoredRef.current) return;
+    const timer = setTimeout(() => {
+      try {
+        if (!aktivitas.trim()) {
+          localStorage.removeItem(MONEV_DRAFT_STORAGE_KEY);
+        } else {
+          localStorage.setItem(
+            MONEV_DRAFT_STORAGE_KEY,
+            JSON.stringify({ aktivitas, status, updatedAt: Date.now() })
+          );
+        }
+      } catch {
+        // ignore quota errors
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [aktivitas, status]);
 
   const wibToday = getWibDateString();
   const todaySubmission = submitHistory.find((item) => item.date === wibToday) || null;
@@ -920,8 +971,13 @@ ${report.alasan_tidak_hadir || ""}`;
                 />
 
                 <div className="flex items-center justify-between text-[11px] text-surface-400 pt-0.5">
-                  <span>{aktivitas.length} karakter diinput</span>
-                  <span>Tekan tombol di bawah untuk menyusun narasi formal</span>
+                  <span>
+                    {aktivitas.length} karakter diinput
+                    {aktivitas.trim() && (
+                      <span className="ml-2 text-emerald-600/80 font-medium">&middot; Draft tersimpan otomatis</span>
+                    )}
+                  </span>
+                  <span className="hidden sm:inline">Tekan tombol di bawah untuk menyusun narasi formal</span>
                 </div>
               </div>
             ) : status === "Tidak Hadir Dengan Keterangan" ? (
