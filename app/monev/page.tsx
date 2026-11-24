@@ -26,6 +26,17 @@ interface KemnakerUser {
   [key: string]: unknown;
 }
 
+interface MonevHistoryItem {
+  id: string;
+  date: string;
+  submittedAt: string;
+  timeLabel: string;
+  status: Status;
+  summary: string;
+}
+
+const MONEV_HISTORY_STORAGE_KEY = "genmonev_submit_history";
+
 const STATUS_MAP: Record<Status, "PRESENT" | "ON_LEAVE" | "ABSENT"> = {
   Hadir: "PRESENT",
   "Tidak Hadir Dengan Keterangan": "ON_LEAVE",
@@ -234,6 +245,8 @@ export default function GenMonevDashboard() {
   const [kemnakerLoginError, setKemnakerLoginError] = useState("");
   const [submitLoading, setSubmitLoading] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [submitHistory, setSubmitHistory] = useState<MonevHistoryItem[]>([]);
+  const [showAllHistory, setShowAllHistory] = useState(false);
 
   // Load saved data from localStorage
   useEffect(() => {
@@ -241,6 +254,23 @@ export default function GenMonevDashboard() {
     if (savedApiKey) {
       setApiKey(savedApiKey);
       setApiKeyInput(savedApiKey);
+    }
+
+    try {
+      const savedHistory = localStorage.getItem(MONEV_HISTORY_STORAGE_KEY);
+      if (savedHistory) {
+        const parsed = JSON.parse(savedHistory);
+        if (Array.isArray(parsed)) {
+          setSubmitHistory(
+            parsed.filter(
+              (item): item is MonevHistoryItem =>
+                Boolean(item && typeof item === "object" && typeof item.date === "string" && typeof item.status === "string")
+            )
+          );
+        }
+      }
+    } catch {
+      // ignore invalid history JSON
     }
 
     try {
@@ -521,6 +551,39 @@ export default function GenMonevDashboard() {
         throw new Error(data?.error || `Pengiriman gagal (HTTP ${res.status}).`);
       }
 
+      const now = new Date();
+      const timeLabel = `${now.toLocaleTimeString("id-ID", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "Asia/Jakarta",
+      })} WIB`;
+
+      const summaryText =
+        status === "Hadir"
+          ? (report?.uraian_aktivitas || aktivitas || "").trim()
+          : status === "Tidak Hadir Dengan Keterangan"
+          ? (report?.alasan_tidak_hadir || aktivitas || "").trim()
+          : "Tidak hadir tanpa keterangan";
+
+      const newEntry: MonevHistoryItem = {
+        id: `${wibDate}-${now.getTime()}`,
+        date: wibDate,
+        submittedAt: now.toISOString(),
+        timeLabel,
+        status,
+        summary: summaryText.slice(0, 220),
+      };
+
+      setSubmitHistory((prev) => {
+        const updated = [newEntry, ...prev.filter((item) => item.date !== wibDate)].slice(0, 30);
+        try {
+          localStorage.setItem(MONEV_HISTORY_STORAGE_KEY, JSON.stringify(updated));
+        } catch {
+          // ignore quota errors
+        }
+        return updated;
+      });
+
       setSubmitResult({
         ok: true,
         msg: `Laporan kehadiran "${status}" berhasil tercatat di Monev Kemnaker untuk tanggal ${wibDate}.`,
@@ -602,6 +665,18 @@ ${report.alasan_tidak_hadir || ""}`;
       : true;
 
   const wibToday = getWibDateString();
+  const todaySubmission = submitHistory.find((item) => item.date === wibToday) || null;
+  const visibleHistory = showAllHistory ? submitHistory : submitHistory.slice(0, 5);
+
+  const handleClearHistory = () => {
+    setSubmitHistory([]);
+    setShowAllHistory(false);
+    try {
+      localStorage.removeItem(MONEV_HISTORY_STORAGE_KEY);
+    } catch {
+      // ignore storage errors
+    }
+  };
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden flex flex-col text-surface-900 font-sans selection:bg-slate-900 selection:text-white">
@@ -725,7 +800,18 @@ ${report.alasan_tidak_hadir || ""}`;
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
+            {todaySubmission ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold">
+                <i className="mdi mdi-check-circle text-sm" />
+                <span>Hari ini sudah dikirim ({todaySubmission.timeLabel})</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                <span>Hari ini belum dikirim</span>
+              </span>
+            )}
             <span className="text-[11px] font-mono text-surface-400 bg-surface-100 px-2.5 py-1 rounded-lg">
               Portal: monev.maganghub.kemnaker.go.id
             </span>
@@ -1269,6 +1355,18 @@ ${report.alasan_tidak_hadir || ""}`;
                 </div>
               )}
 
+              {/* Today already submitted notice */}
+              {todaySubmission && (
+                <div className="p-3 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs text-emerald-800 flex items-start gap-2">
+                  <i className="mdi mdi-check-decagram text-base text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="leading-relaxed">
+                    Presensi hari ini (<strong>{wibToday}</strong>) sudah dikirim pada{" "}
+                    <strong>{todaySubmission.timeLabel}</strong> dengan status{" "}
+                    <strong>{todaySubmission.status}</strong>.
+                  </p>
+                </div>
+              )}
+
               {/* Action Button */}
               <div>
                 <button
@@ -1308,6 +1406,93 @@ ${report.alasan_tidak_hadir || ""}`;
                 </button>
               </div>
 
+            </div>
+
+            {/* 3. Riwayat Kiriman Monev Card */}
+            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <i className="mdi mdi-history text-lg" />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-bold text-surface-800 flex items-center gap-2">
+                      <span>Riwayat Kiriman Monev</span>
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
+                        {submitHistory.length}
+                      </span>
+                    </h2>
+                    <p className="text-[11px] text-surface-500">
+                      Catatan laporan yang berhasil dikirim ke Kemnaker dari perangkat ini
+                    </p>
+                  </div>
+                </div>
+
+                {submitHistory.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    className="text-xs font-semibold text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    Hapus Riwayat
+                  </button>
+                )}
+              </div>
+
+              {submitHistory.length === 0 ? (
+                <div className="p-4 rounded-2xl bg-white/70 border border-slate-200/70 text-center text-xs text-slate-500">
+                  Belum ada riwayat kiriman. Laporan yang berhasil Anda kirim ke Kemnaker akan tercatat otomatis di sini.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {visibleHistory.map((item) => {
+                    const badgeStyle =
+                      item.status === "Hadir"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : item.status === "Tidak Hadir Dengan Keterangan"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-rose-50 text-rose-700 border-rose-200";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/70 space-y-1.5"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-mono text-xs font-bold text-slate-800">
+                              {item.date}
+                            </span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeStyle}`}>
+                              {item.status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-400 font-mono">
+                            {item.timeLabel}
+                          </span>
+                        </div>
+                        {item.summary && (
+                          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
+                            {item.summary}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {submitHistory.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllHistory((prev) => !prev)}
+                      className="w-full py-2 rounded-full border border-slate-200 bg-white/80 hover:bg-white text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
+                    >
+                      {showAllHistory
+                        ? "Tampilkan Lebih Sedikit"
+                        : `Lihat Semua Riwayat (${submitHistory.length})`}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
           </div>
