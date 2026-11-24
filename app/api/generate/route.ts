@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { generateWithAI, detectProvider, AI_PROVIDERS } from "@/lib/ai";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const SYSTEM_INSTRUCTION_HADIR = `Kamu adalah asisten pelaporan harian Monitoring dan Evaluasi (Monev) untuk peserta program Magang Merdeka dari Kementerian Ketenagakerjaan Republik Indonesia (Kemnaker) melalui platform MagangHub bernama GenMonev (bagian dari ekosistem GenMagang).
 
@@ -54,6 +55,14 @@ Hanya kembalikan JSON valid, tanpa blok kode, tanpa backtick, tanpa penjelasan t
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = checkRateLimit(request, "monev-generate", 20, 60_000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: "Terlalu banyak permintaan generate. Silakan tunggu beberapa detik." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const body = await request.json();
     const { aktivitas, status, customApiKey, provider } = body;
 

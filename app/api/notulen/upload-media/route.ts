@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Gemini File API: upload media via resumable upload
 // This proxies the upload to avoid CORS issues if needed,
@@ -6,11 +7,43 @@ import { NextRequest } from "next/server";
 // This endpoint handles the initial "start resumable upload" metadata step.
 
 export const maxDuration = 60;
+const MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024; // 2GB Gemini File API limit
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = checkRateLimit(request, "notulen-upload-media", 15, 60_000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: "Terlalu banyak permintaan upload. Silakan tunggu sebentar." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const body = await request.json();
     const { apiKey, mimeType, fileName, fileSizeBytes } = body;
+
+    if (
+      typeof mimeType !== "string" ||
+      (!mimeType.startsWith("audio/") && !mimeType.startsWith("video/"))
+    ) {
+      return Response.json(
+        { error: "Tipe file tidak didukung. Hanya file audio atau video yang diizinkan." },
+        { status: 400 }
+      );
+    }
+
+    const sizeNum = Number(fileSizeBytes);
+    if (!Number.isFinite(sizeNum) || sizeNum <= 0 || sizeNum > MAX_UPLOAD_BYTES) {
+      return Response.json(
+        { error: "Ukuran file tidak valid atau melebihi batas maksimal 2GB." },
+        { status: 400 }
+      );
+    }
+
+    const safeFileName =
+      typeof fileName === "string" && fileName.trim()
+        ? fileName.trim().slice(0, 120)
+        : "meeting-media";
 
     const key = (apiKey || "").trim() || process.env.GEMINI_API_KEY || "";
     if (!key) {
@@ -30,19 +63,20 @@ export async function POST(request: NextRequest) {
         "X-Goog-API-Key": key,
         "X-Goog-Upload-Protocol": "resumable",
         "X-Goog-Upload-Command": "start",
-        "X-Goog-Upload-Header-Content-Length": String(fileSizeBytes),
+        "X-Goog-Upload-Header-Content-Length": String(sizeNum),
         "X-Goog-Upload-Header-Content-Type": mimeType,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        file: { display_name: fileName },
+        file: { display_name: safeFileName },
       }),
     });
 
     if (!initRes.ok) {
       const errText = await initRes.text();
+      console.error(`Gemini upload init failed [${initRes.status}]:`, errText);
       return Response.json(
-        { error: `Gagal menginisialisasi upload: ${errText}` },
+        { error: `Gagal menginisialisasi sesi upload media (HTTP ${initRes.status}).` },
         { status: initRes.status }
       );
     }

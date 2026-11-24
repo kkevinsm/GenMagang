@@ -14,6 +14,7 @@ interface DraftReport {
 
 export default function TelegramEditorPage() {
   const [chatId, setChatId] = useState<string | null>(null);
+  const [initData, setInitData] = useState<string>("");
   const [userName, setUserName] = useState<string>("Peserta Magang");
   const [hasAccount, setHasAccount] = useState<boolean>(true);
   const [hasGeminiKey, setHasGeminiKey] = useState<boolean>(true);
@@ -34,29 +35,36 @@ export default function TelegramEditorPage() {
   useEffect(() => {
     // Inisialisasi Telegram WebApp
     if (typeof window !== "undefined") {
-      const tg = (window as unknown as { Telegram?: { WebApp?: { ready: () => void; expand: () => void; close: () => void; initDataUnsafe?: { user?: { id: number; first_name?: string } } } } }).Telegram?.WebApp;
+      const tg = (window as unknown as { Telegram?: { WebApp?: { ready: () => void; expand: () => void; close: () => void; initData?: string; initDataUnsafe?: { user?: { id: number; first_name?: string } } } } }).Telegram?.WebApp;
       if (tg) {
         tg.ready();
         tg.expand();
       }
 
+      const rawInitData = tg?.initData || "";
+      setInitData(rawInitData);
+
       // Ambil chatId dari query param atau Telegram initData
       const urlParams = new URLSearchParams(window.location.search);
       const paramChatId = urlParams.get("chatId") || String(tg?.initDataUnsafe?.user?.id || "");
 
-      if (paramChatId) {
+      if (paramChatId && rawInitData) {
         setChatId(paramChatId);
-        fetchDraft(paramChatId);
+        fetchDraft(paramChatId, rawInitData);
       } else {
         setLoading(false);
       }
     }
   }, []);
 
-  async function fetchDraft(cId: string) {
+  async function fetchDraft(cId: string, rawInitData: string) {
     try {
       setLoading(true);
-      const res = await fetch(`/api/telegram/draft?chatId=${cId}`);
+      const res = await fetch(`/api/telegram/draft?chatId=${cId}`, {
+        headers: {
+          "X-Telegram-Init-Data": rawInitData,
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         setUserName(data.name || "Peserta Magang");
@@ -93,7 +101,10 @@ export default function TelegramEditorPage() {
       try {
         const res = await fetch("/api/telegram/draft", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": initData,
+          },
           body: JSON.stringify({
             chatId,
             action: "set_apikey",
@@ -127,7 +138,10 @@ export default function TelegramEditorPage() {
       try {
         const res = await fetch("/api/telegram/draft", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": initData,
+          },
           body: JSON.stringify({
             chatId,
             action: "generate",
@@ -179,7 +193,10 @@ export default function TelegramEditorPage() {
 
         const res = await fetch("/api/telegram/draft", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": initData,
+          },
           body: JSON.stringify({
             chatId,
             action: "save",
@@ -240,7 +257,10 @@ export default function TelegramEditorPage() {
 
         const res = await fetch("/api/telegram/draft", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": initData,
+          },
           body: JSON.stringify({
             chatId,
             action: "submit",

@@ -2,21 +2,28 @@ import { type NextRequest } from "next/server";
 import { getUser, saveUser, encryptData, decryptData } from "@/lib/telegram/store";
 import { generateMonevFromText, validateGeminiApiKey } from "@/lib/telegram/ai";
 import { loginKemnaker, submitAttendanceToKemnaker } from "@/lib/telegram/kemnaker";
+import { verifyTelegramWebAppInitData } from "@/lib/telegram/auth";
 
 export const dynamic = "force-dynamic";
+
+function authenticateMiniAppRequest(request: NextRequest, bodyInitData?: string) {
+  const rawInitData = request.headers.get("x-telegram-init-data") || bodyInitData || "";
+  return verifyTelegramWebAppInitData(rawInitData, process.env.TELEGRAM_BOT_TOKEN);
+}
 
 /**
  * GET: Mengambil draft aktif user dan status API key untuk Mini App Editor
  */
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const chatId = Number(searchParams.get("chatId"));
-
-  if (!chatId) {
-    return Response.json({ error: "chatId wajib disertakan." }, { status: 400 });
+  const verified = authenticateMiniAppRequest(request);
+  if (!verified) {
+    return Response.json(
+      { error: "Sesi Telegram WebApp tidak valid atau kedaluwarsa. Buka editor melalui bot Telegram." },
+      { status: 401 }
+    );
   }
 
-  const user = await getUser(chatId);
+  const user = await getUser(verified.chatId);
   const hasAccount = Boolean(user.username && user.password);
   const hasGeminiKey = Boolean(user.geminiApiKey || process.env.GEMINI_API_KEY);
 
@@ -36,13 +43,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { chatId, action, draft, promptAktivitas, status, apiKey } = body;
+    const { action, draft, promptAktivitas, status, apiKey, initData } = body;
 
-    if (!chatId) {
-      return Response.json({ error: "chatId wajib disertakan." }, { status: 400 });
+    const verified = authenticateMiniAppRequest(request, typeof initData === "string" ? initData : undefined);
+    if (!verified) {
+      return Response.json(
+        { error: "Sesi Telegram WebApp tidak valid atau kedaluwarsa. Buka editor melalui bot Telegram." },
+        { status: 401 }
+      );
     }
 
-    const user = await getUser(Number(chatId));
+    const user = await getUser(verified.chatId);
 
     // Action: Set / Update Gemini API Key dari Editor
     if (action === "set_apikey") {

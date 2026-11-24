@@ -5,6 +5,7 @@ import {
   detectProvider,
   resolveGeminiModels,
 } from "@/lib/ai";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const maxDuration = 120;
 
@@ -171,6 +172,14 @@ async function callGeminiWithFileUri(
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = checkRateLimit(request, "notulen-generate", 15, 60_000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: "Terlalu banyak permintaan. Silakan tunggu beberapa detik." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const body = await request.json();
     const {
       rawNotes,

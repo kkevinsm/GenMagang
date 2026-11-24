@@ -1,4 +1,5 @@
 import { type NextRequest } from "next/server";
+import { checkRateLimit, getTrustedClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,14 @@ const FALLBACK_PROXY_BASE = "https://api.mobogen.online";
 
 export async function POST(request: NextRequest) {
   try {
+    const rl = checkRateLimit(request, "kemnaker-login", 10, 60_000);
+    if (!rl.allowed) {
+      return Response.json(
+        { error: "Terlalu banyak percobaan login. Silakan tunggu sebentar." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const body = await request.json();
     const { username, password } = body;
 
@@ -23,9 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const clientIp =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      request.headers.get("x-real-ip");
+    const clientIp = getTrustedClientIp(request);
 
     const upstreamHeaders: Record<string, string> = {
       "Content-Type": "application/json",

@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { getAllUsers, saveUser } from "@/lib/telegram/store";
 import { telegram } from "@/lib/telegram/client";
+import { timingSafeStringEqual } from "@/lib/telegram/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +30,15 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleProcess(request: NextRequest) {
-  const authHeader = request.headers.get("authorization");
+  const authHeader = request.headers.get("authorization") || "";
   const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    console.error("[Telegram Reminder] CRON_SECRET is not configured.");
+    return Response.json({ error: "Service Misconfigured" }, { status: 503 });
+  }
+
+  if (!timingSafeStringEqual(authHeader, `Bearer ${cronSecret}`)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

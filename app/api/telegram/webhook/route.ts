@@ -1,6 +1,7 @@
 import { type NextRequest } from "next/server";
 import { TelegramUpdate } from "@/lib/telegram/types";
 import { handleTelegramUpdate } from "@/lib/telegram/handler";
+import { timingSafeStringEqual } from "@/lib/telegram/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +10,15 @@ export const dynamic = "force-dynamic";
  */
 export async function POST(request: NextRequest) {
   try {
-    const secretHeader = request.headers.get("x-telegram-bot-api-secret-token");
+    const secretHeader = request.headers.get("x-telegram-bot-api-secret-token") || "";
     const configuredSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
 
-    if (configuredSecret && secretHeader !== configuredSecret) {
+    if (!configuredSecret) {
+      console.error("[Telegram Webhook] TELEGRAM_WEBHOOK_SECRET is not configured.");
+      return Response.json({ error: "Service Misconfigured" }, { status: 503 });
+    }
+
+    if (!timingSafeStringEqual(secretHeader, configuredSecret)) {
       console.warn("[Telegram Webhook] Invalid secret token.");
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

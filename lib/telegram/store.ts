@@ -40,9 +40,12 @@ let isLoaded = false;
 function getSecretKey(): Buffer {
   const secret =
     process.env.TELEGRAM_ENCRYPTION_SECRET ||
-    process.env.TELEGRAM_BOT_TOKEN ||
-    process.env.GEMINI_API_KEY ||
-    "mobogen-telegram-bot-default-secret-salt-2026";
+    process.env.TELEGRAM_BOT_TOKEN;
+  if (!secret) {
+    throw new Error(
+      "TELEGRAM_ENCRYPTION_SECRET atau TELEGRAM_BOT_TOKEN wajib dikonfigurasi untuk enkripsi data."
+    );
+  }
   return crypto.createHash("sha256").update(secret).digest();
 }
 
@@ -51,18 +54,13 @@ function getSecretKey(): Buffer {
  */
 export function encryptData(text: string): string {
   if (!text) return "";
-  try {
-    const key = getSecretKey();
-    const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
-    let encrypted = cipher.update(text, "utf8", "hex");
-    encrypted += cipher.final("hex");
-    const authTag = cipher.getAuthTag().toString("hex");
-    return `${iv.toString("hex")}:${authTag}:${encrypted}`;
-  } catch (err) {
-    console.error("[Store] Encryption error:", err);
-    return text;
-  }
+  const key = getSecretKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
+  let encrypted = cipher.update(text, "utf8", "hex");
+  encrypted += cipher.final("hex");
+  const authTag = cipher.getAuthTag().toString("hex");
+  return `${iv.toString("hex")}:${authTag}:${encrypted}`;
 }
 
 /**
