@@ -190,6 +190,27 @@ body {
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
 }
 
+/* Mobile WebKit GPU stability: avoid heavy multi-layer blur tiles on phones */
+@media (max-width: 768px) {
+  .ambient-glow-lavender,
+  .ambient-glow-yellow,
+  .ambient-glow-center {
+    filter: none;
+  }
+
+  .liquid-glass-pill {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .liquid-glass-card {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 /* Hide Next.js dev indicator */
 nextjs-portal,
 [data-nextjs-dev-indicator],

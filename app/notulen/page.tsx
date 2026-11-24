@@ -94,16 +94,20 @@ function ModalDialog({
 
   useEffect(() => {
     const dialog = dialogRef.current;
-    if (!dialog) return;
+    if (!dialog || !dialog.isConnected) return;
 
-    if (open) {
-      if (!dialog.open) {
-        dialog.showModal();
-        const target = dialog.querySelector<HTMLElement>("[data-autofocus], [autofocus]");
-        if (target) target.focus();
+    try {
+      if (open) {
+        if (!dialog.open) {
+          dialog.showModal();
+          const target = dialog.querySelector<HTMLElement>("[data-autofocus], [autofocus]");
+          if (target) target.focus();
+        }
+      } else if (dialog.open) {
+        dialog.close();
       }
-    } else if (dialog.open) {
-      dialog.close();
+    } catch {
+      // Ignore InvalidStateError if dialog state changes during unmount
     }
   }, [open]);
 
@@ -457,16 +461,22 @@ export default function NotulenPage() {
 
   // Sliding navbar pill indicator position
   useEffect(() => {
+    let rafId = 0;
     const updateNavPill = () => {
-      const target = activeTab !== "detail" ? navItemRefs.current[activeTab] : null;
-      if (!target) {
-        setNavPillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
-        return;
-      }
-      setNavPillStyle({
-        left: target.offsetLeft,
-        width: target.offsetWidth,
-        ready: true,
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const target = activeTab !== "detail" ? navItemRefs.current[activeTab] : null;
+        if (!target) {
+          setNavPillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+          return;
+        }
+        const nextLeft = target.offsetLeft;
+        const nextWidth = target.offsetWidth;
+        setNavPillStyle((prev) =>
+          prev.ready && prev.left === nextLeft && prev.width === nextWidth
+            ? prev
+            : { left: nextLeft, width: nextWidth, ready: true }
+        );
       });
     };
 
@@ -479,6 +489,7 @@ export default function NotulenPage() {
       observer.observe(navLinksRef.current);
     }
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updateNavPill);
       observer?.disconnect();
     };
@@ -486,19 +497,35 @@ export default function NotulenPage() {
 
   // Sliding generator mode pill indicator position
   useEffect(() => {
+    let rafId = 0;
     const updateModePill = () => {
       if (activeTab !== "generator") return;
-      const target = modeTabRefs.current[generatorMode];
-      if (!target) {
-        setModePillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
-        return;
-      }
-      setModePillStyle({
-        left: target.offsetLeft,
-        top: target.offsetTop,
-        width: target.offsetWidth,
-        height: target.offsetHeight,
-        ready: true,
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        const target = modeTabRefs.current[generatorMode];
+        if (!target) {
+          setModePillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+          return;
+        }
+        const nextLeft = target.offsetLeft;
+        const nextTop = target.offsetTop;
+        const nextWidth = target.offsetWidth;
+        const nextHeight = target.offsetHeight;
+        setModePillStyle((prev) =>
+          prev.ready &&
+          prev.left === nextLeft &&
+          prev.top === nextTop &&
+          prev.width === nextWidth &&
+          prev.height === nextHeight
+            ? prev
+            : {
+                left: nextLeft,
+                top: nextTop,
+                width: nextWidth,
+                height: nextHeight,
+                ready: true,
+              }
+        );
       });
     };
 
@@ -511,6 +538,7 @@ export default function NotulenPage() {
       observer.observe(modeTabsRef.current);
     }
     return () => {
+      cancelAnimationFrame(rafId);
       window.removeEventListener("resize", updateModePill);
       observer?.disconnect();
     };
