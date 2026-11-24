@@ -52,6 +52,10 @@ export default function TelegramEditorPage() {
         setChatId(paramChatId);
         fetchDraft(paramChatId, rawInitData);
       } else {
+        setMessage({
+          type: "error",
+          text: "Buka Editor melalui tombol di Bot Telegram agar sesi terverifikasi.",
+        });
         setLoading(false);
       }
     }
@@ -82,9 +86,21 @@ export default function TelegramEditorPage() {
           setAlasanIzin(d.alasan_tidak_hadir || "");
           setRawInput(d.rawInput || "");
         }
+      } else {
+        const errData = await res.json().catch(() => null);
+        setMessage({
+          type: "error",
+          text:
+            errData?.error ||
+            "Sesi Telegram WebApp tidak valid atau kedaluwarsa. Buka ulang editor dari Bot Telegram.",
+        });
       }
     } catch (err) {
       console.error("Failed to fetch draft:", err);
+      setMessage({
+        type: "error",
+        text: "Gagal memuat draft dari server. Periksa koneksi Anda.",
+      });
     } finally {
       setLoading(false);
     }

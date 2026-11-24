@@ -316,7 +316,9 @@ Keluarkan output HANYA dalam format JSON valid sesuai skema yang diminta, tanpa 
   } catch (error: unknown) {
     console.error("Notulen AI Generate error:", error);
     const message =
-      error instanceof Error
+      error instanceof SyntaxError
+        ? "Gagal mem-parsing format respons AI. Silakan coba generate ulang."
+        : error instanceof Error
         ? error.message
         : "Terjadi kesalahan pada pemrosesan AI.";
     return Response.json({ error: message }, { status: 500 });
