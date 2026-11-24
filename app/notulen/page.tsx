@@ -76,6 +76,8 @@ const LEGACY_STORAGE_KEY_API_KEY = "notugen_gemini_api_key";
 const STORAGE_KEY_MODEL = "gennotulis_gemini_model";
 const LEGACY_STORAGE_KEY_MODEL = "notugen_gemini_model";
 const STORAGE_KEY_GENERATOR_DRAFT = "gennotulis_generator_draft";
+const STORAGE_KEY_NEEDS_BACKUP = "gennotulis_needs_backup";
+const STORAGE_KEY_LAST_BACKUP_AT = "gennotulis_last_backup_at";
 
 function ModalDialog({
   open,
@@ -243,6 +245,8 @@ export default function NotulenPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<string>("");
   const generatorDraftRestoredRef = useRef(false);
+  const [needsBackup, setNeedsBackup] = useState(false);
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
   
   // Audio/Voice recording
   const [isRecording, setIsRecording] = useState(false);
@@ -308,6 +312,26 @@ export default function NotulenPage() {
       }
     } catch {
       setMeetings([]);
+    }
+
+    // 2b. Backup reminder status
+    try {
+      const savedLastBackup = localStorage.getItem(STORAGE_KEY_LAST_BACKUP_AT);
+      if (savedLastBackup) setLastBackupAt(savedLastBackup);
+      const needsFlag = localStorage.getItem(STORAGE_KEY_NEEDS_BACKUP);
+      if (needsFlag === "1") {
+        setNeedsBackup(true);
+      } else if (needsFlag === null) {
+        const hasAnyMeetings = Boolean(
+          localStorage.getItem(STORAGE_KEY_MEETINGS) &&
+            localStorage.getItem(STORAGE_KEY_MEETINGS) !== "[]"
+        );
+        if (hasAnyMeetings && !savedLastBackup) {
+          setNeedsBackup(true);
+        }
+      }
+    } catch {
+      // ignore storage errors
     }
 
     // 3. API Key & Model
@@ -385,12 +409,28 @@ export default function NotulenPage() {
   const saveMeetings = useCallback((updated: Meeting[]) => {
     setMeetings(updated);
     localStorage.setItem(STORAGE_KEY_MEETINGS, JSON.stringify(updated));
+    if (updated.length > 0) {
+      setNeedsBackup(true);
+      try {
+        localStorage.setItem(STORAGE_KEY_NEEDS_BACKUP, "1");
+      } catch {
+        // ignore storage errors
+      }
+    }
   }, []);
 
   // Save folders helper
   const saveFolders = useCallback((updated: Folder[]) => {
     setFolders(updated);
     localStorage.setItem(STORAGE_KEY_FOLDERS, JSON.stringify(updated));
+    if (updated.length > 0) {
+      setNeedsBackup(true);
+      try {
+        localStorage.setItem(STORAGE_KEY_NEEDS_BACKUP, "1");
+      } catch {
+        // ignore storage errors
+      }
+    }
   }, []);
 
   // Corporate logo and identity handlers
@@ -794,13 +834,106 @@ export default function NotulenPage() {
     });
   };
 
+  const buildMeetingMarkdown = (meeting: Meeting): string => {
+    const cleanTitle = meeting.title.replace(/\n+/g, " ").trim();
+    const lines: string[] = [
+      `# ${cleanTitle}`,
+      "",
+      `| Keterangan | Detail |`,
+      `| :--- | :--- |`,
+      `| **Folder / Proyek** | ${meeting.category || "Umum"} |`,
+      `| **Hari / Tanggal** | ${meeting.date || "-"} |`,
+      `| **Jam** | ${meeting.time || "-"} |`,
+      `| **Tempat** | ${meeting.location || "-"} |`,
+      `| **Pimpinan Rapat** | ${meeting.leader || "-"} |`,
+      `| **Peserta** | ${meeting.attendees || "-"} |`,
+      "",
+    ];
+
+    if (meeting.agendas && meeting.agendas.length > 0) {
+      lines.push("## Agenda Rapat", "");
+      meeting.agendas.forEach((a, i) => lines.push(`${i + 1}. ${a}`));
+      lines.push("");
+    }
+
+    if (meeting.decisions && meeting.decisions.length > 0) {
+      lines.push("## Keputusan Resmi", "");
+      meeting.decisions.forEach((d) => {
+        lines.push(`### ${d.topic}`, "");
+        d.bullets.forEach((b) => lines.push(`- ${b}`));
+        lines.push("");
+      });
+    }
+
+    if (meeting.memos && meeting.memos.length > 0) {
+      lines.push("## Memo Pembahasan", "");
+      meeting.memos.forEach((memo) => {
+        lines.push(`### ${memo.header}`, "");
+        memo.speakers.forEach((spk) => {
+          lines.push(`**${spk.label}**`);
+          spk.items.forEach((item) => lines.push(`- ${item}`));
+          lines.push("");
+        });
+      });
+    }
+
+    if (meeting.summary && meeting.summary.length > 0) {
+      lines.push("## Ringkasan Eksekutif", "");
+      meeting.summary.forEach((s, i) => lines.push(`${i + 1}. ${s}`));
+      lines.push("");
+    }
+
+    if (meeting.actionItems && meeting.actionItems.length > 0) {
+      lines.push("## Action Items", "");
+      meeting.actionItems.forEach((group) => {
+        lines.push(`### ${group.team}`, "");
+        group.tasks.forEach((t) => {
+          const check = t.done ? "x" : " ";
+          const due = t.due ? ` *(Target: ${t.due})*` : "";
+          lines.push(`- [${check}] ${t.text}${due}`);
+        });
+        lines.push("");
+      });
+    }
+
+    return lines.join("\n").trim() + "\n";
+  };
+
+  const handleCopyMarkdown = (meeting: Meeting) => {
+    const md = buildMeetingMarkdown(meeting);
+    navigator.clipboard.writeText(md).then(() => {
+      showToast("Format Markdown disalin! Siap ditempel ke Notion / Docs.");
+    }).catch(() => {
+      showToast("Gagal menyalin Markdown ke clipboard");
+    });
+  };
+
+  const handleDownloadMarkdown = (meeting: Meeting) => {
+    const md = buildMeetingMarkdown(meeting);
+    const slug = meeting.title
+      .split("\n")[0]
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "")
+      .slice(0, 50) || "notulen-rapat";
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast("File Markdown (.md) berhasil diunduh");
+  };
+
   const handlePrintPdf = () => {
     window.print();
   };
 
   const handleExportAllJson = () => {
+    const nowIso = new Date().toISOString();
     const data = {
-      exportDate: new Date().toISOString(),
+      exportDate: nowIso,
       app: "GenNotulis — GenMagang Suite",
       folders: folders,
       meetings: meetings
@@ -809,9 +942,17 @@ export default function NotulenPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `GenNotulis-Backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `GenNotulis-Backup-${nowIso.slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    setNeedsBackup(false);
+    setLastBackupAt(nowIso);
+    try {
+      localStorage.setItem(STORAGE_KEY_NEEDS_BACKUP, "0");
+      localStorage.setItem(STORAGE_KEY_LAST_BACKUP_AT, nowIso);
+    } catch {
+      // ignore storage errors
+    }
     showToast("Cadangan file JSON berhasil diunduh");
   };
 
@@ -1996,6 +2137,22 @@ PENTING:
                   <line x1="12" y1="15" x2="12" y2="3" />
                 </svg>
                 <span>Cadangkan JSON</span>
+                {needsBackup && meetings.length > 0 && (
+                  <span
+                    style={{
+                      padding: "1px 7px",
+                      borderRadius: "9999px",
+                      fontSize: "0.66rem",
+                      fontWeight: 700,
+                      background: "#fef3c7",
+                      color: "#b45309",
+                      border: "1px solid #fde68a",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Belum dicadangkan
+                  </span>
+                )}
               </button>
             </div>
           </div>
@@ -2282,6 +2439,26 @@ PENTING:
                     >
                       <i className="mdi mdi-image-outline text-sm" />
                       <span>{showCorpLogo && corpLogo ? "Logo Terpasang" : showCorpLogo ? "Atur Logo" : "Tanpa Logo"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => handleCopyMarkdown(activeMeeting)}
+                      title="Salin format Markdown (siap tempel ke Notion / Docs)"
+                    >
+                      <i className="mdi mdi-language-markdown-outline text-sm" />
+                      <span>Salin Notion / Docs</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary btn-sm"
+                      onClick={() => handleDownloadMarkdown(activeMeeting)}
+                      title="Unduh file Markdown (.md)"
+                    >
+                      <i className="mdi mdi-download-outline text-sm" />
+                      <span>Unduh .md</span>
                     </button>
 
                     <button className="btn-secondary btn-sm" onClick={handlePrintPdf} title="Cetak atau Simpan PDF Dokumen Resmi">
@@ -3505,6 +3682,16 @@ PENTING:
                     <div className="settings-card-content">
                       <h3>Cadangkan &amp; Reset Data</h3>
                       <p>Seluruh notulensi, folder proyek, dan status action items tersimpan di browser Anda. Anda dapat mengunduh cadangan JSON atau mengimpornya kembali untuk melanjutkan sesi sebelumnya.</p>
+
+                      {needsBackup && meetings.length > 0 ? (
+                        <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '10px', background: '#fffbeb', border: '1px solid #fde68a', fontSize: '0.78rem', color: '#b45309', fontWeight: 600 }}>
+                          ⚠️ Ada perubahan notulen baru yang belum dicadangkan ke file JSON.
+                        </div>
+                      ) : lastBackupAt ? (
+                        <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#059669', fontWeight: 600 }}>
+                          ✓ Terakhir dicadangkan: {new Date(lastBackupAt).toLocaleString("id-ID")}
+                        </div>
+                      ) : null}
 
                       <div className="backup-action-row" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
                         <button className="btn-secondary btn-sm" onClick={handleExportAllJson}>
