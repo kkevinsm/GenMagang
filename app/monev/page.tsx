@@ -1317,17 +1317,17 @@ ${report.alasan_tidak_hadir || ""}`;
       </main>
 
       {/* ─── Minimalist Floating Footer ─────────────────────────────────── */}
-      <footer className="relative z-10 border-t border-slate-200/50 bg-white/40 backdrop-blur-md py-6 text-xs text-slate-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px]">
+      <footer className="relative z-10 print:hidden border-t border-slate-200/60 bg-white/85 md:bg-white/55 md:backdrop-blur-md py-4 sm:py-5 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1">
+            <div className="w-5 h-5 rounded-md bg-emerald-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
               <i className="mdi mdi-school" />
             </div>
             <span className="font-semibold text-slate-700">GenMonev</span>
-            <span className="text-slate-300">&middot;</span>
-            <span className="text-slate-400">Bagian dari ekosistem GenMagang</span>
+            <span className="text-slate-300" aria-hidden="true">&middot;</span>
+            <span className="text-slate-400">Ekosistem GenMagang</span>
           </div>
-          <div className="flex items-center gap-4 text-slate-600 font-medium">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-1.5 text-slate-600 font-medium">
             <Link href="/" className="hover:text-emerald-700 transition-colors">Beranda</Link>
             <Link href="/notulen" className="hover:text-emerald-700 transition-colors">GenNotulis</Link>
             <a

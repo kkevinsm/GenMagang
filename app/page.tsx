@@ -409,21 +409,33 @@ export default function GenMagangLanding() {
       </main>
 
       {/* =========================================================================
-          MINIMALIST CLEAN FOOTER WITH MDI ICONS
+          MINIMALIST CLEAN FOOTER
           ========================================================================= */}
-      <footer className="relative z-10 border-t border-slate-200/70 bg-white/70 backdrop-blur-md py-6 text-center text-xs text-slate-500">
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <span><strong>GenMagang</strong> — Asisten AI Andalan Anak Magang Indonesia</span>
-          <div className="flex items-center gap-4 text-blue-700 font-semibold">
-            <Link href="/monev" className="hover:underline flex items-center gap-1">
+      <footer className="relative z-10 print:hidden border-t border-slate-200/60 bg-white/85 md:bg-white/55 md:backdrop-blur-md py-4 sm:py-5 text-xs text-slate-500">
+        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-4 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1">
+            <div className="w-5 h-5 rounded-md bg-blue-600 text-white flex items-center justify-center font-bold text-[10px] shrink-0">
+              <i className="mdi mdi-school" />
+            </div>
+            <span className="font-semibold text-slate-700">GenMagang</span>
+            <span className="text-slate-300" aria-hidden="true">&middot;</span>
+            <span className="text-slate-400">Asisten AI Anak Magang</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-1.5 text-slate-600 font-medium">
+            <Link href="/monev" className="hover:text-emerald-700 transition-colors inline-flex items-center gap-1">
               <i className="mdi mdi-calendar-check-outline text-xs" />
-              <span>GenMonev (Kemnaker)</span>
+              <span>GenMonev</span>
             </Link>
-            <Link href="/notulen" className="hover:underline flex items-center gap-1">
+            <Link href="/notulen" className="hover:text-blue-600 transition-colors inline-flex items-center gap-1">
               <i className="mdi mdi-file-document-edit-outline text-xs" />
-              <span>GenNotulis (Rapat)</span>
+              <span>GenNotulis</span>
             </Link>
-            <a href="https://github.com/kkevinsm/GenMagang" target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-1">
+            <a
+              href="https://github.com/kkevinsm/GenMagang"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-slate-900 transition-colors inline-flex items-center gap-1"
+            >
               <i className="mdi mdi-github text-xs" />
               <span>GitHub</span>
             </a>
