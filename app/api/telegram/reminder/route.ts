@@ -44,6 +44,12 @@ async function handleProcess(request: NextRequest) {
 
   const users = await getAllUsers();
   const now = Date.now();
+  const todayWib = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
   let reminderSentCount = 0;
   let safeguardSentCount = 0;
@@ -89,8 +95,8 @@ async function handleProcess(request: NextRequest) {
       }
     }
 
-    // 2. Regular 16:30 Daily Reminder
-    if (user.reminderEnabled !== false && !user.draftReport) {
+    // 2. Regular 16:30 Daily Reminder (skip if already submitted today)
+    if (user.reminderEnabled !== false && !user.draftReport && user.lastSubmittedDate !== todayWib) {
       const reminderText = `⏰ *PENGINGAT PRESENSI MONEV (16:30 WIB)*\n\nHai *${
         user.name || "Sobat Magang"
       }*! Waktu kerja magang hari ini telah selesai.\n\nJangan lupa untuk mengisi presensi & laporan Monev MagangHub hari ini. Silakan pilih salah satu opsi di bawah atau langsung kirimkan ringkasan kegiatan Anda ke chat ini: 🚀`;
@@ -103,6 +109,7 @@ async function handleProcess(request: NextRequest) {
             [{ text: "🔴 3. Tanpa Keterangan (Alpha)", callback_data: "MENU_ABSENT" }],
             [{ text: "💡 Ide Kegiatan Harian", callback_data: "SUGGEST_IDEAS" }],
             [{ text: "✏️ Buka Editor Interaktif", web_app: { url: `${getAppBaseUrl()}/editor?chatId=${user.chatId}` } }],
+            [{ text: "🔕 Libur / Matikan Pengingat 16:30", callback_data: "TOGGLE_REMINDER" }],
           ],
         },
       });

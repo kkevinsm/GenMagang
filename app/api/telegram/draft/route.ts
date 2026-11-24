@@ -166,7 +166,10 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Clear draft on success
+      // Record submission date & clear draft on success
+      user.lastSubmittedDate = submitPayload.date;
+      user.lastSubmittedStatus = targetDraft.status;
+      user.lastSubmittedAt = new Date().toISOString();
       user.draftReport = null;
       user.step = "idle";
       await saveUser(user);

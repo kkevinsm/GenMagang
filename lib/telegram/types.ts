@@ -89,6 +89,9 @@ export interface UserAccount {
     | "awaiting_confirm";
   tempLoginEmail?: string;
   reminderEnabled?: boolean;
+  lastSubmittedDate?: string; // YYYY-MM-DD (WIB)
+  lastSubmittedStatus?: "PRESENT" | "ON_LEAVE" | "ABSENT";
+  lastSubmittedAt?: string; // ISO timestamp
   lastSafeguardNudge?: number;
   createdAt?: string;
   updatedAt?: string;

@@ -147,13 +147,31 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
       await saveUser(user);
       const isEnabled = user.reminderEnabled;
       const text = isEnabled
-        ? "🔔 *Pengingat Harian (16:30 WIB) Diaktifkan!*\n\nAnda akan menerima notifikasi presensi otomatis setiap sore."
-        : "🔕 *Pengingat Harian (16:30 WIB) Dinonaktifkan.*";
+        ? "🔔 *Pengingat Harian (16:30 WIB) Diaktifkan!*\n\nAnda akan menerima notifikasi presensi otomatis setiap sore hari kerja."
+        : "🔕 *Pengingat Harian (16:30 WIB) Dinonaktifkan.*\n\nCocok saat hari libur atau cuti. Klik tombol di bawah kapan saja untuk mengaktifkannya kembali.";
+
+      const replyMarkup = {
+        inline_keyboard: [
+          [
+            {
+              text: isEnabled ? "🔕 Matikan Pengingat 16:30" : "🔔 Aktifkan Pengingat 16:30",
+              callback_data: "TOGGLE_REMINDER",
+            },
+          ],
+          [{ text: "📊 Cek Status Hari Ini", callback_data: "BTN_STATUS" }],
+        ],
+      };
 
       if (cb.message?.message_id) {
-        return telegram.editMessageText(chatId, cb.message.message_id, text);
+        return telegram.editMessageText(chatId, cb.message.message_id, text, {
+          reply_markup: replyMarkup,
+        });
       }
-      return telegram.sendMessage(chatId, text);
+      return telegram.sendMessage(chatId, text, { reply_markup: replyMarkup });
+    }
+
+    if (data === "BTN_STATUS") {
+      return sendStatusMessage(user);
     }
 
     if (data === "BTN_LOGIN") {
@@ -399,45 +417,7 @@ export async function handleTelegramUpdate(update: TelegramUpdate) {
 
   // Command: /status
   if (lowerText === "/status") {
-    const hasAccount = Boolean(user.username && user.password);
-    const emailDecrypted = hasAccount ? decryptData(user.username!) : null;
-    const hasKey = Boolean(user.geminiApiKey || process.env.GEMINI_API_KEY);
-    const apiKeyStatus = hasKey ? "✅ Terpasang" : "⚠️ Belum Diset (Ketik /apikey)";
-
-    let draftStatus = "\n\n📝 *Draft*: Tidak ada draft aktif";
-    if (user.draftReport) {
-      const statusLabel =
-        user.draftReport.status === "PRESENT"
-          ? "Hadir"
-          : user.draftReport.status === "ON_LEAVE"
-            ? "Tidak Hadir Dengan Keterangan"
-            : "Tidak Hadir Tanpa Keterangan";
-      draftStatus = `\n\n📝 *Draft Tersimpan*: ${statusLabel} (Siap dikirim)`;
-    }
-
-    const currentRole = ROLES[user.role || "general"] || ROLES.general;
-    const reminderStatus = user.reminderEnabled !== false ? "✅ Aktif (Setiap 16:30 WIB)" : "❌ Nonaktif";
-
-    return telegram.sendMessage(
-      chatId,
-      `📊 *Status Bot GenMonev*\n\n👤 Nama: *${user.name || "Peserta"}*\n💼 Posisi: ${currentRole.icon} *${currentRole.name}*\n🔗 Akun Kemnaker: ${hasAccount ? `✅ Terhubung (${emailDecrypted})` : "❌ Belum login"
-      }\n🔑 Gemini AI Key: *${apiKeyStatus}*\n⏰ Pengingat Sore (16:30 WIB): *${reminderStatus}*\n📅 Tanggal Hari Ini: *${getTodayDateString()}*${draftStatus}`,
-      {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: user.reminderEnabled !== false ? "🔕 Matikan Pengingat 16:30" : "🔔 Aktifkan Pengingat 16:30",
-                callback_data: "TOGGLE_REMINDER",
-              },
-            ],
-            [{ text: "🔑 Atur Gemini API Key", callback_data: "BTN_SET_APIKEY" }],
-            [{ text: "✏️ Buka Editor Interaktif", web_app: { url: `${getAppBaseUrl()}/editor?chatId=${chatId}` } }],
-            [{ text: "💼 Ganti Posisi Magang", callback_data: "SHOW_ROLES" }],
-          ],
-        },
-      }
-    );
+    return sendStatusMessage(user);
   }
 
   // Command: /reminder on / off
@@ -851,7 +831,10 @@ async function handleConfirmSubmit(user: UserAccount, messageId?: number) {
         ? "Tidak Hadir Dengan Keterangan (ON_LEAVE)"
         : "Tidak Hadir Tanpa Keterangan (ABSENT)";
 
-  // Success! Clear draft
+  // Success! Record submission date & clear draft
+  user.lastSubmittedDate = draft.date || getTodayDateString();
+  user.lastSubmittedStatus = draft.status;
+  user.lastSubmittedAt = new Date().toISOString();
   user.draftReport = null;
   user.step = "idle";
   await saveUser(user);
@@ -958,6 +941,13 @@ Asisten Laporan Harian Monev MagangHub Kemnaker berbasis AI.
         [{ text: "🔴 3. Tanpa Keterangan (Alpha)", callback_data: "MENU_ABSENT" }],
         [{ text: "✏️ Buka Editor Interaktif", web_app: { url: `${getAppBaseUrl()}/editor?chatId=${user.chatId}` } }],
         [
+          { text: "📊 Cek Status Hari Ini", callback_data: "BTN_STATUS" },
+          {
+            text: user.reminderEnabled !== false ? "🔕 Mute 16:30" : "🔔 Aktifkan 16:30",
+            callback_data: "TOGGLE_REMINDER",
+          },
+        ],
+        [
           { text: "🔑 Atur Gemini API Key", callback_data: "BTN_SET_APIKEY" },
           { text: "💡 Ide Kegiatan", callback_data: "SUGGEST_IDEAS" },
         ],
@@ -969,4 +959,61 @@ Asisten Laporan Harian Monev MagangHub Kemnaker berbasis AI.
       inline_keyboard,
     },
   });
+}
+
+function formatStatusLabel(status?: "PRESENT" | "ON_LEAVE" | "ABSENT"): string {
+  if (status === "PRESENT") return "Hadir";
+  if (status === "ON_LEAVE") return "Izin (Dengan Keterangan)";
+  if (status === "ABSENT") return "Tanpa Keterangan";
+  return "-";
+}
+
+async function sendStatusMessage(user: UserAccount) {
+  const today = getTodayDateString();
+  const hasAccount = Boolean(user.username && user.password);
+  const emailDecrypted = hasAccount ? decryptData(user.username!) : null;
+  const hasKey = Boolean(user.geminiApiKey || process.env.GEMINI_API_KEY);
+  const apiKeyStatus = hasKey ? "✅ Terpasang" : "⚠️ Belum Diset (Ketik /apikey)";
+
+  let todayAttendanceStatus = "⚠️ *Belum dikirim hari ini*";
+  if (user.lastSubmittedDate === today) {
+    const submittedTime = user.lastSubmittedAt
+      ? new Date(user.lastSubmittedAt).toLocaleTimeString("id-ID", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "Asia/Jakarta",
+        }) + " WIB"
+      : "";
+    todayAttendanceStatus = `✅ *Sudah dikirim* (${formatStatusLabel(user.lastSubmittedStatus)}${submittedTime ? ` • ${submittedTime}` : ""})`;
+  } else if (user.draftReport) {
+    todayAttendanceStatus = `⏳ *Masih berupa draft* (${formatStatusLabel(user.draftReport.status)} — belum dikirim)`;
+  }
+
+  const currentRole = ROLES[user.role || "general"] || ROLES.general;
+  const reminderStatus = user.reminderEnabled !== false ? "✅ Aktif (16:30 WIB)" : "🔕 Nonaktif (Mute)";
+
+  const inline_keyboard = [
+    ...(user.draftReport && user.lastSubmittedDate !== today
+      ? [[{ text: "🚀 Kirim Draft Sekarang", callback_data: "SUBMIT_REPORT" }]]
+      : []),
+    [
+      {
+        text: user.reminderEnabled !== false ? "🔕 Matikan Pengingat 16:30" : "🔔 Aktifkan Pengingat 16:30",
+        callback_data: "TOGGLE_REMINDER",
+      },
+    ],
+    [{ text: "✏️ Buka Editor Interaktif", web_app: { url: `${getAppBaseUrl()}/editor?chatId=${user.chatId}` } }],
+    [
+      { text: "🔑 Atur API Key", callback_data: "BTN_SET_APIKEY" },
+      { text: "💼 Ganti Posisi", callback_data: "SHOW_ROLES" },
+    ],
+  ];
+
+  return telegram.sendMessage(
+    user.chatId,
+    `📊 *Status Harian GenMonev*\n\n📅 Tanggal: *${today}*\n📌 Presensi Hari Ini: ${todayAttendanceStatus}\n⏰ Pengingat Sore: *${reminderStatus}*\n\n👤 Nama: *${user.name || "Peserta"}*\n💼 Posisi: ${currentRole.icon} *${currentRole.name}*\n🔗 Akun Kemnaker: ${hasAccount ? `✅ Terhubung (${emailDecrypted})` : "❌ Belum login"}\n🔑 Gemini AI Key: *${apiKeyStatus}*`,
+    {
+      reply_markup: { inline_keyboard },
+    }
+  );
 }
