@@ -2146,6 +2146,8 @@
   flex-direction: column;
   gap: 18px;
   max-width: 820px;
+  width: 100%;
+  min-width: 0;
 }
 
 .settings-card {
@@ -2156,6 +2158,9 @@
   display: flex;
   align-items: flex-start;
   gap: 18px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .settings-card-icon {
@@ -2172,6 +2177,8 @@
 
 .settings-card-content {
   flex: 1;
+  min-width: 0;
+  width: 100%;
 }
 
 .settings-card-content h3 {
@@ -2185,22 +2192,28 @@
   color: var(--text-muted);
   line-height: 1.5;
   margin-bottom: 16px;
+  overflow-wrap: break-word;
 }
 
 .api-key-input-group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 10px;
+  width: 100%;
 }
 
 .api-key-input-group input {
-  flex: 1;
+  flex: 1 1 220px;
+  min-width: 0;
+  width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: 0.86rem;
+  box-sizing: border-box;
 }
 
 .key-hint {
@@ -2811,6 +2824,11 @@
     flex-direction: column;
     padding: 18px 16px;
     gap: 12px;
+  }
+
+  .api-key-input-group input {
+    flex: 1 1 100%;
+    font-size: 16px;
   }
 
   .input-card {

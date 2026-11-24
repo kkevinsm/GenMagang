@@ -3287,7 +3287,7 @@ PENTING:
                       <p>Mendukung <strong>OpenAI (ChatGPT), Anthropic (Claude), xAI (Grok), dan Google (Gemini)</strong>. Sistem otomatis mendeteksi provider dan menggunakan model terbaik sesuai tier langganan akun Anda.</p>
 
                       {/* Provider Badges Showcase */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', margin: '12px 0' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(110px, 100%), 1fr))', gap: '8px', margin: '12px 0' }}>
                         <div style={{ padding: '8px 10px', borderRadius: '12px', border: tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('sk-ant-') ? '1.5px solid #10b981' : '1px solid #e2e8f0', background: tempApiKey.startsWith('sk-') && !tempApiKey.startsWith('sk-ant-') ? '#f0fdf4' : '#ffffff', textAlign: 'center' }}>
                           <div style={{ fontWeight: 700, fontSize: '0.8rem', color: '#0f172a' }}>ChatGPT</div>
                           <span style={{ fontSize: '0.68rem', color: '#94a3b8' }}>sk-...</span>
@@ -3361,7 +3361,7 @@ PENTING:
                       <h3>Model AI Otomatis (Auto-Tier)</h3>
                       <p>Anda <strong>tidak perlu memilih opsi model secara manual</strong>. GenNotulis secara cerdas memilih model terbaik sesuai dengan paket langganan dan kuota akun Anda:</p>
                       
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', marginTop: '10px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(200px, 100%), 1fr))', gap: '8px', marginTop: '10px' }}>
                         <div style={{ padding: '10px 12px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.78rem' }}>
                           <strong style={{ color: '#059669', display: 'block' }}>OpenAI ChatGPT</strong>
                           <span style={{ color: '#64748b' }}>GPT-4o &rarr; fallback GPT-4o Mini</span>
@@ -3413,7 +3413,7 @@ PENTING:
                         </button>
                       </div>
 
-                      <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', fontSize: '0.8rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <div style={{ marginTop: '12px', padding: '10px 14px', background: 'rgba(255, 255, 255, 0.7)', borderRadius: '12px', border: '1px solid rgba(226, 232, 240, 0.8)', fontSize: '0.8rem', color: '#475569', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 10px' }}>
                         <span style={{ fontWeight: 700, color: '#0f172a' }}>Status Kop Surat:</span>
                         {showCorpLogo ? (
                           corpLogo ? (
