@@ -206,6 +206,21 @@ export default function NotulenPage() {
     width: 0,
     ready: false,
   });
+  const modeTabsRef = useRef<HTMLDivElement>(null);
+  const modeTabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [modePillStyle, setModePillStyle] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+    ready: boolean;
+  }>({
+    left: 0,
+    top: 0,
+    width: 0,
+    height: 0,
+    ready: false,
+  });
 
   const showToast = useCallback((msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -468,6 +483,38 @@ export default function NotulenPage() {
       observer?.disconnect();
     };
   }, [activeTab, stats.pendingCount]);
+
+  // Sliding generator mode pill indicator position
+  useEffect(() => {
+    const updateModePill = () => {
+      if (activeTab !== "generator") return;
+      const target = modeTabRefs.current[generatorMode];
+      if (!target) {
+        setModePillStyle((prev) => (prev.ready ? { ...prev, ready: false } : prev));
+        return;
+      }
+      setModePillStyle({
+        left: target.offsetLeft,
+        top: target.offsetTop,
+        width: target.offsetWidth,
+        height: target.offsetHeight,
+        ready: true,
+      });
+    };
+
+    updateModePill();
+    window.addEventListener("resize", updateModePill);
+    const observer = typeof ResizeObserver !== "undefined" && modeTabsRef.current
+      ? new ResizeObserver(updateModePill)
+      : null;
+    if (observer && modeTabsRef.current) {
+      observer.observe(modeTabsRef.current);
+    }
+    return () => {
+      window.removeEventListener("resize", updateModePill);
+      observer?.disconnect();
+    };
+  }, [activeTab, generatorMode]);
 
   // --- FOLDER ACTIONS ---
   const handleOpenAddFolder = () => {
@@ -2548,8 +2595,19 @@ PENTING:
                   {/* Left Column: Input Form */}
                   <div className="generator-input-pane">
                     {/* Multimodal Tab Selector */}
-                    <div className="input-mode-tabs">
+                    <div className="input-mode-tabs" ref={modeTabsRef}>
+                      <span
+                        className="mode-tab-active-pill"
+                        aria-hidden="true"
+                        style={{
+                          width: modePillStyle.width,
+                          height: modePillStyle.height,
+                          transform: `translate3d(${modePillStyle.left}px, ${modePillStyle.top}px, 0)`,
+                          opacity: modePillStyle.ready ? 1 : 0,
+                        }}
+                      />
                       <button
+                        ref={(el) => { modeTabRefs.current.transcript = el; }}
                         type="button"
                         className={`mode-tab-btn ${generatorMode === "transcript" ? "active" : ""}`}
                         onClick={() => setGeneratorMode("transcript")}
@@ -2563,6 +2621,7 @@ PENTING:
                       </button>
 
                       <button
+                        ref={(el) => { modeTabRefs.current.voice = el; }}
                         type="button"
                         className={`mode-tab-btn ${generatorMode === "voice" ? "active" : ""}`}
                         onClick={() => setGeneratorMode("voice")}
@@ -2577,6 +2636,7 @@ PENTING:
                       </button>
 
                       <button
+                        ref={(el) => { modeTabRefs.current.video = el; }}
                         type="button"
                         className={`mode-tab-btn ${generatorMode === "video" ? "active" : ""}`}
                         onClick={() => setGeneratorMode("video")}

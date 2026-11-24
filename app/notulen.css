@@ -627,14 +627,31 @@
 }
 
 .custom-select {
-  padding: 8px 14px;
+  padding: 8px 40px 8px 14px;
   border: 1px solid var(--border-medium);
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   font-family: var(--font-sans);
-  background: #FFFFFF;
+  background-color: #FFFFFF;
   color: var(--text-main);
   cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 15px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.custom-select:hover {
+  border-color: var(--border-strong);
+}
+
+.custom-select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(19, 79, 92, 0.1);
 }
 
 /* ==========================================================================
@@ -1040,21 +1057,21 @@
 }
 
 .custom-select-reassign {
-  padding: 5px 28px 5px 12px;
+  padding: 5px 32px 5px 12px;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-main);
-  background: var(--surface-muted);
+  background-color: var(--surface-muted);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
   cursor: pointer;
   outline: none;
-  transition: all var(--transition-fast);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
   appearance: none;
   -webkit-appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2344403C' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
-  background-position: right 8px center;
+  background-position: right 12px center;
   background-size: 13px;
 }
 
@@ -1475,6 +1492,7 @@
 
 /* Multimodal Mode Selector Tabs */
 .input-mode-tabs {
+  position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
@@ -1487,6 +1505,29 @@
   box-sizing: border-box;
 }
 
+.mode-tab-active-pill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: var(--radius-sm);
+  background: #FFFFFF;
+  border: 1px solid rgba(19, 79, 92, 0.12);
+  box-shadow: 0 3px 12px rgba(19, 79, 92, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  pointer-events: none;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    width 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease;
+  will-change: transform, width, height;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-tab-active-pill {
+    transition: none;
+  }
+}
+
 @media (max-width: 768px) {
   .input-mode-tabs {
     grid-template-columns: 1fr;
@@ -1496,6 +1537,8 @@
 
 .mode-tab-btn,
 .input-mode-tab {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1509,7 +1552,7 @@
   font-family: var(--font-sans);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: color 200ms ease, background-color 180ms ease;
   text-align: center;
   white-space: nowrap;
   min-width: 0;
@@ -1528,13 +1571,13 @@
 .input-mode-tab svg {
   flex-shrink: 0;
   color: var(--text-muted);
-  transition: color 0.2s ease, transform 0.2s ease;
+  transition: color 200ms ease, transform 200ms ease;
 }
 
 .mode-tab-btn:hover,
 .input-mode-tab:hover {
   color: var(--accent-primary);
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .mode-tab-btn:hover svg,
@@ -1543,12 +1586,14 @@
 }
 
 .mode-tab-btn.active,
-.input-mode-tab.active {
-  background: #FFFFFF;
+.input-mode-tab.active,
+.mode-tab-btn.active:hover,
+.input-mode-tab.active:hover {
+  background: transparent;
   color: var(--accent-primary);
   font-weight: 700;
-  border-color: rgba(19, 79, 92, 0.12);
-  box-shadow: 0 3px 12px rgba(19, 79, 92, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .mode-tab-btn.active svg,
@@ -1836,15 +1881,15 @@
 .setting-col select.custom-select {
   width: 100%;
   height: 44px;
-  padding: 9px 14px;
+  padding: 9px 40px 9px 14px;
   border: 1.5px solid var(--border-medium);
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   font-family: var(--font-sans);
-  background: #FFFFFF;
+  background-color: #FFFFFF;
   color: var(--text-main);
   box-sizing: border-box;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .setting-col input:focus,
