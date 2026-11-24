@@ -1002,6 +1002,93 @@ ${report.alasan_tidak_hadir || ""}`;
               </div>
             )}
 
+            {/* 4. Riwayat Kiriman Monev Card (Compact) */}
+            <div className="liquid-glass-card rounded-2xl border border-white/85 shadow-md px-4 py-3 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
+                    <i className="mdi mdi-history text-sm" />
+                  </div>
+                  <h2 className="text-xs font-bold text-surface-800 flex items-center gap-1.5">
+                    <span>Riwayat Kiriman</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">
+                      {submitHistory.length}
+                    </span>
+                  </h2>
+                </div>
+
+                {submitHistory.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    className="text-[11px] font-semibold text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                  >
+                    Hapus
+                  </button>
+                )}
+              </div>
+
+              {submitHistory.length === 0 ? (
+                <p className="text-[11px] text-slate-400 py-1">
+                  Belum ada riwayat kiriman dari perangkat ini.
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {visibleHistory.map((item) => {
+                    const badgeStyle =
+                      item.status === "Hadir"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : item.status === "Tidak Hadir Dengan Keterangan"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-rose-50 text-rose-700 border-rose-200";
+
+                    const shortStatus =
+                      item.status === "Hadir"
+                        ? "Hadir"
+                        : item.status === "Tidak Hadir Dengan Keterangan"
+                        ? "Izin"
+                        : "Alpha";
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="px-3 py-2 rounded-xl bg-white/80 border border-slate-200/70 flex items-center justify-between gap-2.5 min-w-0"
+                      >
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="font-mono text-[11px] font-bold text-slate-800 shrink-0">
+                            {item.date}
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 ${badgeStyle}`}>
+                            {shortStatus}
+                          </span>
+                          {item.summary && (
+                            <span className="text-[11px] text-slate-500 truncate min-w-0">
+                              {item.summary}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                          {item.timeLabel}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                  {submitHistory.length > 5 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllHistory((prev) => !prev)}
+                      className="w-full py-1.5 rounded-full border border-slate-200 bg-white/80 hover:bg-white text-[11px] font-semibold text-slate-600 transition-colors cursor-pointer"
+                    >
+                      {showAllHistory
+                        ? "Ringkas"
+                        : `Lihat Semua (${submitHistory.length})`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* ═════════════════════════════════════════════════════════════════
@@ -1406,93 +1493,6 @@ ${report.alasan_tidak_hadir || ""}`;
                 </button>
               </div>
 
-            </div>
-
-            {/* 3. Riwayat Kiriman Monev Card */}
-            <div className="liquid-glass-card rounded-3xl border border-white/85 shadow-xl p-5 sm:p-6 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-100">
-                    <i className="mdi mdi-history text-lg" />
-                  </div>
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-bold text-surface-800 flex items-center gap-2">
-                      <span>Riwayat Kiriman Monev</span>
-                      <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
-                        {submitHistory.length}
-                      </span>
-                    </h2>
-                    <p className="text-[11px] text-surface-500">
-                      Catatan laporan yang berhasil dikirim ke Kemnaker dari perangkat ini
-                    </p>
-                  </div>
-                </div>
-
-                {submitHistory.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={handleClearHistory}
-                    className="text-xs font-semibold text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
-                  >
-                    Hapus Riwayat
-                  </button>
-                )}
-              </div>
-
-              {submitHistory.length === 0 ? (
-                <div className="p-4 rounded-2xl bg-white/70 border border-slate-200/70 text-center text-xs text-slate-500">
-                  Belum ada riwayat kiriman. Laporan yang berhasil Anda kirim ke Kemnaker akan tercatat otomatis di sini.
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {visibleHistory.map((item) => {
-                    const badgeStyle =
-                      item.status === "Hadir"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : item.status === "Tidak Hadir Dengan Keterangan"
-                        ? "bg-amber-50 text-amber-700 border-amber-200"
-                        : "bg-rose-50 text-rose-700 border-rose-200";
-
-                    return (
-                      <div
-                        key={item.id}
-                        className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/70 space-y-1.5"
-                      >
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-mono text-xs font-bold text-slate-800">
-                              {item.date}
-                            </span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeStyle}`}>
-                              {item.status}
-                            </span>
-                          </div>
-                          <span className="text-[11px] text-slate-400 font-mono">
-                            {item.timeLabel}
-                          </span>
-                        </div>
-                        {item.summary && (
-                          <p className="text-xs text-slate-600 leading-relaxed line-clamp-2">
-                            {item.summary}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-
-                  {submitHistory.length > 5 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAllHistory((prev) => !prev)}
-                      className="w-full py-2 rounded-full border border-slate-200 bg-white/80 hover:bg-white text-xs font-semibold text-slate-600 transition-colors cursor-pointer"
-                    >
-                      {showAllHistory
-                        ? "Tampilkan Lebih Sedikit"
-                        : `Lihat Semua Riwayat (${submitHistory.length})`}
-                    </button>
-                  )}
-                </div>
-              )}
             </div>
 
           </div>
