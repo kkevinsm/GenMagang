@@ -48,8 +48,8 @@ export function openMeetingDetail(meetingId) {
   if (metaCategoryBadge) {
     metaCategoryBadge.textContent = categoryName;
     metaCategoryBadge.className = 'badge-tag';
-    if (categoryName === 'FSCM') metaCategoryBadge.classList.add('badge-fscm');
-    else if (categoryName === 'Core Banking') metaCategoryBadge.classList.add('badge-core');
+    if (categoryName === 'Produk') metaCategoryBadge.classList.add('badge-project');
+    else if (categoryName === 'Teknologi') metaCategoryBadge.classList.add('badge-core');
     else if (categoryName === 'Migrasi') metaCategoryBadge.classList.add('badge-migrasi');
     else if (categoryName === 'Bisnis') metaCategoryBadge.classList.add('badge-bisnis');
     else metaCategoryBadge.classList.add('badge-default');
@@ -213,8 +213,8 @@ export function changeMeetingFolder(meetingId, newFolderId) {
   if (metaCategoryBadge) {
     metaCategoryBadge.textContent = newFolderId;
     metaCategoryBadge.className = 'badge-tag';
-    if (newFolderId === 'FSCM') metaCategoryBadge.classList.add('badge-fscm');
-    else if (newFolderId === 'Core Banking') metaCategoryBadge.classList.add('badge-core');
+    if (newFolderId === 'Produk') metaCategoryBadge.classList.add('badge-project');
+    else if (newFolderId === 'Teknologi') metaCategoryBadge.classList.add('badge-core');
     else if (newFolderId === 'Migrasi') metaCategoryBadge.classList.add('badge-migrasi');
     else if (newFolderId === 'Bisnis') metaCategoryBadge.classList.add('badge-bisnis');
     else metaCategoryBadge.classList.add('badge-default');

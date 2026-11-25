@@ -363,25 +363,23 @@ export function initGeneratorView(onMeetingCreated) {
       const genMeetingCategory = document.getElementById('genMeetingCategory');
 
       if (rawMeetingNotesInput) {
-        rawMeetingNotesInput.value = `Rapat Selasa 20 Oktober 2026 jam 14.00 di RDTX Square Lt.35 dan Ms. Teams.
-Hadir: Pak Indra, Mas Eko, Mas Fatchur, Mba Arisa, Pak Jeffry, Mba Maryani, Mas Egi, Tim WDL, TSA, WDC, STA.
+        rawMeetingNotesInput.value = `Rapat Koordinasi Mingguan Tim Produk & Teknologi via Google Meet / Ruang Rapat Utama.
+Hadir: Lead Product, Tech Lead, Tim Backend, Tim Frontend, Tim QA, dan Tim Operasional.
 Agenda:
-1. Evaluasi kebutuhan Perf Test FSCM R2 Re-promote dan modul Balance Widget.
-2. Penyelarasan timeline migrasi Semen Baturaja, Pupuk Indonesia, dan opsi BPJS-KS.
-3. Progres uji Core Banking iCons Fase 1 & rencana rilis Fase 2.
-4. Usulan 8 kebutuhan bisnis baru untuk Release 2.1 sebelum system freeze Desember.
+1. Evaluasi performa modul Dashboard Analitik dan optimasi latensi API di environment staging.
+2. Penyelarasan jadwal rilis fitur baru Q4 dan kesiapan migrasi data pelanggan.
+3. Review hasil pengujian regresi QA serta daftar perbaikan prioritas sebelum rilis.
 
 Hasil diskusi:
-- Mba Arisa konfirmasi TCB tidak wajibkan perf test formal karena tidak ada modul baru.
-- Mas Eko sampaikan uji latensi Balance Widget di UAT 2 CPU memang 1 menit, tapi di Pre-prod 10 CPU sudah di bawah 30 detik. Lanjut UAT s.d. 27 Oktober 2026.
-- Migrasi: Baturaja & Pupuk dieksekusi dulu (239 ribu dokumen, 7 jam). Kalau BPJS-KS ada kendala, displit penanganannya ke November agar tidak tabrak freeze 15 Desember.
+- Tim QA mengonfirmasi seluruh skenario pengujian utama berjalan baik di environment staging.
+- Tim Backend melaporkan waktu respons query sudah stabil di bawah 300ms setelah penambahan indeks.
+- Rilis fitur baru dijadwalkan bertahap minggu depan setelah finalisasi dokumentasi dan checklist keamanan.
 - Action Items:
-  * Tim Dev WDL: Pastikan query Balance Widget stabil di Pre-Prod (due: 27 Okt), kerjakan workaround script migrasi (due: 30 Okt).
-  * Tim QA TSA: Kawal joint test SIT-UAT (due: 27 Okt), siapkan 100 test case migrasi.
-  * Tim Bisnis WDC: Buat requirement 8 list request rilis 2.1 (due: 01 Nov).
-  * Tim PM STA: Update timeline terpadu sebelum freeze Desember.`;
+  * Tim Dev: Pastikan endpoint analitik stabil di staging dan selesaikan perbaikan minor UI.
+  * Tim QA: Kawal pengujian regresi akhir dan siapkan dokumen UAT sign-off.
+  * Tim Produk: Perbarui timeline rilis dan komunikasikan ke seluruh pemangku kepentingan.`;
       }
-      if (genMeetingTitle) genMeetingTitle.value = 'Timeline FSCM R2 Re-promote & Preparation Release 3';
+      if (genMeetingTitle) genMeetingTitle.value = 'Rapat Koordinasi Rilis Fitur Q4 & Evaluasi Performa';
       if (genMeetingCategory && state.folders.length > 0) genMeetingCategory.value = state.folders[0].id;
       showToast('Contoh catatan kasar rapat berhasil dimuat!');
     });

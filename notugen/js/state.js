@@ -38,9 +38,7 @@ class AppStore {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          // Bersihkan folder dummy awal FSCM jika ada
-          const cleaned = parsed.filter(f => f.id !== 'FSCM' || f.name !== 'FSCM Release');
-          this.folders = cleaned;
+          this.folders = parsed;
           this.saveFolders();
           return this.folders;
         }
@@ -64,12 +62,7 @@ class AppStore {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          // Bersihkan seluruh data rapat dummy lama
-          const cleaned = parsed.filter(m => 
-            m.id !== 'meet-fscm-r2-20261020' && 
-            m.id !== 'meet-icons-core-20261014'
-          );
-          this.meetings = cleaned;
+          this.meetings = parsed;
           this.saveMeetings();
           return this.meetings;
         }

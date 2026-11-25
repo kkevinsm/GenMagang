@@ -286,8 +286,7 @@ export default function NotulenPage() {
       if (storedFolders) {
         const parsed = JSON.parse(storedFolders);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter(f => f.id !== 'FSCM' || f.name !== 'FSCM Release');
-          setFolders(cleaned);
+          setFolders(parsed);
         }
       } else {
         setFolders([]);
@@ -302,10 +301,7 @@ export default function NotulenPage() {
       if (storedMeetings) {
         const parsed = JSON.parse(storedMeetings);
         if (Array.isArray(parsed)) {
-          const cleaned = parsed.filter((m: any) => 
-            m.id !== 'meet-fscm-r2-20261020' && m.id !== 'meet-icons-core-20261014'
-          );
-          setMeetings(cleaned);
+          setMeetings(parsed);
         }
       } else {
         setMeetings([]);
@@ -2288,8 +2284,7 @@ PENTING:
                       const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 100;
 
                       let badgeClass = "badge-default";
-                      if (m.category === "FSCM") badgeClass = "badge-fscm";
-                      else if (m.category === "Core Banking") badgeClass = "badge-core";
+                      if (m.category === "Core") badgeClass = "badge-core";
                       else if (m.category === "Migrasi") badgeClass = "badge-migrasi";
                       else if (m.category === "Bisnis") badgeClass = "badge-bisnis";
 
@@ -2548,7 +2543,7 @@ PENTING:
                             <td className="col-meta-colon">:</td>
                             <td className="col-meta-value">
                               <div className="doc-meta-category-inline">
-                                <span className="badge-tag badge-fscm">{activeMeeting.category}</span>
+                                <span className="badge-tag badge-project">{activeMeeting.category}</span>
                                 <span>{activeMeeting.category}</span>
                               </div>
                             </td>
@@ -2784,7 +2779,7 @@ PENTING:
                           />
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              <span className="badge-tag badge-fscm" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
+                              <span className="badge-tag badge-project" style={{ fontSize: '0.68rem', padding: '2px 8px' }}>
                                 {item.meetingCategory}
                               </span>
                               <span style={{ fontSize: '0.78rem', color: '#134f5c', fontWeight: 600 }}>
@@ -3916,7 +3911,7 @@ PENTING:
                     style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                      <span className="badge-tag badge-fscm" style={{ fontSize: '0.65rem' }}>{m.category}</span>
+                      <span className="badge-tag badge-project" style={{ fontSize: '0.65rem' }}>{m.category}</span>
                       <strong style={{ fontSize: '0.88rem' }}>{m.title.split('\n')[0]}</strong>
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>

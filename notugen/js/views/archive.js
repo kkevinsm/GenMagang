@@ -234,8 +234,8 @@ export function renderMeetingsGrid() {
     const progressPercent = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 100;
 
     let badgeClass = 'badge-default';
-    if (m.category === 'FSCM') badgeClass = 'badge-fscm';
-    else if (m.category === 'Core Banking') badgeClass = 'badge-core';
+    if (m.category === 'Produk') badgeClass = 'badge-project';
+    else if (m.category === 'Teknologi') badgeClass = 'badge-core';
     else if (m.category === 'Migrasi') badgeClass = 'badge-migrasi';
     else if (m.category === 'Bisnis') badgeClass = 'badge-bisnis';
 

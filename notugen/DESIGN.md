@@ -13,7 +13,7 @@
   - Text Primary: Deep charcoal slate (#1C1917).
   - Text Secondary / Muted: Warm graphite (#57534E / #78716C).
   - Accent Pastels (Project Folders):
-    - Forest Sage: linear-gradient(135deg, #E6F4EA, #CEEAD6) (FSCM / Backend)
+    - Forest Sage: linear-gradient(135deg, #E6F4EA, #CEEAD6) (Produk / Backend)
     - Iris Lavender: linear-gradient(135deg, #F3E8FD, #E9D5FF) (Core Banking / iCons)
     - Warm Amber: linear-gradient(135deg, #FEF3C7, #FDE68A) (Migrasi & Data)
     - Rose Clay: linear-gradient(135deg, #FCE7F3, #FBCFE8) (Bisnis & Rekomendasi)

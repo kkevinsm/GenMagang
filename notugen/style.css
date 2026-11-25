@@ -825,7 +825,7 @@ html, body {
   letter-spacing: 0.03em;
 }
 
-.badge-fscm { background: var(--accent-green-bg); color: var(--accent-green); }
+.badge-project { background: var(--accent-green-bg); color: var(--accent-green); }
 .badge-core { background: #F3E8FD; color: #7E22CE; }
 .badge-migrasi { background: var(--accent-amber-bg); color: var(--accent-amber); }
 .badge-bisnis { background: #FCE7F3; color: #BE185D; }

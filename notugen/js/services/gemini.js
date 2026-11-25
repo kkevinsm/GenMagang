@@ -55,7 +55,7 @@ ${rawNotes ? 'Catatan tambahan / transkrip rapat:\n---\n' + rawNotes + '\n---' :
 
 SUSUN DOKUMEN NOTULEN RESMI DENGAN STRUKTUR JSON KETAT SEBAGAI BERIKUT:
 {
-  "category": "${category || 'FSCM'}",
+  "category": "${category || 'Umum'}",
   "title": "${customTitle ? customTitle : 'Judul meeting profesional berpoin (misal: a. ... \\n b. ...)'}",
   "date": "Hari, Tanggal (misal: Rabu, 21 Oktober 2026)",
   "time": "Jam meeting (misal: 14.00 - Selesai WIB)",
@@ -188,7 +188,7 @@ export function generateLocalCorporateNotulen(rawNotes, customTitle, category, m
   const title = customTitle || defaultTitle;
 
   return {
-    category: category || 'FSCM',
+    category: category || 'Umum',
     title: title,
     date: today,
     time: '14.00 - Selesai WIB',
