@@ -1,4 +1,4 @@
-# 🎓 GenMagang — Platform AI All-in-One untuk Anak Magang Indonesia
+# 🎓 GenMagang — Platform AI All-in-One untuk Peserta Maganghub Kemnaker RI
 
 **GenMagang** adalah platform produktivitas terintegrasi berbasis AI yang dirancang khusus untuk membebaskan mahasiswa dan peserta maganghub di Indonesia dari rutinitas administratif yang repetitif.
 
