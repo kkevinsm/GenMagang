@@ -1,10 +1,10 @@
 # 🎓 GenMagang — Platform AI All-in-One untuk Anak Magang Indonesia
 
-**GenMagang** adalah platform produktivitas terintegrasi berbasis AI yang dirancang khusus untuk membebaskan mahasiswa dan peserta magang di Indonesia dari rutinitas administratif yang repetitif.
+**GenMagang** adalah platform produktivitas terintegrasi berbasis AI yang dirancang khusus untuk membebaskan mahasiswa dan peserta maganghub di Indonesia dari rutinitas administratif yang repetitif.
 
 GenMagang menggabungkan 2 pilar solusi utama:
-1. **🤖 GenMonev:** Otomatisasi penyusunan laporan harian Monitoring dan Evaluasi (Monev) berstandar formal Kemnaker (> 100 karakter) dengan integrasi akun SIAPkerja ID dan Bot Telegram asisten absensi.
-2. **📝 GenNotulis:** Platform intelejen notulensi rapat korporat yang mengubah transkrip, rekaman suara mikrofon, maupun file video meeting menjadi risalah keputusan resmi berstandar BNI/korporat dan daftar tindak lanjut (*action items*).
+1. **🤖 GenMonev:** Otomatisasi penyusunan laporan harian Monitoring dan Evaluasi (Monev) Maganghub berstandar formal Kemnaker (> 100 karakter) dengan integrasi akun SIAPkerja ID dan Bot Telegram asisten absensi.
+2. **📝 GenNotulis:** Platform intelejen notulensi rapat korporat yang mengubah transkrip, rekaman suara mikrofon, maupun file video meeting menjadi risalah keputusan resmi berstandar korporat dan daftar tindak lanjut (*action items*).
 
 ---
 
@@ -42,17 +42,3 @@ npm run dev
 Buka browser di [http://localhost:3000](http://localhost:3000).
 
 ---
-
-## 🚢 Panduan Deploy ke Vercel
-
-Repositori ini siap langsung di-deploy ke Vercel:
-
-1. Buka [Vercel Dashboard](https://vercel.com/new).
-2. Pilih repositori GitHub: `https://github.com/kkevinsm/GenMagang.git`.
-3. Di bagian **Environment Variables**, tambahkan:
-   * `GEMINI_API_KEY` = *<API_KEY_ANDA>*
-   * `GEMINI_MODEL` = `gemini-flash-latest` (atau `gemini-2.5-flash`)
-   * `TELEGRAM_BOT_TOKEN` = *<TOKEN_BOT_ANDA>* (jika ada)
-4. Klik **Deploy**. Selesai!
-   Vercel akan otomatis menyajikan dashboard utama di `/`, GenMonev di `/monev`, dan GenNotulis di `/notulen`.
-
